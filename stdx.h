@@ -31,43 +31,36 @@ namespace stdx
                           && simd_abi_tag<typename V::abi_type>
                           && (Width == 0 || V::size() == Width);
 
-  template <typename From, vectorizable To>
-    concept value_preserving_conversion
-      = std::same_as<From, To>
-          || (std::convertible_to<From, To>
-                && (arithmetic<From>
-                      && not (std::is_signed_v<From> && std::is_unsigned_v<To>)
+  template <typename From, typename To>
+    concept value_preserving_convertible_to
+      = std::convertible_to<From, To>
+          && (not arithmetic<From> || not arithmetic<To>
+                || (not (std::is_signed_v<From> && std::is_unsigned_v<To>)
                       && std::numeric_limits<From>::digits <= std::numeric_limits<To>::digits
                       && std::numeric_limits<From>::max() <= std::numeric_limits<To>::max()
-                      && std::numeric_limits<From>::lowest() >= std::numeric_limits<To>::lowest())
-                || not arithmetic<From>);
+                      && std::numeric_limits<From>::lowest() >= std::numeric_limits<To>::lowest());
 
-  template <typename From, vectorizable To>
+  template <typename From, typename To>
     concept value_preserving_or_int
-      = (std::signed_integral<To> && std::same_as<std::remove_cvref_t<From>, int>)
-          || (std::unsigned_integral<To> && std::same_as<std::remove_cvref_t<From>, unsigned>)
-          || value_preserving_conversion<std::remove_cvref_t<From>, To>;
+      = value_preserving_convertible_to<std::remove_cvref_t<From>, To>
+          || (arithmetic<To> && std::same_as<std::remove_cvref_t<From>, int>)
+          || (std::unsigned_integral<To> && std::same_as<std::remove_cvref_t<From>, unsigned>);
 
-  // higher_integer_rank<T, U> (T has higher or equal integer rank than U)
-  template <std::integral T, std::integral U>
-    concept higher_integer_rank
-      = (sizeof(T) > sizeof(U)) || std::same_as<T, U>
-          || (sizeof(T) == sizeof(U) && requires(T a, U b) {
-            { a + b } -> std::same_as<T>;
-            // this may fail for char -> short if sizeof(char) == sizeof(short)
-          });
+  // higher_floating_point_rank_than<T, U> (T has higher or equal floating point rank than U)
+  template <typename From, typename To>
+    concept higher_floating_point_rank_than
+      = std::floating_point<From> && std::floating_point<To>
+          && std::same_as<std::common_type_t<From, To>, From>;
 
-  // higher_floating_point_rank<T, U> (T has higher or equal floating point rank than U)
-  template <std::floating_point T, std::floating_point U>
-    concept higher_floating_point_rank = requires(T a, U b)
-    {
-      { a + b } -> std::same_as<T>;
-    });
+  // higher_integer_rank_than<T, U> (T has higher or equal integer rank than U)
+  template <typename From, typename To>
+    concept higher_integer_rank_than
+      = std::integral<From> && std::integral<To>
+          && (sizeof(From) > sizeof(To) || std::same_as<std::common_type_t<From, To>, From>);
 
-  template <arithmetic T, arithmetic U>
-    concept higher_rank
-      = (std::integral<T> && std::integral<U> && higher_integer_rank<T, U>)
-          || (std::floating_point<T> && std::floating_point<U> && higher_floating_point_rank<T, U>);
+  template <typename From, typename To>
+    concept higher_rank_than
+      = higher_floating_point_rank_than<From, To> || higher_integer_rank_than<From, To>;
 
   template <typename F, typename T, std::size_t... Is>
     constexpr

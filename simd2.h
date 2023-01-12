@@ -48,7 +48,7 @@ template <class T, class A = stdx::simd_abi::native<T>>
       requires(stdx::simd_size_v<_Up, _UAbi> == size())
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
       explicit(not stdx::value_preserving_conversion<_Up, value_type>
-                 || stdx::higher_rank<_Up, value_type>)
+                 || stdx::higher_rank_than<_Up, value_type>)
       simd2(const simd<_Up, simd_abi::fixed_size<size()>>& __x) noexcept
       : Base(stdx::static_simd_cast<Base>(__x))
       {}
