@@ -1,3 +1,11 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
+/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                  Matthias Kretz <m.kretz@gsi.de>
+ */
+
+#ifndef PROTOTYPE_RANGES_INTEGRATION_ITERATOR_H_
+#define PROTOTYPE_RANGES_INTEGRATION_ITERATOR_H_
+
 #include "../prototype_simd_index/stdx.h"
 
 namespace std::experimental
@@ -253,3 +261,5 @@ template <typename T, typename A>
   end(simd<T, A>& v)
   { return {}; }
 }
+
+#endif  // PROTOTYPE_RANGES_INTEGRATION_ITERATOR_H_
