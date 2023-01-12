@@ -3,9 +3,14 @@
  *                  Matthias Kretz <m.kretz@gsi.de>
  */
 
-#include "../simd_mask.h"
+#ifndef PROTOTYPE_SIMD_ABI_H_
+#define PROTOTYPE_SIMD_ABI_H_
 
-auto test(std::simd_mask<int> x, std::simd<int> v)
+#include <experimental/simd>
+
+namespace std
 {
-  return -x + v;
+  namespace simd_abi = std::experimental::parallelism_v2::simd_abi;
 }
+
+#endif  // PROTOTYPE_SIMD_ABI_H_
