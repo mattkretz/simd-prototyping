@@ -12,6 +12,20 @@
 
 namespace std
 {
+  using element_aligned_tag = std::experimental::element_aligned_tag;
+
+  using vector_aligned_tag = std::experimental::vector_aligned_tag;
+
+  template <size_t _Np>
+    using overaligned_tag = std::experimental::overaligned_tag<_Np>;
+
+  inline constexpr element_aligned_tag element_aligned = {};
+
+  inline constexpr vector_aligned_tag vector_aligned = {};
+
+  template <size_t _Np>
+    inline constexpr overaligned_tag<_Np> overaligned = {};
+
   template <typename _Tp>
     struct is_abi_tag : std::experimental::is_abi_tag<_Tp>
     {};

@@ -15,10 +15,18 @@ namespace std
   template <typename _Tp, typename _Abi>
     class simd : public __detail::simd<_Tp, _Abi>
     {
+      using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
+
+      using _MemberType = typename _Traits::_SimdMember;
+
       using _Base = __detail::simd<_Tp, _Abi>;
 
     public:
+      using _Impl = typename _Traits::_SimdImpl;
+      friend _Impl;
+
       using value_type = _Base::value_type;
+
       using mask_type = std::simd_mask<_Tp, _Abi>;
 
       static inline constexpr __detail::_Cnst<_Base::size()> size = {};
@@ -26,11 +34,11 @@ namespace std
       constexpr
       simd() = default;
 
-      constexpr
+/*      constexpr
       simd(const simd&) = default;
 
       constexpr
-      simd(simd&&) = default;
+      simd(simd&&) = default;*/
 
       constexpr
       simd(const _Base& b)
@@ -68,6 +76,71 @@ namespace std
         : _Base(__mem, __f)
         {}
 
+      // private init
+      _GLIBCXX_SIMD_INTRINSIC constexpr
+      simd(__detail::_PrivateInit, const _MemberType& __init)
+      : _Base(__detail::__private_init, __init)
+      {}
+
+      // compound assignment [simd.cassign]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
+      operator+=(simd& __lhs, const simd& __x)
+      { return __lhs = __lhs + __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
+      operator-=(simd& __lhs, const simd& __x)
+      { return __lhs = __lhs - __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
+      operator*=(simd& __lhs, const simd& __x)
+      { return __lhs = __lhs * __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
+      operator/=(simd& __lhs, const simd& __x)
+      { return __lhs = __lhs / __x; }
+
+      // binary operators [simd.binary]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd
+      operator+(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_plus(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd
+      operator-(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_minus(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd
+      operator*(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_multiplies(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd
+      operator/(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_divides(__data(__x), __data(__y))}; }
+
+      // compares [simd.comparison]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator==(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_equal_to(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator!=(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_not_equal_to(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator<(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_less(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator<=(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_less_equal(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator>(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_less(__data(__y), __data(__x))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
+      operator>=(const simd& __x, const simd& __y)
+      { return {__detail::__private_init, _Impl::_S_less_equal(__data(__y), __data(__x))}; }
+
       // construction from span is simple
       constexpr
       simd(std::span<_Tp, size()> __mem)
@@ -102,6 +175,22 @@ namespace std
       explicit
       operator std::array<_Tp, size()>() const noexcept
       { return to_array(); }
+
+#ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
+#define conditional_operator operator?:
+#endif
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr simd
+      conditional_operator(const mask_type& __k, const simd& __t, const simd& __f)
+      {
+        auto __ret = __f;
+        _Impl::_S_masked_assign(__data(__k), __data(__ret), __data(__t));
+        return __ret;
+      }
+
+#ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
+#undef conditional_operator
+#endif
     };
 
   template <typename _Tp, typename _Abi>
@@ -116,6 +205,9 @@ namespace std
     -> simd<std::ranges::range_value_t<_Rg>,
             simd_abi::deduce_t<std::ranges::range_value_t<_Rg>,
                                __detail::__static_range_size<_Rg>>>;
+
+  template <typename _Tp, typename _Abi>
+    simd(std::simd_mask<_Tp, _Abi>) -> simd<_Tp, _Abi>;
 
   template <__detail::__vectorizable _Tp, __detail::__simd_type _Simd>
     requires requires { typename simd_abi::deduce_t<_Tp, _Simd::size()>; }
