@@ -9,6 +9,7 @@
 #include "detail.h"
 #include "simd_mask.h"
 #include <span>
+#include <iterator>
 
 namespace std
 {
@@ -70,10 +71,11 @@ namespace std
         {}
 
       // load constructor
-      template <__detail::__vectorizable _Up, typename _Flags = __detail::element_aligned_tag>
+      template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
+        requires std::input_iterator<_It> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        simd(const _Up* __mem, _Flags __f)
-        : _Base(__mem, __f)
+        simd(const _It& __first, _Flags __f = {})
+        : _Base(std::addressof(*__first), __f)
         {}
 
       // private init
@@ -81,6 +83,31 @@ namespace std
       simd(__detail::_PrivateInit, const _MemberType& __init)
       : _Base(__detail::__private_init, __init)
       {}
+
+      // loads and stores
+      template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
+        requires std::input_iterator<_It> && __detail::__vectorizable<std::iter_value_t<_It>>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_from(const _It& __first, _Flags __f = {})
+        { _Base::copy_from(std::addressof(*__first), __f); }
+
+      template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
+        requires std::input_iterator<_It> && __detail::__vectorizable<std::iter_value_t<_It>>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_from_if(const _It& __first, const mask_type& __k, _Flags __f = {})
+        { __detail::where(__k, *this).copy_from(std::addressof(*__first), __f); }
+
+      template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
+        requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_to(const _It& __first, _Flags __f = {}) const
+        { _Base::copy_to(std::addressof(*__first), __f); }
+
+      template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
+        requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_to_if(const _It& __first, const mask_type& __k, _Flags __f = {}) const
+        { __detail::where(__k, *this).copy_to(std::addressof(*__first), __f); }
 
       // compound assignment [simd.cassign]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
