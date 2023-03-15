@@ -17,6 +17,12 @@ namespace std
 {
   namespace __detail
   {
+    template <typename _Tp, std::size_t _Np>
+      using __deduced_simd = std::simd<_Tp, std::simd_abi::deduce_t<_Tp, _Np>>;
+
+    template <typename _Tp, std::size_t _Np>
+      using __deduced_simd_mask = std::simd_mask<_Tp, std::simd_abi::deduce_t<_Tp, _Np>>;
+
     template <size_t _Bytes>
       struct __make_unsigned;
 
@@ -59,7 +65,7 @@ namespace std
       }();
 
     template <auto _Value>
-      using _Cnst = integral_constant<decltype(_Value), _Value>;
+      using _Cnst = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;
 
     template <auto _Value>
       inline constexpr _Cnst<_Value> __cnst{};
@@ -129,6 +135,12 @@ namespace std
       {
         { __simd_broadcast_invokable_impl<_Fp, _Tp>(make_index_sequence<_Np>()) }
           -> same_as<_Cnst<true>>;
+      };
+
+    template <typename _Fp>
+      concept __index_permutation_function = requires(_Fp const& __f)
+      {
+        { __f(0) } -> std::integral;
       };
   }
 }
