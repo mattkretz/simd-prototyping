@@ -93,6 +93,9 @@ namespace std
                               && __simd_abi_tag<typename _Vp::abi_type>
                               && (_Width == 0 || _Vp::size() == _Width);
 
+    template <typename _Vp, std::size_t _Width = 0>
+      concept __simd_or_mask = __simd_type<_Vp, _Width> or __mask_type<_Vp, _Width>;
+
     template <typename _From, typename _To>
       concept __value_preserving_convertible_to
         = convertible_to<_From, _To>
@@ -138,10 +141,20 @@ namespace std
       };
 
     template <typename _Fp>
-      concept __index_permutation_function = requires(_Fp const& __f)
+      concept __index_permutation_function_nosize = requires(_Fp const& __f)
       {
         { __f(0) } -> std::integral;
       };
+
+    template <typename _Fp, typename _Simd>
+      concept __index_permutation_function_size = requires(_Fp const& __f)
+      {
+        { __f(0, _Simd::size) } -> std::integral;
+      };
+
+    template <typename _Fp, typename _Simd>
+      concept __index_permutation_function
+        = __index_permutation_function_size<_Fp, _Simd> or __index_permutation_function_nosize<_Fp>;
   }
 }
 

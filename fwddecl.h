@@ -54,11 +54,11 @@ namespace std
   template <typename _Tp>
     inline constexpr bool is_simd_flag_type_v = is_simd_flag_type<_Tp>::value;*/
 
-  template <typename _Tp, typename _Abi>
+  template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
     struct simd_size : std::experimental::simd_size<_Tp, _Abi>
     {};
 
-  template <typename _Tp, typename _Abi>
+  template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
     inline constexpr size_t simd_size_v = simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Vp>
@@ -68,23 +68,23 @@ namespace std
   template <typename _Tp, typename _Vp>
     using rebind_simd_t = typename rebind_simd<_Tp, _Vp>::type;
 
-  template <int _Np, typename _Vp>
+  template <size_t _Np, typename _Vp>
     struct resize_simd : std::experimental::resize_simd<_Np, _Vp>
     {};
 
-  template <int _Np, typename _Vp>
+  template <size_t _Np, typename _Vp>
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
   template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
     class simd;
 
-  template <typename _Tp, int _Np>
+  template <typename _Tp, size_t _Np>
     using fixed_size_simd = simd<_Tp, simd_abi::fixed_size<_Np>>;
 
   template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
     class simd_mask;
 
-  template <typename _Tp, int _Np>
+  template <typename _Tp, size_t _Np>
     using fixed_size_simd_mask = simd_mask<_Tp, simd_abi::fixed_size<_Np>>;
 }
 

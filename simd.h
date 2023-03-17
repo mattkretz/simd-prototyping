@@ -13,8 +13,6 @@
 
 namespace std
 {
-  constexpr int simd_permute_zero = INT_MIN;
-
   template <typename _Tp, typename _Abi>
     class simd : public __detail::simd<_Tp, _Abi>
     {
@@ -224,22 +222,6 @@ namespace std
       ///////////////////////
       // P2664::begin
 
-      template <std::size_t _Np = size()>
-        _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr resize_simd_t<_Np, simd>
-        permute(simd const& __v, __detail::__index_permutation_function auto const __idx_perm) noexcept
-        {
-          using _Rp = resize_simd_t<_Np, simd>;
-          return _Rp([&](auto __i) -> _Tp {
-                   constexpr int __j = __idx_perm(__i);
-                   if constexpr (__j == simd_permute_zero)
-                     return 0;
-                   else if constexpr (__j < 0)
-                     return __v[__v.size() + __j];
-                   else
-                     return __v[__j];
-                 });
-        }
-
       using _Base::operator[];
 
       template <std::integral _Up, typename _Ap>
@@ -283,15 +265,25 @@ namespace std
     struct rebind_simd<_Tp, _Mask>
     { using type = simd_mask<_Tp, simd_abi::deduce_t<_Tp, _Mask::size()>>; };
 
-  template <int _Np, __detail::__simd_type _Simd>
-    requires requires { typename simd_abi::deduce_t<typename _Simd::value_type, _Np>; }
+  template <size_t _Np, __detail::__simd_type _Simd>
+    requires (_Np != _Simd::size())
+      && requires { typename simd_abi::deduce_t<typename _Simd::value_type, _Np>; }
     struct resize_simd<_Np, _Simd>
     { using type = __detail::__deduced_simd<typename _Simd::value_type, _Np>; };
 
-  template <int _Np, __detail::__mask_type _Mask>
-    requires requires { typename simd_abi::deduce_t<typename _Mask::simd_type::value_type, _Np>; }
+  template <size_t _Np, __detail::__simd_type<_Np> _Simd>
+    struct resize_simd<_Np, _Simd>
+    { using type = _Simd; };
+
+  template <size_t _Np, __detail::__mask_type _Mask>
+    requires (_Np != _Mask::size())
+      && requires { typename simd_abi::deduce_t<typename _Mask::simd_type::value_type, _Np>; }
     struct resize_simd<_Np, _Mask>
     { using type = __detail::__deduced_simd_mask<typename _Mask::simd_type::value_type, _Np>; };
+
+  template <size_t _Np, __detail::__mask_type<_Np> _Mask>
+    struct resize_simd<_Np, _Mask>
+    { using type = _Mask; };
 
 }
 
