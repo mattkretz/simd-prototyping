@@ -1,10 +1,8 @@
 #include "../simd.h"
+#include "../iota.h"
 
 namespace std
 {
-  template <typename T>
-    constexpr T iota = T([](auto i) -> typename T::value_type { return i; });
-
   namespace __detail
   {
     template <int __n>
@@ -47,7 +45,7 @@ namespace std
       __detail::__for_template(
         __detail::__cnst<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
-          const _M __k = std::bit_cast<_M>((iota<_IV> & _IV(__n)) != 0);
+          const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
           __v = __k ? __binary_op(__v,
                             permute(__v, __detail::__prefix_sum_permutation<(1 << __i)>{}))
                     : __v;
@@ -72,7 +70,7 @@ namespace std
       __detail::__for_template(
         __detail::__cnst<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
-          const _M __k = std::bit_cast<_M>((iota<_IV> & _IV(__n)) != 0);
+          const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
           __v = __k ? __v + __factor * permute(__v, __detail::__prefix_sum_permutation<__n>{})
                     : __v;
           __factor = __k ? __a * __factor : __factor;
