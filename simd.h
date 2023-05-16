@@ -126,6 +126,19 @@ namespace std
         copy_to(_It __first, const mask_type& __k, _Flags __f = {}) const
         { __detail::where(__k, *this).copy_to(std::addressof(*__first), __f); }
 
+      // unary operators (for any _Tp)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr mask_type
+        operator!() const
+        { return {__detail::__private_init, _Impl::_S_negate(__data(*this))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr simd
+        operator+() const
+        { return *this; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr simd
+        operator-() const
+        { return {__detail::__private_init, _Impl::_S_unary_minus(__data(*this))}; }
+
       // compound assignment [simd.cassign]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend simd&
       operator+=(simd& __lhs, const simd& __x)
@@ -305,3 +318,4 @@ namespace std
 }
 
 #endif  // PROTOTYPE_SIMD2_H_
+// vim: et ts=8 sw=2 tw=120 cc=121
