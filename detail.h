@@ -94,7 +94,8 @@ namespace std
       concept __value_preserving_convertible_to
         = convertible_to<_From, _To>
             && (not __arithmetic<_From> || not __arithmetic<_To>
-                  || (not (is_signed_v<_From> && is_unsigned_v<_To>)
+                  || (__vectorizable<_From>
+                        && not (is_signed_v<_From> && is_unsigned_v<_To>)
                         && numeric_limits<_From>::digits <= numeric_limits<_To>::digits
                         && numeric_limits<_From>::max() <= numeric_limits<_To>::max()
                         && numeric_limits<_From>::lowest() >= numeric_limits<_To>::lowest()));
@@ -102,8 +103,12 @@ namespace std
     template <typename _From, typename _To>
       concept __value_preserving_or_int
         = __value_preserving_convertible_to<remove_cvref_t<_From>, _To>
+#if INT_NOT_SPECIAL
+        ;
+#else
             || (__arithmetic<_To> && same_as<remove_cvref_t<_From>, int>)
             || (unsigned_integral<_To> && same_as<remove_cvref_t<_From>, unsigned>);
+#endif
 
     // __higher_floating_point_rank_than<_Tp, U> (_Tp has higher or equal floating point rank than U)
     template <typename _From, typename _To>
@@ -121,9 +126,69 @@ namespace std
       concept __higher_rank_than
         = __higher_floating_point_rank_than<_From, _To> || __higher_integer_rank_than<_From, _To>;
 
+    template <typename _T0, typename _T1>
+      struct __sane_common_type : std::common_type<_T0, _T1>
+      {};
+
+    template <typename _T0, typename _T1>
+      requires requires{ {_T0::value} -> convertible_to<_T1>; }
+      struct __sane_common_type<_T0, _T1> : __sane_common_type<decltype(_T0::value), _T1>
+      {};
+
+    template <typename _T0, typename _T1>
+      requires requires{ {_T1::value} -> convertible_to<_T0>; }
+      struct __sane_common_type<_T0, _T1> : __sane_common_type<_T0, decltype(_T1::value)>
+      {};
+
+    template <typename _Tp>
+      struct __sane_common_type<_Tp, _Tp>
+      { using type = _Tp; };
+
+    template <typename _T0, typename _T1>
+      requires __higher_integer_rank_than<int, _T0> and __higher_integer_rank_than<int, _T1>
+        and (std::is_signed_v<_T0> == std::is_signed_v<_T1>)
+      struct __sane_common_type<_T0, _T1>
+      : std::conditional<__higher_integer_rank_than<_T0, _T1>, _T0, _T1>
+      {};
+
+    template <typename _T0, typename _T1>
+      requires __higher_integer_rank_than<int, _T0> and __higher_integer_rank_than<int, _T1>
+        and (std::is_signed_v<_T0> != std::is_signed_v<_T1>)
+      struct __sane_common_type<_T0, _T1>
+      {
+        using _Up = std::conditional_t<std::is_signed_v<_T0>, _T1, _T0>;
+        using _Sp = std::conditional_t<std::is_signed_v<_T0>, _T0, _T1>;
+        using type = std::conditional_t<(sizeof(_Up) >= sizeof(_Sp)), _Up, _Sp>;
+      };
+
+    template <typename _T0, typename _T1>
+      using __sane_common_type_t = typename __sane_common_type<_T0, _T1>::type;
+
+    static_assert(std::same_as<__sane_common_type_t<short, signed char>, short>);
+    static_assert(std::same_as<__sane_common_type_t<short, unsigned char>, short>);
+    static_assert(std::same_as<__sane_common_type_t<short, unsigned short>, unsigned short>);
+    static_assert(std::same_as<__sane_common_type_t<short, char>, short>);
+
+    template <typename _From, typename _To>
+      concept __non_narrowing_constexpr_conversion
+        = requires { { std::remove_cvref_t<_From>::value } -> std::convertible_to<_To>; }
+            and decltype(std::remove_cvref_t<_From>::value)(_To{std::remove_cvref_t<_From>::value})
+                  == std::remove_cvref_t<_From>::value
+            and not (std::unsigned_integral<_To> and std::remove_cvref_t<_From>::value < 0)
+            and std::remove_cvref_t<_From>::value <= std::numeric_limits<_To>::max()
+            and std::remove_cvref_t<_From>::value >= std::numeric_limits<_To>::lowest();
+
+    static_assert(    __non_narrowing_constexpr_conversion<_Cnst< 1>, unsigned short>);
+    static_assert(not __non_narrowing_constexpr_conversion<_Cnst<-1>, unsigned short>);
+
     template <typename _Fp, typename _Tp, std::size_t... _Is>
       constexpr
-      _Cnst<(__value_preserving_or_int<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
+      _Cnst<(
+#if SIMPLE_CONVERSIONS
+          std::convertible_to<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
+#else
+          __value_preserving_or_int<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
+#endif
                          && ...)>
       __simd_broadcast_invokable_impl(index_sequence<_Is...>);
 
