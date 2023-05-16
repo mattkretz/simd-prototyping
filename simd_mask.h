@@ -69,6 +69,14 @@ namespace std
         : _Base(std::addressof(*__first), __f)
         {}
 
+      template <typename _It, typename _Flags = element_aligned_tag>
+        requires std::same_as<std::iter_value_t<_It>, bool>
+                   and std::contiguous_iterator<_It>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+        basic_simd_mask(_It __first, const basic_simd_mask& __k, _Flags __f = {})
+        : _Base()
+        { __detail::where(__k, *this).copy_from(std::addressof(*__first), __f); }
+
       // private init
       _GLIBCXX_SIMD_INTRINSIC constexpr
       basic_simd_mask(__detail::_PrivateInit, const _MemberType& __init)
