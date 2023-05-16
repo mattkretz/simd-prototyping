@@ -252,7 +252,13 @@ namespace std
       ///////////////////////
       // P2664::begin
 
-      using _Base::operator[];
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr reference
+      operator[](size_t __i) &
+      { return _Base::operator[](__i); }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr value_type
+      operator[]([[maybe_unused]] size_t __i) const&
+      { return _Base::operator[](__i); }
 
       template <std::integral _Up, typename _Ap>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr rebind_simd_t<_Tp, simd<_Up, _Ap>>
