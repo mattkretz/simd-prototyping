@@ -123,11 +123,11 @@ namespace std
         }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#define conditional_operator operator?:
+#define conditional_operator_impl operator?:
 #endif
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      conditional_operator(const basic_simd_mask& __k, const basic_simd_mask& __t, const basic_simd_mask& __f)
+      conditional_operator_impl(const basic_simd_mask& __k, const basic_simd_mask& __t, const basic_simd_mask& __f)
       {
         basic_simd_mask __ret = __f;
         _Impl::_S_masked_assign(__k._M_data, __ret._M_data, __t._M_data);
@@ -139,7 +139,7 @@ namespace std
                     && sizeof(common_type_t<_U1, _U2>) == _Bytes)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
         simd<common_type_t<_U1, _U2>, _Abi>
-        conditional_operator(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
+        conditional_operator_impl(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
         {
           using _Rp = simd<common_type_t<_U1, _U2>, _Abi>;
           _Rp __ret = __f;
@@ -148,7 +148,7 @@ namespace std
         }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      conditional_operator(const basic_simd_mask& __k, bool __t, bool __f)
+      conditional_operator_impl(const basic_simd_mask& __k, bool __t, bool __f)
       {
         if (__t == __f)
           return basic_simd_mask(__t);
@@ -159,7 +159,7 @@ namespace std
       }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#undef conditional_operator
+#undef conditional_operator_impl
 #endif
     };
 
@@ -168,6 +168,38 @@ namespace std
     : is_default_constructible<basic_simd_mask<_Np, _Abi>>
     {};
 
+  namespace __cust_condop
+  {
+    void conditional_operator_impl(const auto&, const auto&, const auto&) = delete;
+
+    template <typename _Cond, typename _T0, typename _T1>
+      concept __adl_condop
+        = (__detail::__class_or_enum<remove_reference_t<_Cond>>
+             or __detail::__class_or_enum<remove_reference_t<_T0>>
+             or __detail::__class_or_enum<remove_reference_t<_T1>>)
+            and requires(_Cond&& __c, _T0&& __x0, _T1&& __x1)
+      {
+        conditional_operator_impl(static_cast<_Cond&&>(__c),
+                                  static_cast<_T0&&>(__x0), static_cast<_T1&&>(__x1));
+      };
+
+    struct _ConditionalOperator
+    {
+      template <typename _Cond, typename _T0, typename _T1>
+        constexpr auto
+        operator()(_Cond&& __c, _T0&& __x0, _T1&& __x1) const
+        {
+          if constexpr (__adl_condop<_Cond, _T0, _T1>)
+            return conditional_operator_impl(static_cast<_Cond&&>(__c),
+                                             static_cast<_T0&&>(__x0), static_cast<_T1&&>(__x1));
+          else
+            return static_cast<_Cond&&>(__c) ? static_cast<_T0&&>(__x0) : static_cast<_T1&&>(__x1);
+        }
+    };
+  }
+
+  inline constexpr __cust_condop::_ConditionalOperator conditional_operator{};
 }
 
 #endif  // PROTOTYPE_SIMD_MASK2_H_
+// vim: et ts=8 sw=2 tw=120 cc=121

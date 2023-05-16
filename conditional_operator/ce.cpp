@@ -5,6 +5,7 @@
 
 #include "../simd.h"
 
+#if 0
 auto f0(std::simd<int> x)
 {
   return x > 0 ? 2 * x : x;
@@ -34,6 +35,25 @@ auto f5(std::simd<int> x)
 {
   return x > 0 ? true : false;
 }
+#else
+auto f0(std::simd<int> x)
+{
+  return std::conditional_operator(x > 0 , 2 * x , x);
+}
+
+auto f1(std::simd<int> x)
+{
+  return std::conditional_operator(x > 0 , 1 , 0.f);
+}
+auto f1(int x)
+{
+  return std::conditional_operator(x > 0 , ++x , 0.f);
+}
+auto f1x(int x)
+{
+  return x > 0 ? ++x : 0.f;
+}
+#endif
 
 int count_positive(const std::vector<std::simd<float>>& x)
 {
