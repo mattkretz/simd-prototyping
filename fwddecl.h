@@ -62,14 +62,14 @@ namespace std
     inline constexpr size_t simd_size_v = simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Vp>
-    struct rebind_simd : std::experimental::rebind_simd<_Tp, _Vp>
+    struct rebind_simd
     {};
 
   template <typename _Tp, typename _Vp>
     using rebind_simd_t = typename rebind_simd<_Tp, _Vp>::type;
 
   template <size_t _Np, typename _Vp>
-    struct resize_simd : std::experimental::resize_simd<_Np, _Vp>
+    struct resize_simd
     {};
 
   template <size_t _Np, typename _Vp>

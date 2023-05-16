@@ -14,7 +14,7 @@
 namespace std
 {
   template <typename _Tp, typename _Abi>
-    class simd : public __detail::simd<_Tp, _Abi>
+    class simd : protected __detail::simd<_Tp, _Abi>
     {
       using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
 
@@ -26,7 +26,11 @@ namespace std
       using _Impl = typename _Traits::_SimdImpl;
       friend _Impl;
 
+      using reference = _Base::reference;
+
       using value_type = _Base::value_type;
+
+      using abi_type = _Base::abi_type;
 
       using mask_type = std::simd_mask<_Tp, _Abi>;
 
