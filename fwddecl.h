@@ -79,7 +79,7 @@ namespace std
     class simd;
 
   template <typename _Tp, size_t _Np>
-    using fixed_size_simd = simd<_Tp, simd_abi::fixed_size<_Np>>;
+    using fixed_size_simd = simd<_Tp, simd_abi::fixed_size<_Tp, _Np>>;
 
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask;
@@ -88,7 +88,7 @@ namespace std
     using simd_mask = basic_simd_mask<sizeof(_Tp), _Abi>;
 
   template <typename _Tp, size_t _Np>
-    using fixed_size_simd_mask = simd_mask<_Tp, simd_abi::fixed_size<_Np>>;
+    using fixed_size_simd_mask = simd_mask<_Tp, simd_abi::fixed_size<_Tp, _Np>>;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

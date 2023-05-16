@@ -248,32 +248,32 @@ namespace std
     {};
 
   template <class _Tp, size_t _Extend>
-    simd(std::span<_Tp, _Extend>) -> simd<_Tp, simd_abi::deduce_t<_Tp, _Extend>>;
+    simd(std::span<_Tp, _Extend>) -> simd<_Tp, simd_abi::fixed_size<_Tp, _Extend>>;
 
   template <std::ranges::contiguous_range _Rg>
     simd(const _Rg& x)
     -> simd<std::ranges::range_value_t<_Rg>,
-            simd_abi::deduce_t<std::ranges::range_value_t<_Rg>,
+            simd_abi::fixed_size<std::ranges::range_value_t<_Rg>,
                                __detail::__static_range_size<_Rg>>>;
 
   template <typename _Tp, typename _Abi>
     simd(std::simd_mask<_Tp, _Abi>) -> simd<_Tp, _Abi>;
 
   template <__detail::__vectorizable _Tp, __detail::__simd_type _Simd>
-    requires requires { typename simd_abi::deduce_t<_Tp, _Simd::size()>; }
+    requires requires { typename simd_abi::fixed_size<_Tp, _Simd::size()>; }
     struct rebind_simd<_Tp, _Simd>
-    { using type = simd<_Tp, simd_abi::deduce_t<_Tp, _Simd::size()>>; };
+    { using type = simd<_Tp, simd_abi::fixed_size<_Tp, _Simd::size()>>; };
 
   template <__detail::__vectorizable _Tp, __detail::__mask_type _Mask>
-    requires requires { typename simd_abi::deduce_t<_Tp, _Mask::size()>; }
+    requires requires { typename simd_abi::fixed_size<_Tp, _Mask::size()>; }
     struct rebind_simd<_Tp, _Mask>
-    { using type = simd_mask<_Tp, simd_abi::deduce_t<_Tp, _Mask::size()>>; };
+    { using type = simd_mask<_Tp, simd_abi::fixed_size<_Tp, _Mask::size()>>; };
 
   template <size_t _Np, __detail::__simd_type _Simd>
     requires (_Np != _Simd::size())
-      && requires { typename simd_abi::deduce_t<typename _Simd::value_type, _Np>; }
+      && requires { typename simd_abi::fixed_size<typename _Simd::value_type, _Np>; }
     struct resize_simd<_Np, _Simd>
-    { using type = __detail::__deduced_simd<typename _Simd::value_type, _Np>; };
+    { using type = fixed_size_simd<typename _Simd::value_type, _Np>; };
 
   template <size_t _Np, __detail::__simd_type<_Np> _Simd>
     struct resize_simd<_Np, _Simd>
@@ -281,9 +281,9 @@ namespace std
 
   template <size_t _Np, __detail::__mask_type _Mask>
     requires (_Np != _Mask::size())
-      && requires { typename simd_abi::deduce_t<typename _Mask::simd_type::value_type, _Np>; }
+      && requires { typename simd_abi::fixed_size<typename _Mask::simd_type::value_type, _Np>; }
     struct resize_simd<_Np, _Mask>
-    { using type = __detail::__deduced_simd_mask<typename _Mask::simd_type::value_type, _Np>; };
+    { using type = fixed_size_simd_mask<typename _Mask::simd_type::value_type, _Np>; };
 
   template <size_t _Np, __detail::__mask_type<_Np> _Mask>
     struct resize_simd<_Np, _Mask>

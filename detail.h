@@ -17,12 +17,6 @@ namespace std
 {
   namespace __detail
   {
-    template <typename _Tp, std::size_t _Np>
-      using __deduced_simd = std::simd<_Tp, std::simd_abi::deduce_t<_Tp, _Np>>;
-
-    template <typename _Tp, std::size_t _Np>
-      using __deduced_simd_mask = std::simd_mask<_Tp, std::simd_abi::deduce_t<_Tp, _Np>>;
-
     template <size_t _Bytes>
       struct __make_unsigned;
 
