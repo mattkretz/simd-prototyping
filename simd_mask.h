@@ -169,6 +169,18 @@ namespace std
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
 #undef conditional_operator_impl
 #endif
+
+      constexpr const auto& _M_data() const
+      { return __data(static_cast<const _Base&>(*this)); }
+
+      constexpr auto& _M_data()
+      { return __data(static_cast<_Base&>(*this)); }
+
+      friend constexpr const auto& __data(const basic_simd_mask& __x)
+      { return __x._M_data(); }
+
+      friend constexpr auto& __data(basic_simd_mask& __x)
+      { return __x._M_data(); }
     };
 
   template <size_t _Np, typename _Abi>

@@ -334,6 +334,18 @@ namespace std
 
       // P2664::end
       ///////////////////////
+
+      constexpr const auto& _M_data() const
+      { return __data(static_cast<const _Base&>(*this)); }
+
+      constexpr auto& _M_data()
+      { return __data(static_cast<_Base&>(*this)); }
+
+      friend constexpr const auto& __data(const simd& __x)
+      { return __x._M_data(); }
+
+      friend constexpr auto& __data(simd& __x)
+      { return __x._M_data(); }
     };
 
   template <typename _Tp, typename _Abi>
