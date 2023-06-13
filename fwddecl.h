@@ -54,11 +54,11 @@ namespace std
   template <typename _Tp>
     inline constexpr bool is_simd_flag_type_v = is_simd_flag_type<_Tp>::value;*/
 
-  template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
+  template <typename _Tp, typename _Abi = std::experimental::simd_abi::native<_Tp>>
     struct simd_size : std::experimental::simd_size<_Tp, _Abi>
     {};
 
-  template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
+  template <typename _Tp, typename _Abi = std::experimental::simd_abi::native<_Tp>>
     inline constexpr size_t simd_size_v = simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Vp>
@@ -75,20 +75,17 @@ namespace std
   template <size_t _Np, typename _Vp>
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
-  template <typename _Tp, typename _Abi = simd_abi::native<_Tp>>
-    class simd;
+  template <typename _Tp, typename _Abi = std::experimental::parallelism_v2::simd_abi::native<_Tp>>
+    class basic_simd;
 
-  template <typename _Tp, size_t _Np>
-    using fixed_size_simd = simd<_Tp, simd_abi::fixed_size<_Tp, _Np>>;
+  template <typename _Tp, size_t _Np = basic_simd<_Tp>::size()>
+    using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask;
 
-  template <typename _Tp, typename _Abi>
-    using simd_mask = basic_simd_mask<sizeof(_Tp), _Abi>;
-
-  template <typename _Tp, size_t _Np>
-    using fixed_size_simd_mask = simd_mask<_Tp, simd_abi::fixed_size<_Tp, _Np>>;
+  template <typename _Tp, std::size_t _Np>
+    using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

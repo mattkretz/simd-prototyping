@@ -10,20 +10,11 @@
 
 namespace std
 {
-  namespace simd_abi
+  namespace __detail
   {
-    using scalar = std::experimental::parallelism_v2::simd_abi::scalar;
-
-    template <typename _Tp>
-      using native = std::experimental::parallelism_v2::simd_abi::native<_Tp>;
-
     template <typename _Tp, size_t _Np>
-      using fixed_size
+      using __deduce_t
         = typename std::experimental::parallelism_v2::simd_abi::deduce<_Tp, _Np>::type;
-
-    template <typename _Tp>
-      inline constexpr size_t max_fixed_size
-        = std::experimental::parallelism_v2::simd_abi::max_fixed_size<_Tp>;
   }
 }
 

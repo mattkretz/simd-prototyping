@@ -29,7 +29,7 @@ namespace std
     public:
       using value_type = bool;
 
-      using simd_type = std::simd<_Tp, _Abi>;
+      using simd_type = std::basic_simd<_Tp, _Abi>;
 
       using _Impl = _Base::_Impl;
 
@@ -109,12 +109,12 @@ namespace std
       template <typename _Up, typename _UAbi>
         requires (simd_size_v<_Up, _UAbi> == size)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit(sizeof(_Up) != _Bytes)
-        operator simd<_Up, _UAbi>() const noexcept
+        operator basic_simd<_Up, _UAbi>() const noexcept
         {
-          using _Rp = simd<_Up, _UAbi>;
+          using _Rp = basic_simd<_Up, _UAbi>;
           if constexpr (sizeof(basic_simd_mask) == sizeof(_Rp) && sizeof(_Up) == _Bytes)
             {
-              using _Unsigned = rebind_simd_t<__detail::__make_unsigned_t<_Up>, _Rp>;
+              using _Unsigned = simd<__detail::__make_unsigned_t<_Up>, _Rp::size()>;
               const auto __bits = std::bit_cast<_Unsigned>(__data(*this));
               if constexpr (std::integral<_Up>)
                 return std::bit_cast<_Rp>(__bits >> (sizeof(_Up) * CHAR_BIT - 1));
@@ -146,10 +146,10 @@ namespace std
         requires (__detail::__vectorizable<common_type_t<_U1, _U2>>
                     && sizeof(common_type_t<_U1, _U2>) == _Bytes)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
-        simd<common_type_t<_U1, _U2>, _Abi>
+        basic_simd<common_type_t<_U1, _U2>, _Abi>
         conditional_operator_impl(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
         {
-          using _Rp = simd<common_type_t<_U1, _U2>, _Abi>;
+          using _Rp = basic_simd<common_type_t<_U1, _U2>, _Abi>;
           _Rp __ret = __f;
           _Rp::_Impl::_S_masked_assign(__data(__k), __data(__ret), __data(_Rp(__t)));
           return __ret;
@@ -222,4 +222,4 @@ namespace std
 }
 
 #endif  // PROTOTYPE_SIMD_MASK2_H_
-// vim: et ts=8 sw=2 tw=120 cc=121
+// vim: et ts=8 sw=2 tw=100 cc=101
