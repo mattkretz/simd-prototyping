@@ -72,3 +72,30 @@ static_assert(
 static_assert(
   all_of(std::permute(std::iota_v<std::simd<int, 7>>, std::simd_permutations::rotate<-2>)
            == std::simd<int, 7>(std::array {5, 6, 0, 1, 2, 3, 4}.begin())));
+
+static_assert(std::simd_flags<>() == std::simd_flag_default);
+
+static_assert(std::simd_flag_aligned != std::simd_flag_default);
+
+static_assert(std::simd_flag_default != std::simd_flag_aligned);
+
+static_assert((std::simd_flag_default | std::simd_flag_default) == std::simd_flag_default);
+
+static_assert((std::simd_flag_aligned | std::simd_flag_default) == std::simd_flag_aligned);
+
+static_assert((std::simd_flag_aligned | std::simd_flag_aligned) == std::simd_flag_aligned);
+
+static_assert((std::simd_flag_aligned | std::simd_flag_convert)
+                == (std::simd_flag_convert | std::simd_flag_aligned));
+
+static_assert(((std::simd_flag_aligned | std::simd_flag_convert) & std::simd_flag_aligned)
+                != (std::simd_flag_convert | std::simd_flag_aligned));
+
+static_assert(((std::simd_flag_aligned | std::simd_flag_convert) & std::simd_flag_aligned)
+                == std::simd_flag_aligned);
+
+static_assert(std::simd_flag_aligned.test(std::simd_flag_aligned));
+
+static_assert(std::simd_flag_aligned.test(std::simd_flag_default));
+
+static_assert(not std::simd_flag_default.test(std::simd_flag_aligned));

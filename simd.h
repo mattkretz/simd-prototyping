@@ -8,6 +8,7 @@
 
 #include "detail.h"
 #include "simd_mask.h"
+#include "flags.h"
 #include <span>
 #include <iterator>
 
