@@ -255,11 +255,11 @@ namespace std
       { return to_array(); }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#define conditional_operator_impl operator?:
+#define simd_select_impl operator?:
 #endif
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd
-      conditional_operator_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
+      simd_select_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
       {
         auto __ret = __f;
         _Impl::_S_masked_assign(__data(__k), __data(__ret), __data(__t));
@@ -267,7 +267,7 @@ namespace std
       }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#undef conditional_operator_impl
+#undef simd_select_impl
 #endif
 
       ///////////////////////

@@ -38,16 +38,16 @@ auto f5(std::simd<int> x)
 #else
 auto f0(std::simd<int> x)
 {
-  return std::conditional_operator(x > 0 , 2 * x , x);
+  return simd_select(x > 0 , 2 * x , x);
 }
 
 auto f1(std::simd<int> x)
 {
-  return std::conditional_operator(x > 0 , 1 , 0.f);
+  return std::simd_select(x > 0 , 1 , 0.f);
 }
 auto f1(int x)
 {
-  return std::conditional_operator(x > 0 , ++x , 0.f);
+  return std::simd_select(x > 0 , ++x , 0.f);
 }
 auto f1x(int x)
 {

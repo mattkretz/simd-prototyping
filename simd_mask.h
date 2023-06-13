@@ -144,12 +144,12 @@ namespace std
         }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#define conditional_operator_impl operator?:
+#define simd_select_impl operator?:
 #endif
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      conditional_operator_impl(const basic_simd_mask& __k,
-                                const basic_simd_mask& __t, const basic_simd_mask& __f)
+      simd_select_impl(const basic_simd_mask& __k, const basic_simd_mask& __t,
+                       const basic_simd_mask& __f)
       {
         basic_simd_mask __ret = __f;
         _Impl::_S_masked_assign(__k._M_data(), __ret._M_data(), __t._M_data());
@@ -161,7 +161,7 @@ namespace std
                     && sizeof(__detail::__nopromot_common_type_t<_U1, _U2>) == _Bytes)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
         simd<__detail::__nopromot_common_type_t<_U1, _U2>, size()>
-        conditional_operator_impl(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
+        simd_select_impl(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
         {
           using _Rp = simd<__detail::__nopromot_common_type_t<_U1, _U2>, size()>;
           _Rp __ret = __f;
@@ -170,7 +170,7 @@ namespace std
         }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      conditional_operator_impl(const basic_simd_mask& __k, bool __t, bool __f)
+      simd_select_impl(const basic_simd_mask& __k, bool __t, bool __f)
       {
         if (__t == __f)
           return basic_simd_mask(__t);
@@ -181,7 +181,7 @@ namespace std
       }
 
 #ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#undef conditional_operator_impl
+#undef simd_select_impl
 #endif
 
       constexpr const auto& _M_data() const
@@ -251,37 +251,17 @@ namespace std
         return _Abi::_MaskImpl::_S_none_of(__k);
     }
 
-  namespace __cust_condop
-  {
-    void conditional_operator_impl(const auto&, const auto&, const auto&) = delete;
+  template <typename _Tp, typename _Up>
+    constexpr auto
+    simd_select(bool __c, const _Tp& __x0, const _Up& __x1)
+    -> remove_cvref_t<decltype(__c ? __x0 : __x1)>
+    { return __c ? __x0 : __x1; }
 
-    template <typename _Cond, typename _T0, typename _T1>
-      concept __adl_condop
-        = (__detail::__class_or_enum<remove_reference_t<_Cond>>
-             or __detail::__class_or_enum<remove_reference_t<_T0>>
-             or __detail::__class_or_enum<remove_reference_t<_T1>>)
-            and requires(_Cond&& __c, _T0&& __x0, _T1&& __x1)
-      {
-        conditional_operator_impl(static_cast<_Cond&&>(__c),
-                                  static_cast<_T0&&>(__x0), static_cast<_T1&&>(__x1));
-      };
-
-    struct _ConditionalOperator
-    {
-      template <typename _Cond, typename _T0, typename _T1>
-        constexpr auto
-        operator()(_Cond&& __c, _T0&& __x0, _T1&& __x1) const
-        {
-          if constexpr (__adl_condop<_Cond, _T0, _T1>)
-            return conditional_operator_impl(static_cast<_Cond&&>(__c),
-                                             static_cast<_T0&&>(__x0), static_cast<_T1&&>(__x1));
-          else
-            return static_cast<_Cond&&>(__c) ? static_cast<_T0&&>(__x0) : static_cast<_T1&&>(__x1);
-        }
-    };
-  }
-
-  inline constexpr __cust_condop::_ConditionalOperator conditional_operator{};
+  template <size_t _Np, typename _A0>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
+    simd_select(const basic_simd_mask<_Np, _A0>& __k, const auto& __x0, const auto& __x1)
+    -> decltype(simd_select_impl(__k, __x0, __x1))
+    { return simd_select_impl(__k, __x0, __x1); }
 }
 
 #endif  // PROTOTYPE_SIMD_MASK2_H_
