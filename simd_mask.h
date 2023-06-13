@@ -181,12 +181,61 @@ namespace std
 
       friend constexpr auto& __data(basic_simd_mask& __x)
       { return __x._M_data(); }
+
+      _GLIBCXX_SIMD_INTRINSIC constexpr bool
+      _M_is_constprop() const
+      { return static_cast<const _Base&>(*this)._M_is_constprop(); }
     };
 
-  template <size_t _Np, typename _Abi>
-    struct is_simd_mask<basic_simd_mask<_Np, _Abi>>
-    : is_default_constructible<basic_simd_mask<_Np, _Abi>>
+  template <size_t _Bs, typename _Abi>
+    struct is_simd_mask<basic_simd_mask<_Bs, _Abi>>
+    : is_default_constructible<basic_simd_mask<_Bs, _Abi>>
     {};
+
+  template <size_t _Bs, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    {
+      if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
+        {
+          for (size_t __i = 0; __i < __k.size(); ++__i)
+            if (!__k[__i])
+              return false;
+          return true;
+        }
+      else
+        return _Abi::_MaskImpl::_S_all_of(__k);
+    }
+
+  template <size_t _Bs, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    any_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    {
+      if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
+        {
+          for (size_t __i = 0; __i < __k.size(); ++__i)
+            if (__k[__i])
+              return true;
+          return false;
+        }
+      else
+        return _Abi::_MaskImpl::_S_any_of(__k);
+    }
+
+  template <size_t _Bs, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    none_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    {
+      if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
+        {
+          for (size_t __i = 0; __i < __k.size(); ++__i)
+            if (__k[__i])
+              return false;
+          return true;
+        }
+      else
+        return _Abi::_MaskImpl::_S_none_of(__k);
+    }
 
   namespace __cust_condop
   {
