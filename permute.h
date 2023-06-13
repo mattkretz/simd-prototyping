@@ -45,7 +45,7 @@ namespace std
                         "swap_neighbors<N> permutation requires a multiple of 2N elements");
           if (std::has_single_bit(_Np))
             return __i ^ _Np;
-          else if (__i % (2 * _Np) > _Np)
+          else if (__i % (2 * _Np) >= _Np)
             return __i - _Np;
           else
             return __i + _Np;
@@ -84,7 +84,7 @@ namespace std
     {
       consteval int
       operator()(int __i, auto __size) const
-      { return (__i + _Offset) % __size(); }
+      { return (__i + _Offset) % int(__size()); }
     };
 
     template <int _Offset>
