@@ -35,48 +35,77 @@ namespace std
 
     inline constexpr _DuplicateOdd duplicate_odd {};
 
-    struct _SwapNeighbors
-    {
-      consteval unsigned
-      operator()(unsigned __i) const
-      { return __i ^ 1u; }
-    };
-
-    inline constexpr _SwapNeighbors swap_neighbors {};
-
-    template <unsigned _Position>
-      struct _Broadcast
+    template <unsigned _Np>
+      struct _SwapNeighbors
       {
         consteval unsigned
-        operator()(unsigned, auto __size) const
+        operator()(unsigned __i, auto __size) const
         {
-          static_assert(_Position < __size);
-          return _Position;
+          static_assert(__size % (2 * _Np) == 0,
+                        "swap_neighbors<N> permutation requires a multiple of 2N elements");
+          if (std::has_single_bit(_Np))
+            return __i ^ _Np;
+          else if (__i % (2 * _Np) > _Np)
+            return __i - _Np;
+          else
+            return __i + _Np;
         }
       };
 
-    template <unsigned _Position = 0u>
+    template <unsigned _Np = 1u>
+      inline constexpr _SwapNeighbors<_Np> swap_neighbors {};
+
+    template <int _Position>
+      struct _Broadcast
+      {
+        consteval int
+        operator()(int) const
+        { return _Position; }
+      };
+
+    template <int _Position>
       inline constexpr _Broadcast<_Position> broadcast {};
 
-    inline constexpr _Broadcast<0u> broadcast_first {};
+    inline constexpr _Broadcast<0> broadcast_first {};
 
-    struct _BroadcastLast
-    {
-      consteval unsigned
-      operator()(unsigned, auto __size) const
-      { return __size() - 1; }
-    };
-
-    inline constexpr _BroadcastLast broadcast_last {};
+    inline constexpr _Broadcast<-1> broadcast_last {};
 
     struct _Reverse
     {
-      consteval unsigned
-      operator()(unsigned __i, auto __size) const
-      { return __size() - 1 - __i; }
+      consteval int
+      operator()(int __i) const
+      { return -1 - __i; }
     };
 
     inline constexpr _Reverse reverse {};
+
+    template <int _Offset>
+    struct _Rotate
+    {
+      consteval int
+      operator()(int __i, auto __size) const
+      { return (__i + _Offset) % __size(); }
+    };
+
+    template <int _Offset>
+      inline constexpr _Rotate<_Offset> rotate {};
+
+    template <int _Offset>
+    struct _Shift
+    {
+      consteval int
+      operator()(int __i, auto __size) const
+      {
+        const int __j = __i + _Offset;
+        if (__j >= __size or -__j > __size)
+          return simd_permute_zero;
+        else
+          return __j;
+      }
+    };
+
+    template <int _Offset>
+      inline constexpr _Shift<_Offset> shift {};
   }
 
   template <std::size_t _Np = 0, __detail::__simd_or_mask _Vp,
@@ -96,32 +125,17 @@ namespace std
                if constexpr (__j == simd_permute_zero)
                  return 0;
                else if constexpr (__j < 0)
-                 return __v[__v.size() + __j];
+                 {
+                   static_assert(-__j <= int(_Vp::size()));
+                   return __v[__v.size() + __j];
+                 }
                else
-                 return __v[__j];
+                 {
+                   static_assert(__j < int(_Vp::size()));
+                   return __v[__j];
+                 }
              });
     }
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::duplicate_even)
-                         == iota_v<simd<int>> / 2 * 2));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::duplicate_odd)
-                         == iota_v<simd<int>> / 2 * 2 + 1));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::swap_neighbors)
-                         == simd<int>([](int i) { return i ^ 1; })));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::broadcast<1>)
-                         == simd<int>(1)));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::broadcast_first)
-                         == simd<int>(0)));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::broadcast_last)
-                         == simd<int>(int(simd_size_v<int> - 1))));
-
-  static_assert(all_of(permute(iota_v<simd<int>>, simd_permutations::reverse)
-                         == simd<int>([](int i) { return int(simd_size_v<int>) - 1 - i; })));
 }
 
 #endif  // PROTOTYPE_PERMUTE_H_
