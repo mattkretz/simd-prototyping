@@ -31,14 +31,14 @@ static_assert(
 	   == std::simd<int>([](int i) { return i ^ 1; })));
 
 static_assert(
-  all_of(std::permute(std::iota_v<std::fixed_size_simd<int, 8>>,
+  all_of(std::permute(std::iota_v<std::simd<int, 8>>,
 		      std::simd_permutations::swap_neighbors<2>)
-	   == std::fixed_size_simd<int, 8>(std::array{2, 3, 0, 1, 6, 7, 4, 5}.begin())));
+	   == std::simd<int, 8>(std::array{2, 3, 0, 1, 6, 7, 4, 5}.begin())));
 
 static_assert(
-  all_of(std::permute(std::iota_v<std::fixed_size_simd<int, 12>>,
+  all_of(std::permute(std::iota_v<std::simd<int, 12>>,
 		      std::simd_permutations::swap_neighbors<3>)
-	   == std::fixed_size_simd<int, 12>(
+	   == std::simd<int, 12>(
 		std::array{3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8}.begin())));
 
 static_assert(
@@ -66,5 +66,9 @@ static_assert(
 	   == (std::iota_v<std::simd<int>> + 2) % int(std::simd_size_v<int>)));
 
 static_assert(
-  all_of(std::permute(std::iota_v<std::simd<int>>, std::simd_permutations::rotate<-2>)
-	   == (std::iota_v<std::simd<int>> - 2) % int(std::simd_size_v<int>)));
+  all_of(std::permute(std::iota_v<std::simd<int, 7>>, std::simd_permutations::rotate<2>)
+           == std::simd<int, 7>(std::array {2, 3, 4, 5, 6, 0, 1}.begin())));
+
+static_assert(
+  all_of(std::permute(std::iota_v<std::simd<int, 7>>, std::simd_permutations::rotate<-2>)
+           == std::simd<int, 7>(std::array {5, 6, 0, 1, 2, 3, 4}.begin())));
