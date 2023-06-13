@@ -234,7 +234,27 @@ namespace std
       operator/(const basic_simd& __x, const basic_simd& __y)
       { return {__detail::__private_init, _Impl::_S_divides(__data(__x), __data(__y))}; }
 
-      // compares [simd.comparison]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator%(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a % __a; }
+      { return {__detail::__private_init, _Impl::_S_modulus(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator&(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a & __a; }
+      { return {__detail::__private_init, _Impl::_S_bit_and(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator|(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a | __a; }
+      { return {__detail::__private_init, _Impl::_S_bit_or(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator^(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a ^ __a; }
+      { return {__detail::__private_init, _Impl::_S_bit_xor(__data(__x), __data(__y))}; }
+
+      // compares [basic_simd.comparison]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator==(const basic_simd& __x, const basic_simd& __y)
       { return {__detail::__private_init, _Impl::_S_equal_to(__data(__x), __data(__y))}; }
