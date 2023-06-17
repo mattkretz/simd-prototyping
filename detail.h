@@ -59,10 +59,10 @@ namespace std
       }();
 
     template <auto _Value>
-      using _Cnst = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;
+      using _Ic = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;
 
     template <auto _Value>
-      inline constexpr _Cnst<_Value> __cnst{};
+      inline constexpr _Ic<_Value> __ic{};
 
     using namespace std::experimental::parallelism_v2;
     using namespace std::experimental::parallelism_v2::__proposed;
@@ -164,26 +164,18 @@ namespace std
     template <typename _T0, typename _T1>
       using __sane_common_type_t = typename __sane_common_type<_T0, _T1>::type;
 
-    static_assert(std::same_as<__sane_common_type_t<short, signed char>, short>);
-    static_assert(std::same_as<__sane_common_type_t<short, unsigned char>, short>);
-    static_assert(std::same_as<__sane_common_type_t<short, unsigned short>, unsigned short>);
-    static_assert(std::same_as<__sane_common_type_t<short, char>, short>);
-
     template <typename _From, typename _To>
       concept __non_narrowing_constexpr_conversion
         = requires { { std::remove_cvref_t<_From>::value } -> std::convertible_to<_To>; }
-            and decltype(std::remove_cvref_t<_From>::value)(_To{std::remove_cvref_t<_From>::value})
+            and decltype(std::remove_cvref_t<_From>::value)(_To(std::remove_cvref_t<_From>::value))
                   == std::remove_cvref_t<_From>::value
             and not (std::unsigned_integral<_To> and std::remove_cvref_t<_From>::value < 0)
             and std::remove_cvref_t<_From>::value <= std::numeric_limits<_To>::max()
             and std::remove_cvref_t<_From>::value >= std::numeric_limits<_To>::lowest();
 
-    static_assert(    __non_narrowing_constexpr_conversion<_Cnst< 1>, unsigned short>);
-    static_assert(not __non_narrowing_constexpr_conversion<_Cnst<-1>, unsigned short>);
-
     template <typename _Fp, typename _Tp, std::size_t... _Is>
       constexpr
-      _Cnst<(
+      _Ic<(
 #if SIMPLE_CONVERSIONS
           std::convertible_to<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
 #else
@@ -196,7 +188,7 @@ namespace std
       concept __simd_broadcast_invokable = requires
       {
         { __simd_broadcast_invokable_impl<_Fp, _Tp>(make_index_sequence<_Np>()) }
-          -> same_as<_Cnst<true>>;
+          -> same_as<_Ic<true>>;
       };
 
     template <typename _Fp>

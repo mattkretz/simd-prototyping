@@ -19,7 +19,7 @@ namespace std
     __for_template(auto __begin, auto __end, auto&& __f)
     {
       [&]<int... _Is>(std::integer_sequence<int, _Is...>) {
-        (__f(std::__detail::__cnst<__begin + _Is>), ...);
+        (__f(std::__detail::__ic<__begin + _Is>), ...);
       }(std::make_integer_sequence<int, __end - __begin>());
     }
 
@@ -27,7 +27,7 @@ namespace std
     __for_template(auto __end, auto&& __f)
     {
       [&]<int... _Is>(std::integer_sequence<int, _Is...>) {
-        (__f(std::__detail::__cnst<_Is>), ...);
+        (__f(std::__detail::__ic<_Is>), ...);
       }(std::make_integer_sequence<int, __end>());
     }
   }
@@ -41,7 +41,7 @@ namespace std
       using _Ip = __detail::__int_for_sizeof_t<_Tp>;
       using _IV = rebind_simd_t<_Ip, _V>;
       __detail::__for_template(
-        __detail::__cnst<std::bit_width(__v.size()) - 1>, [&](auto __i) {
+        __detail::__ic<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
           const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
           const _V __permuted = permute(__v, __detail::__prefix_sum_permutation<__n>{});
@@ -65,7 +65,7 @@ namespace std
       using _IV = rebind_simd_t<_Ip, _V>;
       _V __factor = __a;
       __detail::__for_template(
-        __detail::__cnst<std::bit_width(__v.size()) - 1>, [&](auto __i) {
+        __detail::__ic<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
           const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
           const _V __permuted = permute(__v, __detail::__prefix_sum_permutation<__n>{});

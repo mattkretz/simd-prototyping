@@ -6,6 +6,24 @@
 #include "interleave.h"
 #include "permute.h"
 
+namespace test01
+{
+  using namespace std::__detail;
+
+  static_assert(std::same_as<__sane_common_type_t<short, signed char>, short>);
+  static_assert(std::same_as<__sane_common_type_t<short, unsigned char>, short>);
+  static_assert(std::same_as<__sane_common_type_t<short, unsigned short>, unsigned short>);
+  static_assert(std::same_as<__sane_common_type_t<short, char>, short>);
+
+  static_assert(    __non_narrowing_constexpr_conversion<_Ic< 1>, float>);
+  static_assert(    __non_narrowing_constexpr_conversion<_Ic< 1>, unsigned short>);
+  static_assert(not __non_narrowing_constexpr_conversion<_Ic<-1>, unsigned short>);
+  static_assert(    __non_narrowing_constexpr_conversion<_Ic<1.f>, unsigned short>);
+  static_assert(    __non_narrowing_constexpr_conversion<_Ic<1.>, float>);
+  static_assert(not __non_narrowing_constexpr_conversion<_Ic<1.1>, float>);
+  static_assert(    __non_narrowing_constexpr_conversion<_Ic<1.1f>, double>);
+}
+
 static_assert(
   all_of(std::get<0>(std::interleave(std::iota_v<std::simd<int>>))
 	   == std::iota_v<std::simd<int>>));

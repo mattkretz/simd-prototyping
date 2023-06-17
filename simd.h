@@ -35,7 +35,7 @@ namespace std
 
       using mask_type = std::basic_simd_mask<sizeof(_Tp), _Abi>;
 
-      static inline constexpr __detail::_Cnst<_Base::size()> size = {};
+      static inline constexpr __detail::_Ic<_Base::size()> size = {};
 
       constexpr
       basic_simd() = default;

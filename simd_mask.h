@@ -33,7 +33,7 @@ namespace std
 
       using _Impl = _Base::_Impl;
 
-      static inline constexpr __detail::_Cnst<_Base::size()> size = {};
+      static inline constexpr __detail::_Ic<_Base::size()> size = {};
 
       _GLIBCXX_SIMD_INTRINSIC constexpr
       basic_simd_mask(const _Base& __x) noexcept
