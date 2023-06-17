@@ -98,26 +98,26 @@ namespace std
     requires(__detail::_IsLoadstoreTag<_Flags>::value and ...)
     struct simd_flags
     {
-      friend constexpr bool
+      friend consteval bool
       operator==(simd_flags, simd_flags)
       { return true; }
 
       template <typename... _Other>
-        friend constexpr bool
+        friend consteval bool
         operator==(simd_flags __x, simd_flags<_Other...> __y)
         { return std::same_as<simd_flags<>, decltype(__x ^ __y)>; }
 
       template <typename... _Other>
-        constexpr bool
+        consteval bool
         test(simd_flags<_Other...> __x) const noexcept
         { return __x == (*this & __x); }
 
-      friend constexpr auto
+      friend consteval auto
       operator|(simd_flags, simd_flags<>)
       { return simd_flags{}; }
 
       template <typename _T0, typename... _More>
-        friend constexpr auto
+        friend consteval auto
         operator|(simd_flags, simd_flags<_T0, _More...>)
         {
           if constexpr ((std::same_as<_Flags, _T0> or ...))
@@ -126,12 +126,12 @@ namespace std
             return simd_flags<_Flags..., _T0>{} | simd_flags<_More...>{};
         }
 
-      friend constexpr auto
+      friend consteval auto
       operator&(simd_flags, simd_flags<>)
       { return simd_flags<>{}; }
 
       template <typename _T0, typename... _More>
-        friend constexpr auto
+        friend consteval auto
         operator&(simd_flags, simd_flags<_T0, _More...>)
         {
           if constexpr ((std::same_as<_Flags, _T0> or ...))
@@ -140,12 +140,12 @@ namespace std
             return simd_flags{} & simd_flags<_More...>{};
         }
 
-      friend constexpr auto
+      friend consteval auto
       operator^(simd_flags, simd_flags<>)
       { return simd_flags{}; }
 
       template <typename _T0, typename... _More>
-        friend constexpr auto
+        friend consteval auto
         operator^(simd_flags, simd_flags<_T0, _More...>)
         {
           if constexpr ((std::same_as<_Flags, _T0> or ...))
