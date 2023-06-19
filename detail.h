@@ -101,14 +101,18 @@ namespace std
                         && numeric_limits<_From>::lowest() >= numeric_limits<_To>::lowest()));
 
     template <typename _From, typename _To>
-      concept __value_preserving_or_int
+      concept __non_narrowing_constexpr_conversion
+        = convertible_to<_From, _To>
+            and requires { { _From::value } -> std::convertible_to<_To>; }
+            and static_cast<decltype(_From::value)>(_To(_From::value)) == _From::value
+            and not (std::unsigned_integral<_To> and _From::value < 0)
+            and _From::value <= std::numeric_limits<_To>::max()
+            and _From::value >= std::numeric_limits<_To>::lowest();
+
+    template <typename _From, typename _To>
+      concept __broadcast_constructible
         = __value_preserving_convertible_to<remove_cvref_t<_From>, _To>
-#if INT_NOT_SPECIAL
-        ;
-#else
-            || (__arithmetic<_To> && same_as<remove_cvref_t<_From>, int>)
-            || (unsigned_integral<_To> && same_as<remove_cvref_t<_From>, unsigned>);
-#endif
+            or __non_narrowing_constexpr_conversion<remove_cvref_t<_From>, _To>;
 
     // __higher_floating_point_rank_than<_Tp, U> (_Tp has higher or equal floating point rank than U)
     template <typename _From, typename _To>
@@ -164,24 +168,9 @@ namespace std
     template <typename _T0, typename _T1>
       using __sane_common_type_t = typename __sane_common_type<_T0, _T1>::type;
 
-    template <typename _From, typename _To>
-      concept __non_narrowing_constexpr_conversion
-        = requires { { std::remove_cvref_t<_From>::value } -> std::convertible_to<_To>; }
-            and decltype(std::remove_cvref_t<_From>::value)(_To(std::remove_cvref_t<_From>::value))
-                  == std::remove_cvref_t<_From>::value
-            and not (std::unsigned_integral<_To> and std::remove_cvref_t<_From>::value < 0)
-            and std::remove_cvref_t<_From>::value <= std::numeric_limits<_To>::max()
-            and std::remove_cvref_t<_From>::value >= std::numeric_limits<_To>::lowest();
-
     template <typename _Fp, typename _Tp, std::size_t... _Is>
       constexpr
-      _Ic<(
-#if SIMPLE_CONVERSIONS
-          std::convertible_to<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
-#else
-          __value_preserving_or_int<invoke_result_t<_Fp, _Cnst<_Is>>, _Tp>
-#endif
-                         && ...)>
+      _Ic<(__broadcast_constructible<invoke_result_t<_Fp, _Ic<_Is>>, _Tp> && ...)>
       __simd_broadcast_invokable_impl(index_sequence<_Is...>);
 
     template <typename _Fp, typename _Tp, std::size_t _Np>

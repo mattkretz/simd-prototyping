@@ -3,9 +3,6 @@
  *                  Matthias Kretz <m.kretz@gsi.de>
  */
 
-#define SIMPLE_CONVERSIONS 3
-#define INT_NOT_SPECIAL 1
-
 #include "../simd.h"
 
 template <std::__detail::__vectorizable T, typename U = T>
@@ -23,20 +20,9 @@ using Err = Error;
 struct LHS {};
 struct RHS {};
 
-template <typename Op1, typename Op2, typename Result0,
-          typename Result1 = Result0, typename Result2 = Result1, typename Result3 = Result2>
+template <typename Op1, typename Op2, typename RR>
   void expect()
   {
-    using RR =
-#if SIMPLE_CONVERSIONS == 3
-      Result3;
-#elif SIMPLE_CONVERSIONS == 2
-      Result2;
-#elif SIMPLE_CONVERSIONS == 1
-      Result1;
-#else
-      Result0;
-#endif
     using R = std::conditional_t<std::same_as<RR, LHS>,
                                  typename std::conditional_t<std::__detail::__vectorizable<Op1>,
                                                              std::rebind_simd<Op1, Op2>,
@@ -48,12 +34,6 @@ template <typename Op1, typename Op2, typename Result0,
     else
       static_assert(std::same_as<R, Error>);
   }
-
-#if INT_NOT_SPECIAL
-using Rrr = Err;
-#else
-using Rrr = RHS;
-#endif
 
 void
 test()
@@ -69,192 +49,171 @@ test()
   using sllong = signed long long;
   using ullong = unsigned long long;
 
-  expect< schar, V4<sshort>, RHS, RHS, RHS>();
-  expect< uchar, V4<sshort>, RHS, RHS, RHS>();
-  expect<sshort, V4<sshort>, RHS, RHS, RHS>();
-  expect<ushort, V4<sshort>, Err, Err, LHS>();
-  expect<  sint, V4<sshort>, Rrr, Err, LHS>();
-  expect<  uint, V4<sshort>, Err, Err, LHS>();
-  expect< slong, V4<sshort>, Err, Err, LHS>();
-  expect< ulong, V4<sshort>, Err, Err, LHS>();
-  expect<sllong, V4<sshort>, Err, Err, LHS>();
-  expect<ullong, V4<sshort>, Err, Err, LHS>();
-  expect< float, V4<sshort>, Err, Err, LHS>();
-  expect<double, V4<sshort>, Err, Err, LHS>();
-  expect<  bool, V4<sshort>, Err, RHS, RHS>();
+  using int2 = std::integral_constant<int, 2>;
 
-  expect<V4< schar>, V4<sshort>, RHS, RHS, RHS>();
-  expect<V4< uchar>, V4<sshort>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<sshort>, RHS, RHS, RHS>();
-  expect<V4<ushort>, V4<sshort>, Err, LHS, LHS>();
-  expect<V4<  sint>, V4<sshort>, LHS, LHS, LHS>();
-  expect<V4<  uint>, V4<sshort>, Err, LHS, LHS>();
-  expect<V4< slong>, V4<sshort>, LHS, LHS, LHS>();
-  expect<V4< ulong>, V4<sshort>, Err, LHS, LHS>();
-  expect<V4<sllong>, V4<sshort>, LHS, LHS, LHS>();
-  expect<V4<ullong>, V4<sshort>, Err, LHS, LHS>();
-  expect<V4< float>, V4<sshort>, LHS, LHS, LHS>();
-  expect<V4<double>, V4<sshort>, LHS, LHS, LHS>();
+  expect< schar, V4<sshort>, RHS>();
+  expect< schar, V4<sshort>, RHS>();
+  expect< uchar, V4<sshort>, RHS>();
+  expect<sshort, V4<sshort>, RHS>();
+  expect<ushort, V4<sshort>, Err>();
+  expect<  sint, V4<sshort>, Err>();
+  expect<  uint, V4<sshort>, Err>();
+  expect< slong, V4<sshort>, Err>();
+  expect< ulong, V4<sshort>, Err>();
+  expect<sllong, V4<sshort>, Err>();
+  expect<ullong, V4<sshort>, Err>();
+  expect< float, V4<sshort>, Err>();
+  expect<double, V4<sshort>, Err>();
+  expect<  bool, V4<sshort>, Err>();
 
-  expect< schar, V4<ushort>, Err, RHS, RHS>();
-  expect< uchar, V4<ushort>, RHS, RHS, RHS>();
-  expect<sshort, V4<ushort>, Err, RHS, RHS>();
-  expect<ushort, V4<ushort>, RHS, RHS, RHS>();
-  expect<  sint, V4<ushort>, Rrr, Err, LHS>();
-  expect<  uint, V4<ushort>, Rrr, Err, LHS>();
-  expect< slong, V4<ushort>, Err, Err, LHS>();
-  expect< ulong, V4<ushort>, Err, Err, LHS>();
-  expect<sllong, V4<ushort>, Err, Err, LHS>();
-  expect<ullong, V4<ushort>, Err, Err, LHS>();
-  expect< float, V4<ushort>, Err, Err, LHS>();
-  expect<double, V4<ushort>, Err, Err, LHS>();
-  expect<  bool, V4<ushort>, Err, RHS, RHS>();
+  expect<V4< schar>, V4<sshort>, RHS>();
+  expect<V4< uchar>, V4<sshort>, RHS>();
+  expect<V4<sshort>, V4<sshort>, RHS>();
+  expect<V4<ushort>, V4<sshort>, Err>();
+  expect<V4<  sint>, V4<sshort>, LHS>();
+  expect<V4<  uint>, V4<sshort>, Err>();
+  expect<V4< slong>, V4<sshort>, LHS>();
+  expect<V4< ulong>, V4<sshort>, Err>();
+  expect<V4<sllong>, V4<sshort>, LHS>();
+  expect<V4<ullong>, V4<sshort>, Err>();
+  expect<V4< float>, V4<sshort>, LHS>();
+  expect<V4<double>, V4<sshort>, LHS>();
 
-  expect<V4< schar>, V4<ushort>, Err, RHS, RHS>();
-  expect<V4< uchar>, V4<ushort>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<ushort>, Err, RHS, RHS>();
-  expect<V4<ushort>, V4<ushort>, RHS, RHS, RHS>();
-  expect<V4<  sint>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4<  uint>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4< slong>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4< ulong>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4<sllong>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4<ullong>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4< float>, V4<ushort>, LHS, LHS, LHS>();
-  expect<V4<double>, V4<ushort>, LHS, LHS, LHS>();
+  expect< schar, V4<ushort>, Err>();
+  expect< uchar, V4<ushort>, RHS>();
+  expect<sshort, V4<ushort>, Err>();
+  expect<ushort, V4<ushort>, RHS>();
+  expect<  sint, V4<ushort>, Err>();
+  expect<  uint, V4<ushort>, Err>();
+  expect< slong, V4<ushort>, Err>();
+  expect< ulong, V4<ushort>, Err>();
+  expect<sllong, V4<ushort>, Err>();
+  expect<ullong, V4<ushort>, Err>();
+  expect< float, V4<ushort>, Err>();
+  expect<double, V4<ushort>, Err>();
+  expect<  bool, V4<ushort>, Err>();
 
-  expect< schar, V4<uint>, Err, RHS, RHS>();
-  expect< uchar, V4<uint>, RHS, RHS, RHS>();
-  expect<sshort, V4<uint>, Err, RHS, RHS>();
-  expect<ushort, V4<uint>, RHS, RHS, RHS>();
-  expect<  sint, V4<uint>, Rrr, RHS, RHS>();
-  expect<  uint, V4<uint>, RHS, RHS, RHS>();
-  expect< slong, V4<uint>, Err, Err, LHS>();
-  expect< ulong, V4<uint>, Err, Err, LHS>();
-  expect<sllong, V4<uint>, Err, Err, LHS>();
-  expect<ullong, V4<uint>, Err, Err, LHS>();
-  expect< float, V4<uint>, Err, Err, LHS>();
-  expect<double, V4<uint>, Err, Err, LHS>();
-  expect<  bool, V4<uint>, Err, RHS, RHS>();
+  expect<V4< schar>, V4<ushort>, Err>();
+  expect<V4< uchar>, V4<ushort>, RHS>();
+  expect<V4<sshort>, V4<ushort>, Err>();
+  expect<V4<ushort>, V4<ushort>, RHS>();
+  expect<V4<  sint>, V4<ushort>, LHS>();
+  expect<V4<  uint>, V4<ushort>, LHS>();
+  expect<V4< slong>, V4<ushort>, LHS>();
+  expect<V4< ulong>, V4<ushort>, LHS>();
+  expect<V4<sllong>, V4<ushort>, LHS>();
+  expect<V4<ullong>, V4<ushort>, LHS>();
+  expect<V4< float>, V4<ushort>, LHS>();
+  expect<V4<double>, V4<ushort>, LHS>();
 
-  expect<V4< schar>, V4<uint>, Err, RHS, RHS>();
-  expect<V4< uchar>, V4<uint>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<uint>, Err, RHS, RHS>();
-  expect<V4<ushort>, V4<uint>, RHS, RHS, RHS>();
-  expect<V4<  sint>, V4<uint>, Err, RHS, RHS>();
-  expect<V4<  uint>, V4<uint>, RHS, RHS, RHS>();
-  expect<V4< slong>, V4<uint>, LHS, LHS, LHS>();
-  expect<V4< ulong>, V4<uint>, LHS, LHS, LHS>();
-  expect<V4<sllong>, V4<uint>, LHS, LHS, LHS>();
-  expect<V4<ullong>, V4<uint>, LHS, LHS, LHS>();
-  expect<V4< float>, V4<uint>, Err, LHS, LHS>();
-  expect<V4<double>, V4<uint>, LHS, LHS, LHS>();
+  expect< schar, V4<uint>, Err>();
+  expect< uchar, V4<uint>, RHS>();
+  expect<sshort, V4<uint>, Err>();
+  expect<ushort, V4<uint>, RHS>();
+  expect<  sint, V4<uint>, Err>();
+  expect<  uint, V4<uint>, RHS>();
+  expect< slong, V4<uint>, Err>();
+  expect< ulong, V4<uint>, Err>();
+  expect<sllong, V4<uint>, Err>();
+  expect<ullong, V4<uint>, Err>();
+  expect< float, V4<uint>, Err>();
+  expect<double, V4<uint>, Err>();
+  expect<  bool, V4<uint>, Err>();
 
-  expect< schar, V4<ulong>, Err, RHS, RHS>();
-  expect< uchar, V4<ulong>, RHS, RHS, RHS>();
-  expect<sshort, V4<ulong>, Err, RHS, RHS>();
-  expect<ushort, V4<ulong>, RHS, RHS, RHS>();
-  expect<  sint, V4<ulong>, Rrr, RHS, RHS>();
-  expect<  uint, V4<ulong>, RHS, RHS, RHS>();
-  expect< slong, V4<ulong>, Err, RHS, RHS>();
-  expect< ulong, V4<ulong>, RHS, RHS, RHS>();
-  expect<sllong, V4<ulong>, Err, Err, V4<ullong>>();
-  expect<ullong, V4<ulong>, RHS, Err, LHS>();
-  expect< float, V4<ulong>, Err, Err, LHS>();
-  expect<double, V4<ulong>, Err, Err, LHS>();
-  expect<  bool, V4<ulong>, Err, RHS, RHS>();
+  expect<V4< schar>, V4<uint>, Err>();
+  expect<V4< uchar>, V4<uint>, RHS>();
+  expect<V4<sshort>, V4<uint>, Err>();
+  expect<V4<ushort>, V4<uint>, RHS>();
+  expect<V4<  sint>, V4<uint>, Err>();
+  expect<V4<  uint>, V4<uint>, RHS>();
+  expect<V4< slong>, V4<uint>, LHS>();
+  expect<V4< ulong>, V4<uint>, LHS>();
+  expect<V4<sllong>, V4<uint>, LHS>();
+  expect<V4<ullong>, V4<uint>, LHS>();
+  expect<V4< float>, V4<uint>, Err>();
+  expect<V4<double>, V4<uint>, LHS>();
 
-  expect<V4< schar>, V4<ulong>, Err, RHS, RHS>();
-  expect<V4< uchar>, V4<ulong>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<ulong>, Err, RHS, RHS>();
-  expect<V4<ushort>, V4<ulong>, RHS, RHS, RHS>();
-  expect<V4<  sint>, V4<ulong>, Err, RHS, RHS>();
-  expect<V4<  uint>, V4<ulong>, RHS, RHS, RHS>();
-  expect<V4< slong>, V4<ulong>, Err, RHS, RHS>();
-  expect<V4< ulong>, V4<ulong>, RHS, RHS, RHS>();
-  expect<V4<sllong>, V4<ulong>, Err, Err, V4<ullong>>();
-  expect<V4<ullong>, V4<ulong>, LHS, LHS, LHS>();
-  expect<V4< float>, V4<ulong>, Err, LHS, LHS>();
-  expect<V4<double>, V4<ulong>, Err, LHS, LHS>();
+  expect< schar, V4<ulong>, Err>();
+  expect< uchar, V4<ulong>, RHS>();
+  expect<sshort, V4<ulong>, Err>();
+  expect<ushort, V4<ulong>, RHS>();
+  expect<  sint, V4<ulong>, Err>();
+  expect<  uint, V4<ulong>, RHS>();
+  expect< slong, V4<ulong>, Err>();
+  expect< ulong, V4<ulong>, RHS>();
+  expect<sllong, V4<ulong>, Err>();
+  expect<ullong, V4<ulong>, RHS>();
+  expect< float, V4<ulong>, Err>();
+  expect<double, V4<ulong>, Err>();
+  expect<  bool, V4<ulong>, Err>();
 
-  expect< schar, V4<float>, RHS, RHS, RHS>();
-  expect< uchar, V4<float>, RHS, RHS, RHS>();
-  expect<sshort, V4<float>, RHS, RHS, RHS>();
-  expect<ushort, V4<float>, RHS, RHS, RHS>();
-  expect<  sint, V4<float>, Rrr, RHS, RHS>();
-  expect<  uint, V4<float>, Err, RHS, RHS>();
-  expect< slong, V4<float>, Err, RHS, RHS>();
-  expect< ulong, V4<float>, Err, RHS, RHS>();
-  expect<sllong, V4<float>, Err, RHS, RHS>();
-  expect<ullong, V4<float>, Err, RHS, RHS>();
-  expect< float, V4<float>, RHS, RHS, RHS>();
-  expect<double, V4<float>, Err, Err, LHS>();
-  expect<  bool, V4<float>, Err, RHS, RHS>();
+  expect<V4< schar>, V4<ulong>, Err>();
+  expect<V4< uchar>, V4<ulong>, RHS>();
+  expect<V4<sshort>, V4<ulong>, Err>();
+  expect<V4<ushort>, V4<ulong>, RHS>();
+  expect<V4<  sint>, V4<ulong>, Err>();
+  expect<V4<  uint>, V4<ulong>, RHS>();
+  expect<V4< slong>, V4<ulong>, Err>();
+  expect<V4< ulong>, V4<ulong>, RHS>();
+  expect<V4<sllong>, V4<ulong>, Err>();
+  expect<V4<ullong>, V4<ulong>, LHS>();
+  expect<V4< float>, V4<ulong>, Err>();
+  expect<V4<double>, V4<ulong>, Err>();
 
-  expect<V4< schar>, V4<float>, RHS, RHS, RHS>();
-  expect<V4< uchar>, V4<float>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<float>, RHS, RHS, RHS>();
-  expect<V4<ushort>, V4<float>, RHS, RHS, RHS>();
-  expect<V4<  sint>, V4<float>, Err, RHS, RHS>();
-  expect<V4<  uint>, V4<float>, Err, RHS, RHS>();
-  expect<V4< slong>, V4<float>, Err, RHS, RHS>();
-  expect<V4< ulong>, V4<float>, Err, RHS, RHS>();
-  expect<V4<sllong>, V4<float>, Err, RHS, RHS>();
-  expect<V4<ullong>, V4<float>, Err, RHS, RHS>();
-  expect<V4< float>, V4<float>, RHS, RHS, RHS>();
-  expect<V4<double>, V4<float>, LHS, LHS, LHS>();
+  expect< schar, V4<float>, RHS>();
+  expect< uchar, V4<float>, RHS>();
+  expect<sshort, V4<float>, RHS>();
+  expect<ushort, V4<float>, RHS>();
+  expect<  sint, V4<float>, Err>();
+  expect<  uint, V4<float>, Err>();
+  expect< slong, V4<float>, Err>();
+  expect< ulong, V4<float>, Err>();
+  expect<sllong, V4<float>, Err>();
+  expect<ullong, V4<float>, Err>();
+  expect< float, V4<float>, RHS>();
+  expect<double, V4<float>, Err>();
+  expect<  bool, V4<float>, Err>();
 
-  expect< schar, V4<double>, RHS, RHS, RHS>();
-  expect< uchar, V4<double>, RHS, RHS, RHS>();
-  expect<sshort, V4<double>, RHS, RHS, RHS>();
-  expect<ushort, V4<double>, RHS, RHS, RHS>();
-  expect<  sint, V4<double>, RHS, RHS, RHS>();
-  expect<  uint, V4<double>, RHS, RHS, RHS>();
-  expect< slong, V4<double>, Err, RHS, RHS>();
-  expect< ulong, V4<double>, Err, RHS, RHS>();
-  expect<sllong, V4<double>, Err, RHS, RHS>();
-  expect<ullong, V4<double>, Err, RHS, RHS>();
-  expect< float, V4<double>, RHS, RHS, RHS>();
-  expect<double, V4<double>, RHS, RHS, RHS>();
-  expect<  bool, V4<double>, Err, RHS, RHS>();
+  expect<V4< schar>, V4<float>, RHS>();
+  expect<V4< uchar>, V4<float>, RHS>();
+  expect<V4<sshort>, V4<float>, RHS>();
+  expect<V4<ushort>, V4<float>, RHS>();
+  expect<V4<  sint>, V4<float>, Err>();
+  expect<V4<  uint>, V4<float>, Err>();
+  expect<V4< slong>, V4<float>, Err>();
+  expect<V4< ulong>, V4<float>, Err>();
+  expect<V4<sllong>, V4<float>, Err>();
+  expect<V4<ullong>, V4<float>, Err>();
+  expect<V4< float>, V4<float>, RHS>();
+  expect<V4<double>, V4<float>, LHS>();
 
-  expect<V4< schar>, V4<double>, RHS, RHS, RHS>();
-  expect<V4< uchar>, V4<double>, RHS, RHS, RHS>();
-  expect<V4<sshort>, V4<double>, RHS, RHS, RHS>();
-  expect<V4<ushort>, V4<double>, RHS, RHS, RHS>();
-  expect<V4<  sint>, V4<double>, RHS, RHS, RHS>();
-  expect<V4<  uint>, V4<double>, RHS, RHS, RHS>();
-  expect<V4< slong>, V4<double>, Err, RHS, RHS>();
-  expect<V4< ulong>, V4<double>, Err, RHS, RHS>();
-  expect<V4<sllong>, V4<double>, Err, RHS, RHS>();
-  expect<V4<ullong>, V4<double>, Err, RHS, RHS>();
-  expect<V4< float>, V4<double>, RHS, RHS, RHS>();
-  expect<V4<double>, V4<double>, RHS, RHS, RHS>();
+  expect< schar, V4<double>, RHS>();
+  expect< uchar, V4<double>, RHS>();
+  expect<sshort, V4<double>, RHS>();
+  expect<ushort, V4<double>, RHS>();
+  expect<  sint, V4<double>, RHS>();
+  expect<  uint, V4<double>, RHS>();
+  expect< slong, V4<double>, Err>();
+  expect< ulong, V4<double>, Err>();
+  expect<sllong, V4<double>, Err>();
+  expect<ullong, V4<double>, Err>();
+  expect< float, V4<double>, RHS>();
+  expect<double, V4<double>, RHS>();
+  expect<  bool, V4<double>, Err>();
 
-#if SIMPLE_CONVERSIONS == 1
-static_assert( std::convertible_to<    char, V<short>>);
-static_assert(!std::convertible_to<     int, V<short>>);
-static_assert( std::convertible_to<decltype(c<0>), V<short>>);
-static_assert( std::convertible_to<decltype(c<-1>), V<short>>);
-static_assert( std::convertible_to<decltype(c<1>), V<unsigned short>>);
-static_assert(!std::convertible_to<decltype(c<-1>), V<unsigned short>>);
-static_assert(!std::convertible_to<unsigned, V<short>>);
-static_assert(!std::convertible_to<     int, V<unsigned short>>);
-static_assert(!std::convertible_to<unsigned, V<unsigned short>>);
-static_assert( std::convertible_to<     int, V<int>>);
-static_assert( std::convertible_to<     int, V<unsigned int>>);
-static_assert( std::convertible_to<     int, V<long>>);
-static_assert( std::convertible_to<     int, V<unsigned long>>);
-static_assert(!std::convertible_to<unsigned, V<int>>);
-static_assert( std::convertible_to<unsigned, V<unsigned int>>);
-static_assert( std::convertible_to<unsigned, V<long>>);
-static_assert( std::convertible_to<unsigned, V<unsigned long>>);
+  expect<V4< schar>, V4<double>, RHS>();
+  expect<V4< uchar>, V4<double>, RHS>();
+  expect<V4<sshort>, V4<double>, RHS>();
+  expect<V4<ushort>, V4<double>, RHS>();
+  expect<V4<  sint>, V4<double>, RHS>();
+  expect<V4<  uint>, V4<double>, RHS>();
+  expect<V4< slong>, V4<double>, Err>();
+  expect<V4< ulong>, V4<double>, Err>();
+  expect<V4<sllong>, V4<double>, Err>();
+  expect<V4<ullong>, V4<double>, Err>();
+  expect<V4< float>, V4<double>, RHS>();
+  expect<V4<double>, V4<double>, RHS>();
 
-static_assert( std::convertible_to<V<char, short>, V<short>>);
-static_assert(!std::convertible_to<V<short>, V<char>>);
-static_assert( std::convertible_to<V<long>, V<long long>>);
-static_assert(!std::convertible_to<V<long long>, V<long>>);
-#elif SIMPLE_CONVERSIONS == 0
 static_assert( std::convertible_to<    char, V<short>>);
 //static_assert( std::convertible_to<     int, V<short>>);
 static_assert(!std::convertible_to<unsigned, V<short>>);
@@ -273,7 +232,6 @@ static_assert( std::convertible_to<V<char, short>, V<short>>);
 static_assert(!std::convertible_to<V<short>, V<char>>);
 static_assert( std::convertible_to<V<long>, V<long long>>);
 static_assert(!std::convertible_to<V<long long>, V<long>>);
-#endif
 }
 
 void f0(std::common_type_t<V<char, short>, V<signed short>>) {}

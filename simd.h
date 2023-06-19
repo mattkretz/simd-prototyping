@@ -52,45 +52,18 @@ namespace std
       {}
 
       // implicit broadcast constructor
-      template <__detail::__non_narrowing_constexpr_conversion<value_type> _Up>
+      template <__detail::__broadcast_constructible<value_type> _Up>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_simd(_Up&& __x) noexcept
-        : _Base(static_cast<value_type>(std::remove_cvref_t<_Up>::value))
-        {}
-
-#if SIMPLE_CONVERSIONS == 2
-      basic_simd(value_type __x) noexcept
-      : _Base(__x)
-      {}
-#else
-      template <typename _Up>
-#if SIMPLE_CONVERSIONS & 1
-        requires std::constructible_from<_Tp, _Up>
-#else
-        requires __detail::__value_preserving_or_int<_Up, value_type>
-#endif
-          and (not __detail::__non_narrowing_constexpr_conversion<_Up, value_type>)
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-#if SIMPLE_CONVERSIONS & 1
-        explicit(not std::convertible_to<_Up, _Tp>
-                   or not std::same_as<__detail::__sane_common_type_t<_Up, _Tp>, _Tp>)
-#endif
         basic_simd(_Up&& __x) noexcept
         : _Base(static_cast<_Tp>(__x))
         {}
-#endif
 
       // type conversion constructor
       template <typename _Up, typename _UAbi>
         requires(__detail::simd_size_v<_Up, _UAbi> == size() and std::constructible_from<_Tp, _Up>)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-#if SIMPLE_CONVERSIONS > 0
-        explicit(not std::convertible_to<_Up, _Tp>
-                   or not std::same_as<__detail::__sane_common_type_t<_Up, _Tp>, _Tp>)
-#else
         explicit(not __detail::__value_preserving_convertible_to<_Up, value_type>
                    || __detail::__higher_rank_than<_Up, value_type>)
-#endif
         basic_simd(const basic_simd<_Up, _UAbi>& __x) noexcept
         : _Base(__detail::static_simd_cast<_Base>(__x))
         {}
@@ -185,40 +158,6 @@ namespace std
       { return __lhs = __lhs / __x; }
 
       // binary operators [basic_simd.binary]
-#if SIMPLE_CONVERSIONS >= 2
-      template <typename _Up>
-        requires __detail::__vectorizable<__detail::__sane_common_type_t<_Tp, _Up>>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend
-        simd<__detail::__sane_common_type_t<_Tp, _Up>, size()>
-        operator+(basic_simd __x0, _Up __x1)
-        {
-          using _Rp = simd<__detail::__sane_common_type_t<_Tp, _Up>, size()>;
-          return {__detail::__private_init, _Impl::_S_plus(__data(static_cast<_Rp>(__x0)),
-                                                           __data(static_cast<_Rp>(__x1)))};
-        }
-
-      template <typename _Up>
-        requires __detail::__vectorizable<__detail::__sane_common_type_t<_Tp, _Up>>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend
-        simd<__detail::__sane_common_type_t<_Tp, _Up>, size()>
-        operator+(_Up __x0, basic_simd __x1)
-        {
-          using _Rp = simd<__detail::__sane_common_type_t<_Tp, _Up>, size()>;
-          return {__detail::__private_init, _Impl::_S_plus(__data(static_cast<_Rp>(__x0)),
-                                                           __data(static_cast<_Rp>(__x1)))};
-        }
-
-      template <typename _T1, typename _A1>
-        requires (size() == simd_size_v<_T1, _A1> and not same_as<basic_simd, basic_simd<_T1, _A1>>)
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend
-        simd<__detail::__sane_common_type_t<_Tp, _T1>, size()>
-        operator+(basic_simd __x0, basic_simd<_T1, _A1> __x1)
-        {
-          using _Rp = simd<__detail::__sane_common_type_t<_Tp, _T1>, size()>;
-          return {__detail::__private_init, _Impl::_S_plus(__data(static_cast<_Rp>(__x0)),
-                                                           __data(static_cast<_Rp>(__x1)))};
-        }
-#endif
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator+(const basic_simd& __x, const basic_simd& __y)
       { return {__detail::__private_init, _Impl::_S_plus(__data(__x), __data(__y))}; }
