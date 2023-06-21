@@ -33,7 +33,7 @@ namespace std
 
       using _Impl = _Base::_Impl;
 
-      static inline constexpr __detail::_Ic<_Base::size()> size = {};
+      static inline constexpr __detail::_Ic<__detail::_SimdSizeType(_Base::size())> size = {};
 
       _GLIBCXX_SIMD_INTRINSIC constexpr
       basic_simd_mask(const _Base& __x) noexcept
@@ -198,7 +198,7 @@ namespace std
     {
       if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
         {
-          for (size_t __i = 0; __i < __k.size(); ++__i)
+          for (int __i = 0; __i < __k.size(); ++__i)
             if (!__k[__i])
               return false;
           return true;
@@ -213,7 +213,7 @@ namespace std
     {
       if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
         {
-          for (size_t __i = 0; __i < __k.size(); ++__i)
+          for (int __i = 0; __i < __k.size(); ++__i)
             if (__k[__i])
               return true;
           return false;
@@ -228,7 +228,7 @@ namespace std
     {
       if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
         {
-          for (size_t __i = 0; __i < __k.size(); ++__i)
+          for (int __i = 0; __i < __k.size(); ++__i)
             if (__k[__i])
               return false;
           return true;

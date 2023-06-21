@@ -77,18 +77,18 @@ namespace std
     template <typename _Abi>
       concept __simd_abi_tag = std::is_abi_tag_v<_Abi>;
 
-    template <typename _Vp, std::size_t _Width = 0>
+    template <typename _Vp, _SimdSizeType _Width = 0>
       concept __simd_type = std::is_simd_v<_Vp>
                               && __vectorizable<typename _Vp::value_type>
                               && __simd_abi_tag<typename _Vp::abi_type>
                               && (_Width == 0 || _Vp::size() == _Width);
 
-    template <typename _Vp, std::size_t _Width = 0>
+    template <typename _Vp, _SimdSizeType _Width = 0>
       concept __mask_type = std::is_simd_mask_v<_Vp>
                               && __simd_abi_tag<typename _Vp::abi_type>
                               && (_Width == 0 || _Vp::size() == _Width);
 
-    template <typename _Vp, std::size_t _Width = 0>
+    template <typename _Vp, _SimdSizeType _Width = 0>
       concept __simd_or_mask = __simd_type<_Vp, _Width> or __mask_type<_Vp, _Width>;
 
     template <typename _From, typename _To>
@@ -169,15 +169,15 @@ namespace std
     template <typename _T0, typename _T1>
       using __sane_common_type_t = typename __sane_common_type<_T0, _T1>::type;
 
-    template <typename _Fp, typename _Tp, std::size_t... _Is>
+    template <typename _Fp, typename _Tp, _SimdSizeType... _Is>
       constexpr
       _Ic<(__broadcast_constructible<invoke_result_t<_Fp, _Ic<_Is>>, _Tp> && ...)>
-      __simd_broadcast_invokable_impl(index_sequence<_Is...>);
+      __simd_broadcast_invokable_impl(integer_sequence<_SimdSizeType, _Is...>);
 
-    template <typename _Fp, typename _Tp, std::size_t _Np>
+    template <typename _Fp, typename _Tp, _SimdSizeType _Np>
       concept __simd_broadcast_invokable = requires
       {
-        { __simd_broadcast_invokable_impl<_Fp, _Tp>(make_index_sequence<_Np>()) }
+        { __simd_broadcast_invokable_impl<_Fp, _Tp>(make_integer_sequence<_SimdSizeType, _Np>()) }
           -> same_as<_Ic<true>>;
       };
 

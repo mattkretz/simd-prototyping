@@ -35,7 +35,7 @@ namespace std
 
       using mask_type = std::basic_simd_mask<sizeof(_Tp), _Abi>;
 
-      static inline constexpr __detail::_Ic<_Base::size()> size = {};
+      static inline constexpr __detail::_Ic<__detail::_SimdSizeType(_Base::size())> size = {};
 
       constexpr
       basic_simd() = default;
@@ -274,11 +274,11 @@ namespace std
       // P2664::begin
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr reference
-      operator[](size_t __i) &
+      operator[](__detail::_SimdSizeType __i) &
       { return _Base::operator[](__i); }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr value_type
-      operator[]([[maybe_unused]] size_t __i) const&
+      operator[](__detail::_SimdSizeType __i) const&
       { return _Base::operator[](__i); }
 
       template <std::integral _Up, typename _Ap>
@@ -332,12 +332,12 @@ namespace std
     struct rebind_simd<_Tp, _Mask>
     { using type = simd_mask<_Tp, _Mask::size()>; };
 
-  template <size_t _Np, __detail::__simd_type _Simd>
+  template <__detail::_SimdSizeType _Np, __detail::__simd_type _Simd>
     struct resize_simd<_Np, _Simd>
     { using type = simd<typename _Simd::value_type, _Np>; };
 
   // FIXME: resize_simd_t<1, simd_mask<long double, 1>> turns out as a different type
-  template <size_t _Np, __detail::__mask_type _Mask>
+  template <__detail::_SimdSizeType _Np, __detail::__mask_type _Mask>
     struct resize_simd<_Np, _Mask>
     { using type = simd_mask<typename decltype(+_Mask())::value_type, _Np>; };
 }

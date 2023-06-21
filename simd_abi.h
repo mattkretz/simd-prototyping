@@ -12,7 +12,9 @@ namespace std
 {
   namespace __detail
   {
-    template <typename _Tp, size_t _Np>
+    using _SimdSizeType = int;
+
+    template <typename _Tp, _SimdSizeType _Np>
       using __deduce_t
         = typename std::experimental::parallelism_v2::simd_abi::deduce<_Tp, _Np>::type;
   }

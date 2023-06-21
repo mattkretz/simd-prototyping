@@ -59,7 +59,7 @@ namespace std
     {};
 
   template <typename _Tp, typename _Abi = std::experimental::simd_abi::native<_Tp>>
-    inline constexpr size_t simd_size_v = simd_size<_Tp, _Abi>::value;
+    inline constexpr __detail::_SimdSizeType simd_size_v = simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Vp>
     struct rebind_simd
@@ -68,23 +68,23 @@ namespace std
   template <typename _Tp, typename _Vp>
     using rebind_simd_t = typename rebind_simd<_Tp, _Vp>::type;
 
-  template <size_t _Np, typename _Vp>
+  template <__detail::_SimdSizeType _Np, typename _Vp>
     struct resize_simd
     {};
 
-  template <size_t _Np, typename _Vp>
+  template <__detail::_SimdSizeType _Np, typename _Vp>
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
   template <typename _Tp, typename _Abi = std::experimental::parallelism_v2::simd_abi::native<_Tp>>
     class basic_simd;
 
-  template <typename _Tp, size_t _Np = basic_simd<_Tp>::size()>
+  template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
     using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask;
 
-  template <typename _Tp, std::size_t _Np>
+  template <typename _Tp, __detail::_SimdSizeType _Np>
     using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 }
 
