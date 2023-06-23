@@ -27,6 +27,10 @@ namespace test01
   static_assert(    __broadcast_constructible<_Ic<1>, float>);
   static_assert(    __broadcast_constructible<_Ic<1.1f>, double>);
   static_assert(not __broadcast_constructible<_Ic<1.1>, float>);
+
+  static_assert(__value_preserving_convertible_to<bool, bool>);
+  static_assert(__broadcast_constructible<bool, bool>);
+  static_assert(__simd_broadcast_invokable<decltype([] (int) { return true; }), bool, 4>);
 }
 
 template <auto X>
@@ -37,6 +41,11 @@ static_assert(not std::convertible_to<Ic<1.1>, std::simd<float>>);
 static_assert(not std::convertible_to<std::simd<int, 4>, std::simd<float, 4>>);
 static_assert(not std::convertible_to<std::simd<float, 4>, std::simd<int, 4>>);
 static_assert(    std::convertible_to<std::simd<int, 4>, std::simd<double, 4>>);
+
+static_assert(
+  all_of(std::simd_mask<float, 4>([] (int) { return true; }) == std::simd_mask<float, 4>(true)));
+static_assert(
+  all_of(std::simd_mask<float, 4>([] (int) { return false; }) == std::simd_mask<float, 4>(false)));
 
 static_assert(
   all_of(std::get<0>(std::interleave(std::iota_v<std::simd<int>>))

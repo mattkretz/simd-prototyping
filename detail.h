@@ -101,12 +101,12 @@ namespace std
     template <typename _From, typename _To>
       concept __value_preserving_convertible_to
         = convertible_to<_From, _To>
-            && (not __arithmetic<_From> || not __arithmetic<_To>
-                  || (__vectorizable<_From>
-                        && not (is_signed_v<_From> && is_unsigned_v<_To>)
-                        && numeric_limits<_From>::digits <= numeric_limits<_To>::digits
-                        && numeric_limits<_From>::max() <= numeric_limits<_To>::max()
-                        && numeric_limits<_From>::lowest() >= numeric_limits<_To>::lowest()));
+            and (same_as<_From, _To> or not __arithmetic<_From> or not __arithmetic<_To>
+                   or (__vectorizable<_From>
+                         and not (is_signed_v<_From> and is_unsigned_v<_To>)
+                         and numeric_limits<_From>::digits <= numeric_limits<_To>::digits
+                         and numeric_limits<_From>::max() <= numeric_limits<_To>::max()
+                         and numeric_limits<_From>::lowest() >= numeric_limits<_To>::lowest()));
 
     template <typename _From, typename _To>
       concept __non_narrowing_constexpr_conversion
