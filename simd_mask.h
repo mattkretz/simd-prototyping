@@ -26,10 +26,10 @@ namespace std
 
       using _Base = std::experimental::simd_mask<_Tp, _Abi>;
 
+      using _SimdType = std::basic_simd<_Tp, _Abi>;
+
     public:
       using value_type = bool;
-
-      using simd_type = std::basic_simd<_Tp, _Abi>;
 
       using _Impl = _Base::_Impl;
 
@@ -89,22 +89,22 @@ namespace std
       constexpr
       basic_simd_mask(basic_simd_mask&&) = default;*/
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr simd_type
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _SimdType
       operator-() const noexcept
       {
-        if constexpr (sizeof(basic_simd_mask) == sizeof(simd_type))
-          return std::bit_cast<simd_type>(*this);
+        if constexpr (sizeof(basic_simd_mask) == sizeof(_SimdType))
+          return std::bit_cast<_SimdType>(*this);
         else
           {
-            simd_type __r = {};
+            _SimdType __r = {};
             where(*this, __r) = _Tp(-1);
             return __r;
           }
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr simd_type
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _SimdType
       operator+() const noexcept
-      { return operator simd_type(); }
+      { return operator _SimdType(); }
 
       template <typename _Up, typename _UAbi>
         requires (simd_size_v<_Up, _UAbi> == size)
