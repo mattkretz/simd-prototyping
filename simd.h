@@ -313,12 +313,14 @@ namespace std
     : is_default_constructible<basic_simd<_Tp, _Abi>>
     {};
 
-  template <class _Tp, size_t _Extend>
-    basic_simd(std::span<_Tp, _Extend>) -> simd<_Tp, _Extend>;
+  template <class _Tp, size_t _Extent>
+    basic_simd(std::span<_Tp, _Extent>) -> basic_simd<_Tp, __detail::__deduce_t<_Tp, _Extent>>;
 
   template <std::ranges::contiguous_range _Rg>
     basic_simd(const _Rg& x)
-    -> simd<std::ranges::range_value_t<_Rg>, __detail::__static_range_size<_Rg>>;
+    -> basic_simd<std::ranges::range_value_t<_Rg>,
+                  __detail::__deduce_t<std::ranges::range_value_t<_Rg>,
+                                       __detail::__static_range_size<_Rg>>>;
 
   template <size_t _Bs, typename _Abi>
     basic_simd(std::basic_simd_mask<_Bs, _Abi>)
