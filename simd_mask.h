@@ -48,10 +48,10 @@ namespace std
       : _Base(__x)
       {}
 
-      template <size_t _Np, class _UAbi>
-        requires(_Np != _Bytes)
+      template <size_t _UBytes, class _UAbi>
+        requires(_UBytes != _Bytes)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
-        basic_simd_mask(const basic_simd_mask<_Np, _UAbi>& __x) noexcept
+        basic_simd_mask(const basic_simd_mask<_UBytes, _UAbi>& __x) noexcept
         : _Base(__detail::static_simd_cast<_Base>(__x))
         {}
 
