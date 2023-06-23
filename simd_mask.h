@@ -143,13 +143,13 @@ namespace std
       }
 
       template <typename _U1, typename _U2>
-        requires (__detail::__vectorizable<common_type_t<_U1, _U2>>
-                    && sizeof(common_type_t<_U1, _U2>) == _Bytes)
+        requires (__detail::__vectorizable<__detail::__nopromot_common_type_t<_U1, _U2>>
+                    && sizeof(__detail::__nopromot_common_type_t<_U1, _U2>) == _Bytes)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
-        basic_simd<common_type_t<_U1, _U2>, _Abi>
+        simd<__detail::__nopromot_common_type_t<_U1, _U2>, size()>
         conditional_operator_impl(const basic_simd_mask& __k, const _U1& __t, const _U2& __f)
         {
-          using _Rp = basic_simd<common_type_t<_U1, _U2>, _Abi>;
+          using _Rp = simd<__detail::__nopromot_common_type_t<_U1, _U2>, size()>;
           _Rp __ret = __f;
           _Rp::_Impl::_S_masked_assign(__data(__k), __data(__ret), __data(_Rp(__t)));
           return __ret;

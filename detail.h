@@ -131,35 +131,26 @@ namespace std
       concept __higher_rank_than
         = __higher_floating_point_rank_than<_From, _To> || __higher_integer_rank_than<_From, _To>;
 
+    // std::common_type but without integral promotions
     template <typename _T0, typename _T1>
-      struct __sane_common_type : std::common_type<_T0, _T1>
-      {};
-
-    template <typename _T0, typename _T1>
-      requires requires{ {_T0::value} -> convertible_to<_T1>; }
-      struct __sane_common_type<_T0, _T1> : __sane_common_type<decltype(_T0::value), _T1>
-      {};
-
-    template <typename _T0, typename _T1>
-      requires requires{ {_T1::value} -> convertible_to<_T0>; }
-      struct __sane_common_type<_T0, _T1> : __sane_common_type<_T0, decltype(_T1::value)>
+      struct __nopromot_common_type : std::common_type<_T0, _T1>
       {};
 
     template <typename _Tp>
-      struct __sane_common_type<_Tp, _Tp>
+      struct __nopromot_common_type<_Tp, _Tp>
       { using type = _Tp; };
 
     template <typename _T0, typename _T1>
       requires __higher_integer_rank_than<int, _T0> and __higher_integer_rank_than<int, _T1>
         and (std::is_signed_v<_T0> == std::is_signed_v<_T1>)
-      struct __sane_common_type<_T0, _T1>
+      struct __nopromot_common_type<_T0, _T1>
       : std::conditional<__higher_integer_rank_than<_T0, _T1>, _T0, _T1>
       {};
 
     template <typename _T0, typename _T1>
       requires __higher_integer_rank_than<int, _T0> and __higher_integer_rank_than<int, _T1>
         and (std::is_signed_v<_T0> != std::is_signed_v<_T1>)
-      struct __sane_common_type<_T0, _T1>
+      struct __nopromot_common_type<_T0, _T1>
       {
         using _Up = std::conditional_t<std::is_signed_v<_T0>, _T1, _T0>;
         using _Sp = std::conditional_t<std::is_signed_v<_T0>, _T0, _T1>;
@@ -167,7 +158,7 @@ namespace std
       };
 
     template <typename _T0, typename _T1>
-      using __sane_common_type_t = typename __sane_common_type<_T0, _T1>::type;
+      using __nopromot_common_type_t = typename __nopromot_common_type<_T0, _T1>::type;
 
     template <typename _Fp, typename _Tp, _SimdSizeType... _Is>
       constexpr

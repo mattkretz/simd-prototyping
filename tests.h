@@ -10,10 +10,10 @@ namespace test01
 {
   using namespace std::__detail;
 
-  static_assert(std::same_as<__sane_common_type_t<short, signed char>, short>);
-  static_assert(std::same_as<__sane_common_type_t<short, unsigned char>, short>);
-  static_assert(std::same_as<__sane_common_type_t<short, unsigned short>, unsigned short>);
-  static_assert(std::same_as<__sane_common_type_t<short, char>, short>);
+  static_assert(std::same_as<__nopromot_common_type_t<short, signed char>, short>);
+  static_assert(std::same_as<__nopromot_common_type_t<short, unsigned char>, short>);
+  static_assert(std::same_as<__nopromot_common_type_t<short, unsigned short>, unsigned short>);
+  static_assert(std::same_as<__nopromot_common_type_t<short, char>, short>);
 
   static_assert(    __non_narrowing_constexpr_conversion<_Ic< 1>, float>);
   static_assert(    __non_narrowing_constexpr_conversion<_Ic< 1>, unsigned short>);
