@@ -47,6 +47,12 @@ static_assert(
 static_assert(
   all_of(std::simd_mask<float, 4>([] (int) { return false; }) == std::simd_mask<float, 4>(false)));
 
+static_assert([] constexpr {
+  constexpr std::simd_mask<float, 4> a([](int i) -> bool { return i < 2; });
+  constexpr std::basic_simd b = ~a;
+  return all_of(b == std::simd<int, 4>([](int i) { return ~int(i < 2); }));
+}());
+
 static_assert(
   all_of(std::get<0>(std::interleave(std::iota_v<std::simd<int>>))
 	   == std::iota_v<std::simd<int>>));

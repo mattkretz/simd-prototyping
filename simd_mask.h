@@ -106,6 +106,19 @@ namespace std
       operator+() const noexcept
       { return operator _SimdType(); }
 
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _SimdType
+      operator~() const noexcept
+      {
+        if constexpr (sizeof(basic_simd_mask) == sizeof(_SimdType))
+          return std::bit_cast<_SimdType>(*this) - _Tp(1);
+        else
+          {
+            _SimdType __r = _Tp(-1);
+            _SimdType::_Impl::_S_masked_assign(_M_data(), __r._M_data(), _Tp(-2));
+            return __r;
+          }
+      }
+
       template <typename _Up, typename _UAbi>
         requires (simd_size_v<_Up, _UAbi> == size)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit(sizeof(_Up) != _Bytes)
