@@ -22,7 +22,21 @@ namespace test01
   static_assert(    __non_narrowing_constexpr_conversion<_Ic<1.>, float>);
   static_assert(not __non_narrowing_constexpr_conversion<_Ic<1.1>, float>);
   static_assert(    __non_narrowing_constexpr_conversion<_Ic<1.1f>, double>);
+
+
+  static_assert(    __broadcast_constructible<_Ic<1>, float>);
+  static_assert(    __broadcast_constructible<_Ic<1.1f>, double>);
+  static_assert(not __broadcast_constructible<_Ic<1.1>, float>);
 }
+
+template <auto X>
+  using Ic = std::__detail::_Ic<X>;
+
+static_assert(    std::convertible_to<Ic<1>, std::simd<float>>);
+static_assert(not std::convertible_to<Ic<1.1>, std::simd<float>>);
+static_assert(not std::convertible_to<std::simd<int, 4>, std::simd<float, 4>>);
+static_assert(not std::convertible_to<std::simd<float, 4>, std::simd<int, 4>>);
+static_assert(    std::convertible_to<std::simd<int, 4>, std::simd<double, 4>>);
 
 static_assert(
   all_of(std::get<0>(std::interleave(std::iota_v<std::simd<int>>))

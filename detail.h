@@ -91,6 +91,13 @@ namespace std
     template <typename _Vp, _SimdSizeType _Width = 0>
       concept __simd_or_mask = __simd_type<_Vp, _Width> or __mask_type<_Vp, _Width>;
 
+    template<class T>
+      concept __constexpr_wrapper_like
+        = convertible_to<T, decltype(T::value)>
+            and equality_comparable_with<T, decltype(T::value)>
+            and bool_constant<T() == T::value>::value
+            and bool_constant<static_cast<decltype(T::value)>(T()) == T::value>::value;
+
     template <typename _From, typename _To>
       concept __value_preserving_convertible_to
         = convertible_to<_From, _To>
@@ -103,7 +110,7 @@ namespace std
 
     template <typename _From, typename _To>
       concept __non_narrowing_constexpr_conversion
-        = convertible_to<_From, _To>
+        = __constexpr_wrapper_like<_From> and convertible_to<_From, _To>
             and requires { { _From::value } -> std::convertible_to<_To>; }
             and static_cast<decltype(_From::value)>(_To(_From::value)) == _From::value
             and not (std::unsigned_integral<_To> and _From::value < 0)
@@ -112,7 +119,8 @@ namespace std
 
     template <typename _From, typename _To>
       concept __broadcast_constructible
-        = __value_preserving_convertible_to<remove_cvref_t<_From>, _To>
+        = (__value_preserving_convertible_to<remove_cvref_t<_From>, _To>
+             and not __constexpr_wrapper_like<remove_cvref_t<_From>>)
             or __non_narrowing_constexpr_conversion<remove_cvref_t<_From>, _To>;
 
     // __higher_floating_point_rank_than<_Tp, U> (_Tp has higher or equal floating point rank than U)
