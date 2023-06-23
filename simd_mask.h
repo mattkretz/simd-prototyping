@@ -97,7 +97,7 @@ namespace std
         else
           {
             _SimdType __r = {};
-            where(*this, __r) = _Tp(-1);
+            _SimdType::_Impl::_S_masked_assign(_M_data(), __r._M_data(), _Tp(-1));
             return __r;
           }
       }

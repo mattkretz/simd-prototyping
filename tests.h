@@ -55,8 +55,8 @@ static_assert([] constexpr {
 
 static_assert([] constexpr {
   constexpr std::simd_mask<float, 7> a([](int i) -> bool { return i < 3; });
-  constexpr std::basic_simd b = ~a;
-  return all_of(b == std::simd<int, 7>([](int i) { return ~int(i < 3); }));
+  constexpr std::basic_simd b = -a;
+  return all_of(b == std::simd<int, 7>([](int i) { return -int(i < 3); }));
 }());
 
 static_assert(
