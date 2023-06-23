@@ -64,9 +64,6 @@ namespace std
     template <auto _Value>
       inline constexpr _Ic<_Value> __ic{};
 
-    using namespace std::experimental::parallelism_v2;
-    using namespace std::experimental::parallelism_v2::__proposed;
-
     template <typename _Tp>
       concept __arithmetic = integral<_Tp> || floating_point<_Tp>;
 

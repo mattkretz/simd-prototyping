@@ -54,11 +54,11 @@ namespace std
   template <typename _Tp>
     inline constexpr bool is_simd_flag_type_v = is_simd_flag_type<_Tp>::value;*/
 
-  template <typename _Tp, typename _Abi = std::experimental::simd_abi::native<_Tp>>
+  template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     struct simd_size : std::experimental::simd_size<_Tp, _Abi>
     {};
 
-  template <typename _Tp, typename _Abi = std::experimental::simd_abi::native<_Tp>>
+  template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     inline constexpr __detail::_SimdSizeType simd_size_v = simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Vp>
@@ -75,14 +75,8 @@ namespace std
   template <__detail::_SimdSizeType _Np, typename _Vp>
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
-  template <typename _Tp, typename _Abi = std::experimental::parallelism_v2::simd_abi::native<_Tp>>
-    class basic_simd;
-
   template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
     using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
-
-  template <size_t _Bytes, typename _Abi>
-    class basic_simd_mask;
 
   template <typename _Tp, __detail::_SimdSizeType _Np>
     using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
