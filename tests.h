@@ -43,6 +43,22 @@ static_assert(not std::convertible_to<std::simd<int, 4>, std::simd<float, 4>>);
 static_assert(not std::convertible_to<std::simd<float, 4>, std::simd<int, 4>>);
 static_assert(    std::convertible_to<std::simd<int, 4>, std::simd<double, 4>>);
 
+template <typename T>
+concept usable_simd = std::is_nothrow_move_constructible_v<T>
+                        and std::is_nothrow_move_assignable_v<T>
+                        and std::is_nothrow_default_constructible_v<T>
+                        and std::is_trivially_copyable_v<T>
+                        and std::is_standard_layout_v<T>;
+
+static_assert(
+  usable_simd<std::__detail::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdBase>);
+static_assert(
+  usable_simd<std::__detail::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdMember>);
+
+static_assert(usable_simd<std::simd<int, 4>>);
+static_assert(usable_simd<std::simd<int, 6>>);
+static_assert(usable_simd<std::simd<int, 63>>);
+
 static_assert(
   all_of(std::simd_mask<float, 4>([] (int) { return true; }) == std::simd_mask<float, 4>(true)));
 static_assert(
