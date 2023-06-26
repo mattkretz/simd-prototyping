@@ -29,10 +29,10 @@ namespace std
 
     using _SimdSizeType = int;
 
-    template <_SimdSizeType _Np, typename = experimental::__detail::__odr_helper>
+    template <_SimdSizeType _Np, typename _Tag, typename = experimental::__detail::__odr_helper>
       struct _MaskImplAbiCombine;
 
-    template <_SimdSizeType _Np>
+    template <_SimdSizeType _Np, typename _Tag>
       struct _AbiCombine
       {
         template <typename _Tp>
@@ -75,7 +75,7 @@ namespace std
 
         using _SimdImpl = _SimdImplFixedSize<_Np>;
 
-        using _MaskImpl = _MaskImplAbiCombine<_Np>;
+        using _MaskImpl = _MaskImplAbiCombine<_Np, _Tag>;
 
         template <typename _Tp>
           struct __traits
@@ -90,7 +90,7 @@ namespace std
 
             using _SimdImpl = _SimdImplFixedSize<_Np>;
 
-            using _MaskImpl = _MaskImplAbiCombine<_Np>;
+            using _MaskImpl = _MaskImplAbiCombine<_Np, _Tag>;
 
             using _SimdMember = __fixed_size_storage_t<_Tp, _Np>;
 
@@ -144,7 +144,7 @@ namespace std
           };
       };
 
-    template <_SimdSizeType _Np, typename>
+    template <_SimdSizeType _Np, typename _Tag, typename>
       struct _MaskImplAbiCombine
       {
         static_assert(
@@ -152,7 +152,7 @@ namespace std
           "The fixed_size implementation relies on one _ULLong being able to store "
           "all boolean elements."); // required in load & store
 
-        using _Abi = _AbiCombine<_Np>;
+        using _Abi = _AbiCombine<_Np, _Tag>;
 
         using _MaskMember = _SanitizedBitMask<_Np>;
 
@@ -317,9 +317,9 @@ namespace std
     // fall back to fixed_size only if scalar and native ABIs don't match
     template <typename _Tp, _SimdSizeType _Np>
       requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
-                  and _AbiCombine<_Np>::template _S_is_valid_v<_Tp>)
+                  and _AbiCombine<_Np, _NativeAbi<_Tp>>::template _S_is_valid_v<_Tp>)
       struct _DeduceAbi<_Tp, _Np>
-      { using type = _AbiCombine<_Np>; };
+      { using type = _AbiCombine<_Np, _NativeAbi<_Tp>>; };
 
     template <typename _Tp, _SimdSizeType _Np>
       using __deduce_t = typename _DeduceAbi<_Tp, _Np>::type;
