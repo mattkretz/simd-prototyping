@@ -5,6 +5,7 @@
 
 #include "interleave.h"
 #include "permute.h"
+#include "simd_split.h"
 
 namespace test01
 {
@@ -59,6 +60,35 @@ static_assert([] constexpr {
   return all_of(b == std::simd<int, 7>([](int i) { return -int(i < 3); }));
 }());
 
+// simd_split ////////////////////////
+
+static_assert([] {
+  constexpr std::simd<int, 8> a([] (int i) { return i; });
+  auto a4 = simd_split<std::simd<int, 4>>(a);
+  auto a3 = simd_split<std::simd<int, 3>>(a);
+  return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd<int, 4>, 2>>
+           and std::tuple_size_v<decltype(a3)> == 3
+           and all_of(std::get<0>(a3) == std::simd<int, 3>([] (int i) { return i; }))
+           and all_of(std::get<1>(a3) == std::simd<int, 3>([] (int i) { return i + 3; }))
+           and all_of(std::get<2>(a3) == std::simd<int, 2>([] (int i) { return i + 6; }));
+}());
+
+static_assert([] {
+  constexpr std::simd_mask<int, 8> a([] (int i) -> bool { return i & 1; });
+  auto a4 = simd_split<std::simd_mask<int, 4>>(a);
+  auto a3 = simd_split<std::simd_mask<int, 3>>(a);
+  return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd_mask<int, 4>, 2>>
+           and std::tuple_size_v<decltype(a3)> == 3
+           and all_of(std::get<0>(a3) == std::simd_mask<int, 3>(
+                                           [] (int i) -> bool { return i & 1; }))
+           and all_of(std::get<1>(a3) == std::simd_mask<int, 3>(
+                                           [] (int i) -> bool { return (i + 3) & 1; }))
+           and all_of(std::get<2>(a3) == std::simd_mask<int, 2>(
+                                           [] (int i) -> bool { return (i + 6) & 1; }));
+}());
+
+// interleave /////////////////////
+
 static_assert(
   all_of(std::get<0>(std::interleave(std::iota_v<std::simd<int>>))
 	   == std::iota_v<std::simd<int>>));
@@ -70,6 +100,8 @@ static_assert(
 static_assert(
   all_of(std::get<1>(std::interleave(std::simd<int>(0), std::simd<int>(1)))
 	   == (std::iota_v<std::simd<int>> & 1)));
+
+// permute ////////////////////////
 
 static_assert(
   all_of(std::permute(std::iota_v<std::simd<int>>, std::simd_permutations::duplicate_even)
@@ -125,6 +157,8 @@ static_assert(
 static_assert(
   all_of(std::permute(std::iota_v<std::simd<int, 7>>, std::simd_permutations::rotate<-2>)
            == std::simd<int, 7>(std::array {5, 6, 0, 1, 2, 3, 4}.begin())));
+
+// simd_flags ////////////////////////
 
 static_assert(std::simd_flags<>() == std::simd_flag_default);
 
