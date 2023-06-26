@@ -148,10 +148,11 @@ namespace std
 #endif
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      conditional_operator_impl(const basic_simd_mask& __k, const basic_simd_mask& __t, const basic_simd_mask& __f)
+      conditional_operator_impl(const basic_simd_mask& __k,
+                                const basic_simd_mask& __t, const basic_simd_mask& __f)
       {
         basic_simd_mask __ret = __f;
-        _Impl::_S_masked_assign(__k._M_data, __ret._M_data, __t._M_data);
+        _Impl::_S_masked_assign(__k._M_data(), __ret._M_data(), __t._M_data());
         return __ret;
       }
 
