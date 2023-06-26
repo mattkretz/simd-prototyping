@@ -48,7 +48,7 @@ namespace std
         template <typename _Tp>
           static constexpr _SimdSizeType _S_max_size
             = std::max(_SimdSizeType(64),
-                       _SimdSizeType(4 * experimental::simd_size_v<_Tp, _NativeAbi<_Tp>>));
+                       _SimdSizeType(8 * experimental::simd_size_v<_Tp, _NativeAbi<_Tp>>));
 
         template <typename _Tp>
           struct _IsValidSizeFor
