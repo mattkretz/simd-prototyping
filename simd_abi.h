@@ -96,7 +96,7 @@ namespace std
 
             using _MaskMember = _SanitizedBitMask<_Np>;
 
-            static constexpr size_t _S_simd_align = std::__bit_ceil(_Np * sizeof(_Tp));
+            static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
             static constexpr size_t _S_mask_align = alignof(_MaskMember);
 
