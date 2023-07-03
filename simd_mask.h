@@ -143,10 +143,6 @@ namespace std
           }
         }
 
-#ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#define simd_select_impl operator?:
-#endif
-
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       simd_select_impl(const basic_simd_mask& __k, const basic_simd_mask& __t,
                        const basic_simd_mask& __f)
@@ -179,10 +175,6 @@ namespace std
         else
           return !__k;
       }
-
-#ifdef __GXX_CONDITIONAL_IS_OVERLOADABLE__
-#undef simd_select_impl
-#endif
 
       constexpr const auto& _M_data() const
       { return __data(static_cast<const _Base&>(*this)); }

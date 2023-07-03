@@ -13,6 +13,10 @@
 #include <experimental/simd>
 #include <limits>
 
+#if defined __GXX_CONDITIONAL_IS_OVERLOADABLE__ and SIMD_CONDITIONAL_OPERATOR
+#define simd_select_impl operator?:
+#endif
+
 namespace std
 {
   namespace __detail
