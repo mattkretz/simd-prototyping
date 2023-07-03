@@ -103,6 +103,14 @@ static_assert([] {
                                            [] (int i) -> bool { return (i + 6) & 1; }));
 }());
 
+// simd_select ////////////////////////
+
+static_assert(all_of(std::simd<long long, 8>(std::array{0, 0, 0, 0, 4, 4, 4, 4}.begin())
+                       == simd_select(std::iota_v<std::simd<double, 8>> < 4, 0ll, 4ll)));
+
+static_assert(all_of(std::simd<int, 8>(std::array{0, 0, 0, 0, 4, 4, 4, 4}.begin())
+                       == simd_select(std::iota_v<std::simd<float, 8>> < 4.f, 0, 4)));
+
 // interleave /////////////////////
 
 static_assert(

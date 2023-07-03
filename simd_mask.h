@@ -166,7 +166,7 @@ namespace std
         }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      simd_select_impl(const basic_simd_mask& __k, bool __t, bool __f)
+      simd_select_impl(const basic_simd_mask& __k, same_as<bool> auto __t, same_as<bool> auto __f)
       {
         if (__t == __f)
           return basic_simd_mask(__t);
