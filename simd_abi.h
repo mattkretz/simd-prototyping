@@ -6,6 +6,7 @@
 #ifndef PROTOTYPE_SIMD_ABI_H_
 #define PROTOTYPE_SIMD_ABI_H_
 
+#include <cstdint>
 #include <experimental/simd>
 
 namespace std
@@ -148,8 +149,8 @@ namespace std
       struct _MaskImplAbiCombine
       {
         static_assert(
-          sizeof(_ULLong) * __CHAR_BIT__ >= _Np,
-          "The fixed_size implementation relies on one _ULLong being able to store "
+          sizeof(uint64_t) * __CHAR_BIT__ >= _Np,
+          "The fixed_size implementation relies on one uint64_t being able to store "
           "all boolean elements."); // required in load & store
 
         using _Abi = _AbiCombine<_Np, _Tag>;
@@ -198,10 +199,10 @@ namespace std
         static constexpr _MaskMember
         _S_load(const bool* __mem) noexcept
         {
-          // TODO: _UChar is not necessarily the best type to use here. For smaller
-          // _Np _UShort, _UInt, _ULLong, float, and double can be more efficient.
-          _ULLong __r = 0;
-          using _Vs = __fixed_size_storage_t<_UChar, _Np>;
+          // TODO: uint8_t is not necessarily the best type to use here. For smaller
+          // _Np uint16_t, uint32_t, uint64_t, float, and double can be more efficient.
+          uint64_t __r = 0;
+          using _Vs = __fixed_size_storage_t<uint8_t, _Np>;
           __for_each(_Vs{}, [&](auto __meta, auto) _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
                        __r |= __meta._S_mask_to_shifted_ullong(
                                 __meta._S_mask_impl._S_load(&__mem[__meta._S_offset],
@@ -222,7 +223,7 @@ namespace std
 
         static constexpr void
         _S_store(const _MaskMember __bitmask, bool* __mem) noexcept
-        { _FirstAbi<_UChar>::_CommonImpl::_S_store_bool_array(__bitmask, __mem); }
+        { _FirstAbi<uint8_t>::_CommonImpl::_S_store_bool_array(__bitmask, __mem); }
 
         static constexpr void
         _S_masked_store(const _MaskMember __v, bool* __mem, const _MaskMember __k) noexcept
