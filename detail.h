@@ -21,6 +21,12 @@ namespace std
 {
   namespace __detail
   {
+    template <_SimdSizeType... _Is>
+      using _SimdIndexSequence = std::integer_sequence<_SimdSizeType, _Is...>;
+
+    template <_SimdSizeType _Np>
+      using _MakeSimdIndexSequence = std::make_integer_sequence<_SimdSizeType, _Np>;
+
     template <size_t _Bytes>
       struct __make_unsigned;
 
@@ -172,12 +178,12 @@ namespace std
     template <typename _Fp, typename _Tp, _SimdSizeType... _Is>
       constexpr
       _Ic<(__broadcast_constructible<invoke_result_t<_Fp, _Ic<_Is>>, _Tp> && ...)>
-      __simd_broadcast_invokable_impl(integer_sequence<_SimdSizeType, _Is...>);
+      __simd_broadcast_invokable_impl(_SimdIndexSequence<_Is...>);
 
     template <typename _Fp, typename _Tp, _SimdSizeType _Np>
       concept __simd_broadcast_invokable = requires
       {
-        { __simd_broadcast_invokable_impl<_Fp, _Tp>(make_integer_sequence<_SimdSizeType, _Np>()) }
+        { __simd_broadcast_invokable_impl<_Fp, _Tp>(_MakeSimdIndexSequence<_Np>()) }
           -> same_as<_Ic<true>>;
       };
 
