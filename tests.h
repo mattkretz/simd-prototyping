@@ -60,20 +60,31 @@ static_assert(usable_simd<std::simd<int, 6>>);
 static_assert(usable_simd<std::simd<int, 63>>);
 
 static_assert(
-  all_of(std::simd_mask<float, 4>([] (int) { return true; }) == std::simd_mask<float, 4>(true)));
+  all_of(std::simd_mask<float, 4>([](int) { return true; }) == std::simd_mask<float, 4>(true)));
 static_assert(
-  all_of(std::simd_mask<float, 4>([] (int) { return false; }) == std::simd_mask<float, 4>(false)));
-
-static_assert([] constexpr {
-  constexpr std::simd_mask<float, 4> a([](int i) -> bool { return i < 2; });
-  constexpr std::basic_simd b = ~a;
-  return all_of(b == std::simd<int, 4>([](int i) { return ~int(i < 2); }));
-}());
+  all_of(std::simd_mask<float, 4>([](int) { return false; }) == std::simd_mask<float, 4>(false)));
+static_assert(
+  all_of(std::simd_mask<float, 4>([](int i) { return i < 2; })
+           == std::simd_mask<float, 4>(std::array{true, true, false, false}.begin())));
 
 static_assert([] constexpr {
   constexpr std::simd_mask<float, 7> a([](int i) -> bool { return i < 3; });
   constexpr std::basic_simd b = -a;
+  static_assert(b[0] == -(0 < 3));
+  static_assert(b[1] == -(1 < 3));
+  static_assert(b[2] == -(2 < 3));
+  static_assert(b[3] == -(3 < 3));
   return all_of(b == std::simd<int, 7>([](int i) { return -int(i < 3); }));
+}());
+
+static_assert([] constexpr {
+  constexpr std::simd_mask<float, 4> a([](int i) -> bool { return i < 2; });
+  constexpr std::basic_simd b = ~a;
+  static_assert(b[0] == ~int(0 < 2));
+  static_assert(b[1] == ~int(1 < 2));
+  static_assert(b[2] == ~int(2 < 2));
+  static_assert(b[3] == ~int(3 < 2));
+  return all_of(b == std::simd<int, 4>([](int i) { return ~int(i < 2); }));
 }());
 
 // simd_split ////////////////////////
