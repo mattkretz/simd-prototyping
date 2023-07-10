@@ -24,6 +24,7 @@ namespace std
 
       using _MemberType = typename _Traits::_MaskMember;
 
+      //friend typename _Traits::_MaskBase;
 
       using _SimdType = std::basic_simd<_Tp, _Abi>;
 
@@ -32,6 +33,8 @@ namespace std
 
     public:
       using _Impl = typename _Traits::_MaskImpl;
+
+      //friend _Impl;
 
       static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _SimdType::size.value;
 
@@ -59,6 +62,8 @@ namespace std
       basic_simd_mask(__detail::_PrivateInit, const _MemberType& __init) noexcept
       : _M_data(__init)
       {}
+
+      // TODO bitset conversions
 
       // broadcast ctor
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
@@ -89,6 +94,7 @@ namespace std
         {}
 
       // load ctor
+      // TODO: update flags parameter
       template <typename _It, typename _Flags = element_aligned_tag>
         requires std::same_as<std::iter_value_t<_It>, bool>
                    and std::contiguous_iterator<_It>
@@ -97,6 +103,7 @@ namespace std
         { copy_from(__first, __f); }
 
       // masked load ctor
+      // TODO: update flags parameter
       template <typename _It, typename _Flags = element_aligned_tag>
         requires std::same_as<std::iter_value_t<_It>, bool>
                    and std::contiguous_iterator<_It>

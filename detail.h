@@ -229,6 +229,14 @@ namespace std
     using __vfloat128 [[__gnu__::__vector_size__(16)]] = float;
     using __vfloat256 [[__gnu__::__vector_size__(32)]] = float;
     using __vfloat512 [[__gnu__::__vector_size__(64)]] = float;
+
+    using __vint16_128 [[__gnu__::__vector_size__(16)]] = int16_t;
+    using __vint16_256 [[__gnu__::__vector_size__(32)]] = int16_t;
+    using __vint16_512 [[__gnu__::__vector_size__(64)]] = int16_t;
+
+    using __vuint16_128 [[__gnu__::__vector_size__(16)]] = uint16_t;
+    using __vuint16_256 [[__gnu__::__vector_size__(32)]] = uint16_t;
+    using __vuint16_512 [[__gnu__::__vector_size__(64)]] = uint16_t;
   }
 }
 

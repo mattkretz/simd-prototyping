@@ -54,8 +54,67 @@ namespace std
       using _V1 = basic_simd<_Tp, _Abi>;
       if constexpr (std::__has_single_bit(_V1::size.value))
         {
+          if (not __builtin_is_constant_evaluated() and not __x._M_is_constprop())
+            {
+#if _GLIBCXX_SIMD_HAVE_SSE
+              if constexpr (same_as<_BinaryOperation, plus<>> and _V1::size.value > 1
+                              and __detail::__have_ssse3 and is_integral_v<_Tp>)
+                {
+                  auto __y = __detail::__vector_bitcast<
+                               __detail::__int_for_sizeof_t<_Tp>>(__detail::__as_simd_builtin(__x));
+
+                  if constexpr (_V1::size.value == 16 and sizeof(_Tp) == 1)
+                    {
+                      auto __z = __builtin_bit_cast(__detail::__vint16_128, __y);
+                      __z = (__z << 8) + __z;
+                      __z = __builtin_ia32_phaddw128(__z, __z);
+                      __z = __builtin_ia32_phaddw128(__z, __z);
+                      __z = __builtin_ia32_phaddw128(__z, __z);
+                      return __z[0] >> 8;
+                    }
+
+                  if constexpr (_V1::size.value == 8 and sizeof(_Tp) == 2)
+                    {
+                      __y = __builtin_ia32_phaddw128(__y, __y);
+                      __y = __builtin_ia32_phaddw128(__y, __y);
+                      return __builtin_ia32_phaddw128(__y, __y)[0];
+                    }
+
+                  if constexpr (_V1::size.value == 4 and sizeof(_Tp) == 2 and sizeof(__x) == 8)
+                    {
+                      auto __z = __builtin_shufflevector(__y, __y, 0, 1, 2, 3, -1, -1, -1, -1);
+                      __z = __builtin_ia32_phaddw128(__z, __z);
+                      return __builtin_ia32_phaddw128(__z, __z)[0];
+                    }
+
+                  if constexpr (_V1::size.value == 4 and sizeof(_Tp) == 4)
+                    {
+                      __y = __builtin_ia32_phaddd128(__y, __y);
+                      return __builtin_ia32_phaddd128(__y, __y)[0];
+                    }
+                }
+              else if constexpr (same_as<_BinaryOperation, plus<>> and _V1::size.value > 1
+                                   and __detail::__have_sse3 and is_floating_point_v<_Tp>)
+                {
+                  auto __y = __detail::__as_simd_builtin(__x);
+                  if constexpr (_V1::size.value == 4 and sizeof(_Tp) == 4)
+                    {
+                      __y = __builtin_ia32_haddps(__y, __y);
+                      return __builtin_ia32_haddps(__y, __y)[0];
+                    }
+
+                  if constexpr (_V1::size.value == 2 and sizeof(_Tp) == 8)
+                    return __builtin_ia32_haddpd(__y, __y)[0];
+                }
+#endif
+            }
+
           if constexpr (_V1::size.value == 1)
             return __x[0];
+
+          else if constexpr (_V1::size.value == 2 and sizeof(__x) == 16)
+            return __binary_op(__x, _V1([&](auto __i) { return __x[__i ^ 1]; }))[0];
+
           else
             return std::reduce(__detail::__split_and_invoke_once(__x, __binary_op), __binary_op);
         }

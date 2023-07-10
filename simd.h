@@ -298,6 +298,15 @@ namespace std
 
       friend constexpr auto& __data(basic_simd& __x)
       { return __x._M_data(); }
+
+      _GLIBCXX_SIMD_INTRINSIC constexpr bool
+      _M_is_constprop() const
+      {
+        if constexpr (__detail::__is_scalar_abi<_Abi>())
+          return __builtin_constant_p(_M_data());
+        else
+          return _M_data()._M_is_constprop();
+      }
     };
 
   template <typename _Tp, typename _Abi>
