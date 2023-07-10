@@ -16,6 +16,16 @@ namespace std
   {
     template <typename _Tp, size_t>
       using __repeat_type = _Tp;
+
+    template <typename _T0, typename... _Ts>
+      _GLIBCXX_SIMD_INTRINSIC constexpr typename _T0::value_type
+      __get_simd_element_from_pack(auto __i, const _T0& __x, const _Ts&... __pack)
+      {
+        if constexpr (__i.value < _T0::size.value)
+          return __x[__i.value];
+        else
+          return __get_simd_element_from_pack(__ic<__i.value - _T0::size.value>, __pack...);
+      }
   }
 
   template <typename _V, typename _Tp, typename _Abi>
@@ -74,6 +84,89 @@ namespace std
                         return __x[__i + __in - __rem];
                       })};
         }(std::make_index_sequence<__in / __out>());
+    }
+
+  namespace __detail
+  {
+    template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC constexpr auto
+      __as_simd_builtin(_Tp __x) noexcept
+      {
+        if constexpr (_Tp::size.value == 1)
+          {
+            using _Vp [[__gnu__::__vector_size__(sizeof(_Tp))]] = typename _Tp::value_type;
+            return _Vp {__data(__x)};
+          }
+        else
+          return __data(__x)._M_data;
+      }
+
+    template <typename _T0, typename _T1, typename... _Ts>
+      _GLIBCXX_SIMD_INTRINSIC constexpr auto
+      __cat_recursive(const _T0& __x0, const _T1& __x1, const _Ts&... __xs) noexcept
+      {
+        using _Tp = typename _T0::value_type;
+        constexpr int __x0_size = sizeof(__x0) / sizeof(_Tp);
+        constexpr int __size = _T0::size.value + _T1::size.value;
+        const std::resize_simd_t<__size, _T0>
+          __x01(__private_init,
+                [&]<_SimdSizeType... _Is, _SimdSizeType... _Js,
+                    _SimdSizeType... _Ks>(_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
+                                          _SimdIndexSequence<_Ks...>)
+                _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+#ifdef __clang__
+                  if constexpr (sizeof(__x0) != sizeof(__x1))
+                    {
+                      constexpr int __simd_bytes = std::__bit_ceil(__size) * sizeof(_Tp);
+                      using _Rp [[__gnu__::__vector_size__(__simd_bytes)]] = _Tp;
+                      return _Rp {
+                        __as_simd_builtin(__x0)[_Is]...,
+                        __as_simd_builtin(__x1)[_Js]...,
+                        ((void)_Ks, 0)...
+                      };
+                    }
+                  else
+#endif
+                    return __builtin_shufflevector(__as_simd_builtin(__x0), __as_simd_builtin(__x1),
+                                                   _Is..., __x0_size + _Js...,
+                                                   ((void)_Ks, -1)...);
+                }(_MakeSimdIndexSequence<_T0::size.value>(),
+                  _MakeSimdIndexSequence<_T1::size.value>(),
+                  _MakeSimdIndexSequence<std::__bit_ceil(__size) - __size>()));
+        if constexpr (sizeof...(_Ts) == 0)
+          return __x01;
+        else
+          return __cat_recursive(__x01, __xs...);
+      }
+  }
+
+  template <typename _Tp, typename... _Abis>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+    simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>
+    simd_cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept
+    {
+      constexpr int __size = (simd_size_v<_Tp, _Abis> + ...);
+      if constexpr (sizeof...(_Abis) == 1)
+        return simd<_Tp, __size>(__xs...);
+      else if constexpr (__size <= simd_size_v<_Tp>)
+        return __detail::__cat_recursive(__xs...);
+      else
+        return simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>([&](auto __i)
+               _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+                 return __detail::__get_simd_element_from_pack(__i, __xs...);
+               });
+    }
+
+  template <size_t _Bs, typename... _Abis>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+    simd_mask<__detail::__int_with_sizeof_t<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept
+    {
+      return simd_mask<__detail::__int_with_sizeof_t<_Bs>,
+                       (basic_simd_mask<_Bs, _Abis>::size.value + ...)>([&](auto __i)
+             _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+               return __detail::__get_simd_element_from_pack(__i, __xs...);
+             });
     }
 }
 

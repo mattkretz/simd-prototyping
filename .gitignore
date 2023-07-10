@@ -1,3 +1,4 @@
 ce.asm
 ce.mca
-tests.h.gch
+obj
+Makefile.depend

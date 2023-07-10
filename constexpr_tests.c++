@@ -6,6 +6,7 @@
 #include "interleave.h"
 #include "permute.h"
 #include "simd_split.h"
+#include "mask_reductions.h"
 
 namespace test01
 {
@@ -55,9 +56,52 @@ static_assert(
 static_assert(
   usable_simd<std::__detail::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdMember>);
 
-static_assert(usable_simd<std::simd<int, 4>>);
-static_assert(usable_simd<std::simd<int, 6>>);
-static_assert(usable_simd<std::simd<int, 63>>);
+template <typename T>
+  struct test_usable_simd
+  {
+    static_assert(usable_simd<std::simd<T, 1>>);
+    static_assert(usable_simd<std::simd<T, 2>>);
+    static_assert(usable_simd<std::simd<T, 3>>);
+    static_assert(usable_simd<std::simd<T, 4>>);
+    static_assert(usable_simd<std::simd<T, 8>>);
+    static_assert(usable_simd<std::simd<T, 16>>);
+    static_assert(usable_simd<std::simd<T, 32>>);
+    static_assert(usable_simd<std::simd<T, 63>>);
+    static_assert(usable_simd<std::simd<T, 64>>);
+
+    static_assert(usable_simd<std::simd_mask<T, 1>>);
+    static_assert(usable_simd<std::simd_mask<T, 2>>);
+    static_assert(usable_simd<std::simd_mask<T, 3>>);
+    static_assert(usable_simd<std::simd_mask<T, 4>>);
+    static_assert(usable_simd<std::simd_mask<T, 8>>);
+    static_assert(usable_simd<std::simd_mask<T, 16>>);
+    static_assert(usable_simd<std::simd_mask<T, 32>>);
+    static_assert(usable_simd<std::simd_mask<T, 63>>);
+    static_assert(usable_simd<std::simd_mask<T, 64>>);
+  };
+
+template <template <typename> class Tpl>
+  struct instantiate_all_vectorizable
+  {
+    Tpl<float> a;
+    Tpl<double> b;
+    Tpl<char> c;
+    Tpl<char16_t> d;
+    Tpl<char32_t> e;
+    Tpl<wchar_t> f;
+    Tpl<signed char> g;
+    Tpl<unsigned char> h;
+    Tpl<short> i;
+    Tpl<unsigned short> j;
+    Tpl<int> k;
+    Tpl<unsigned int> l;
+    Tpl<long> m;
+    Tpl<unsigned long> n;
+    Tpl<long long> o;
+    Tpl<unsigned long long> p;
+  };
+
+template struct instantiate_all_vectorizable<test_usable_simd>;
 
 static_assert(
   all_of(std::simd_mask<float, 4>([](int) { return true; }) == std::simd_mask<float, 4>(true)));
@@ -87,6 +131,29 @@ static_assert([] constexpr {
   return all_of(b == std::simd<int, 4>([](int i) { return ~int(i < 2); }));
 }());
 
+
+// simd reductions ///////////////////
+
+static_assert(reduce(std::simd<int, 7>(1)) == 7);
+static_assert(reduce(std::simd<int, 7>(2), std::multiplies<>()) == 128);
+static_assert(reduce(std::simd<int, 8>(2), std::bit_and<>()) == 2);
+static_assert(reduce(std::simd<int, 8>(2), std::bit_or<>()) == 2);
+static_assert(reduce(std::simd<int, 8>(2), std::bit_xor<>()) == 0);
+static_assert(reduce(std::simd<int, 3>(2), std::bit_and<>()) == 2);
+static_assert(reduce(std::simd<int, 6>(2), std::bit_and<>()) == 2);
+static_assert(reduce(std::simd<int, 7>(2), std::bit_and<>()) == 2);
+static_assert(reduce(std::simd<int, 7>(2), std::bit_or<>()) == 2);
+static_assert(reduce(std::simd<int, 7>(2), std::bit_xor<>()) == 2);
+
+// mask reductions ///////////////////
+
+static_assert(all_of(std::simd<float>() == std::simd<float>()));
+static_assert(any_of(std::simd<float>() == std::simd<float>()));
+static_assert(not none_of(std::simd<float>() == std::simd<float>()));
+static_assert(reduce_count(std::simd<float>() == std::simd<float>()) == std::simd<float>::size);
+static_assert(reduce_min_index(std::simd<float>() == std::simd<float>()) == 0);
+static_assert(reduce_max_index(std::simd<float>() == std::simd<float>()) == std::simd<float>::size - 1);
+
 // simd_split ////////////////////////
 
 static_assert([] {
@@ -113,6 +180,23 @@ static_assert([] {
            and all_of(std::get<2>(a3) == std::simd_mask<int, 2>(
                                            [] (int i) -> bool { return (i + 6) & 1; }));
 }());
+
+// simd_cat ///////////////////////////
+
+static_assert(all_of(std::simd_cat(std::iota_v<std::simd<int, 3>>, std::simd<int, 1>(3))
+                       == std::iota_v<std::simd<int, 4>>));
+
+static_assert(all_of(std::simd_cat(std::iota_v<std::simd<int, 4>>,
+                                   std::iota_v<std::simd<int, 4>> + 4)
+                       == std::iota_v<std::simd<int, 8>>));
+
+static_assert(all_of(std::simd_cat(std::iota_v<std::simd<double, 4>>,
+                                   std::iota_v<std::simd<double, 2>> + 4)
+                       == std::iota_v<std::simd<double, 6>>));
+
+static_assert(all_of(std::simd_cat(std::iota_v<std::simd<double, 4>>,
+                                   std::iota_v<std::simd<double, 4>> + 4)
+                       == std::iota_v<std::simd<double, 8>>));
 
 // simd_select ////////////////////////
 

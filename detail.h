@@ -202,6 +202,33 @@ namespace std
     template <typename _Fp, typename _Simd>
       concept __index_permutation_function
         = __index_permutation_function_size<_Fp, _Simd> or __index_permutation_function_nosize<_Fp>;
+
+    template <typename _Tp>
+      concept __vec_builtin = not __arithmetic<_Tp>
+                                and requires(_Tp& __v)
+      {
+        { __v + __v } -> same_as<_Tp>;
+        requires (sizeof(__v[0]) < sizeof(__v));
+        { auto(__v[0]) } -> __vectorizable;
+        { __v[0] = __v[1] };
+        requires same_as<typename __vector_type<remove_cvref_t<decltype(__v[0])>,
+                                                sizeof(_Tp)>::type, _Tp>;
+      };
+
+    template <typename _Tp, size_t _ElementSize, size_t _VecSize = sizeof(_Tp)>
+      concept __vec_builtin_sizeof = __vec_builtin<_Tp> and sizeof(_Tp) == _VecSize
+                                       and requires(_Tp& __v)
+      {
+        requires (sizeof(remove_cvref_t<decltype(__v[0])>) == _ElementSize);
+      };
+
+    using __vdouble128 [[__gnu__::__vector_size__(16)]] = double;
+    using __vdouble256 [[__gnu__::__vector_size__(32)]] = double;
+    using __vdouble512 [[__gnu__::__vector_size__(64)]] = double;
+
+    using __vfloat128 [[__gnu__::__vector_size__(16)]] = float;
+    using __vfloat256 [[__gnu__::__vector_size__(32)]] = float;
+    using __vfloat512 [[__gnu__::__vector_size__(64)]] = float;
   }
 }
 
