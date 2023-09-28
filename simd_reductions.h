@@ -47,7 +47,8 @@ namespace std
     }
   }
 
-  template <typename _Tp, typename _Abi, typename _BinaryOperation = plus<>>
+  template <typename _Tp, typename _Abi,
+            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation = plus<>>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {})
     {
@@ -143,6 +144,43 @@ namespace std
                    __binary_op);
         }
     }
+
+  template <typename _Tp, typename _Abi,
+            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           _Tp __identity_element, _BinaryOperation __binary_op)
+    { return reduce(simd_select(__k, __x, __identity_element), __binary_op); }
+
+  template <typename _Tp, typename _Abi>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           plus<> __binary_op = {})
+    { return reduce(simd_select(__k, __x, _Tp())); }
+
+  template <typename _Tp, typename _Abi>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           multiplies<> __binary_op)
+    { return reduce(simd_select(__k, __x, _Tp(1)), __binary_op); }
+
+  template <typename _Tp, typename _Abi>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           bit_and<> __binary_op)
+    { return reduce(simd_select(__k, __x, _Tp(~_Tp())), __binary_op); }
+
+  template <typename _Tp, typename _Abi>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           bit_or<> __binary_op)
+    { return reduce(simd_select(__k, __x, _Tp()), __binary_op); }
+
+  template <typename _Tp, typename _Abi>
+    constexpr _Tp
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+           bit_xor<> __binary_op)
+    { return reduce(simd_select(__k, __x, _Tp()), __binary_op); }
 }
 
 #endif  // PROTOTYPE_SIMD_REDUCTIONS_H_
