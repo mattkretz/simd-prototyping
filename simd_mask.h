@@ -76,7 +76,7 @@ namespace std
         requires(size() == basic_simd_mask<_UBytes, _UAbi>::size.value)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
         basic_simd_mask(const basic_simd_mask<_UBytes, _UAbi>& __x) noexcept
-        : basic_simd_mask(__detail::static_simd_cast<basic_simd_mask>(__x))
+        : basic_simd_mask(__detail::__private_init, _Impl::template _S_convert<_Tp>(__x))
         {}
 
       // generator ctor

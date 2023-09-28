@@ -65,7 +65,7 @@ namespace std
         explicit(not __detail::__value_preserving_convertible_to<_Up, value_type>
                    || __detail::__higher_rank_than<_Up, value_type>)
         basic_simd(const basic_simd<_Up, _UAbi>& __x) noexcept
-        : _Base(__detail::static_simd_cast<_Base>(__x))
+        : _Base(__detail::static_simd_cast<_Base>(__x._M_as_base()))
         {}
 
       // generator constructor
@@ -286,6 +286,12 @@ namespace std
 
       // P2664::end
       ///////////////////////
+
+      constexpr const _Base& _M_as_base() const
+      { return *this; }
+
+      constexpr _Base& _M_as_base()
+      { return *this; }
 
       constexpr const auto& _M_data() const
       { return __data(static_cast<const _Base&>(*this)); }
