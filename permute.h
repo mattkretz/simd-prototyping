@@ -115,7 +115,7 @@ namespace std
     {
       using _Tp = typename _Vp::value_type;
       using _Rp = resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>;
-      return _Rp([&](auto __i) -> _Tp {
+      return _Rp([&](auto __i) _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA -> _Tp {
                constexpr int __j = [&] {
                  if constexpr (__detail::__index_permutation_function_nosize<_Fp>)
                    return __idx_perm(__i);
