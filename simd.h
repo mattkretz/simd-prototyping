@@ -125,7 +125,11 @@ namespace std
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, const mask_type& __k, _Flags __f = {}) const
-        { __detail::where(__k, *this).copy_to(std::addressof(*__first), __f); }
+        {
+          _Impl::_S_masked_store(
+            __data(*this), _Flags::template _S_apply<basic_simd>(std::to_address(__first)),
+            __data(__k));
+        }
 
       // unary operators (for any _Tp)
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr mask_type
