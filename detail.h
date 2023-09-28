@@ -74,13 +74,6 @@ namespace std
     template <auto _Value>
       inline constexpr _Ic<_Value> __ic{};
 
-    template <typename _Tp>
-      concept __arithmetic = integral<_Tp> || floating_point<_Tp>;
-
-    template <typename _Tp>
-      concept __vectorizable
-        = __arithmetic<_Tp> and not same_as<_Tp, bool> and not same_as<_Tp, long double>;
-
     template <typename _Abi>
       concept __simd_abi_tag = std::is_abi_tag_v<_Abi>;
 

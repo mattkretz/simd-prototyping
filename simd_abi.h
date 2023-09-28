@@ -30,6 +30,305 @@ namespace std
 
     using _SimdSizeType = int;
 
+    template <typename _Tp>
+      concept __arithmetic = integral<_Tp> || floating_point<_Tp>;
+
+    template <typename _Tp>
+      concept __vectorizable
+        = __arithmetic<_Tp> and not same_as<_Tp, bool> and not same_as<_Tp, long double>;
+
+    template <typename _Abi0, size_t... _Is>
+      struct _SimdImplArray;
+
+    template <typename _Abi0, size_t... _Is>
+      struct _MaskImplArray;
+
+    template <typename _Abi0, _SimdSizeType _Np>
+      struct _AbiArray
+      {
+        static constexpr _SimdSizeType _S_abiarray_size = _Np;
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType _S_size = _Np * _Abi0::template _S_size<_Tp>;
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType _S_full_size = _Np * _Abi0::template _S_size<_Tp>;
+
+        template <typename _Tp>
+          static constexpr bool _S_is_partial = false;
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType _S_max_size
+            = std::max(_SimdSizeType(64), _SimdSizeType(8 * _Abi0::template _S_size<_Tp>));
+
+        struct _IsValidAbiTag
+        : __bool_constant<_Abi0::_IsValidAbiTag::value and (_Np > 1)>
+        {};
+
+        template <typename _Tp>
+          struct _IsValidSizeFor
+          : __bool_constant<(_S_size<_Tp> <= _S_max_size<_Tp>)
+                              and not _Abi0::template _S_is_partial<_Tp>
+                              and _Abi0::template _IsValidSizeFor<_Tp>::value>
+          {};
+
+        template <typename _Tp>
+          struct _IsValid
+          : conjunction<_IsValidAbiTag, __is_vectorizable<_Tp>, _IsValidSizeFor<_Tp>>
+          {};
+
+        template <typename _Tp>
+          static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
+
+        using _SimdImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
+                                     -> _SimdImplArray<_Abi0, _Is...> {
+                                       return {};
+                                     }(make_index_sequence<_Np>()));
+
+        using _MaskImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
+                                     -> _MaskImplArray<_Abi0, _Is...> {
+                                       return {};
+                                     }(make_index_sequence<_Np>()));
+
+        template <typename _Tp>
+          struct __traits
+          : _InvalidTraits
+          {};
+
+        template <typename _Tp>
+          requires _S_is_valid_v<_Tp>
+          struct __traits<_Tp>
+          {
+            using _IsValid = true_type;
+
+            using _SimdImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
+                                         -> _SimdImplArray<_Abi0, _Is...> {
+                                           return {};
+                                         }(make_index_sequence<_Np>()));
+
+            using _MaskImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
+                                         -> _MaskImplArray<_Abi0, _Is...> {
+                                           return {};
+                                         }(make_index_sequence<_Np>()));
+
+            using _SimdMember
+              = std::array<typename _Abi0::template __traits<_Tp>::_SimdMember, _Np>;
+
+            using _MaskMember
+              = std::array<typename _Abi0::template __traits<_Tp>::_MaskMember, _Np>;
+
+            static constexpr size_t _S_simd_align = alignof(_SimdMember);
+
+            static constexpr size_t _S_mask_align = alignof(_MaskMember);
+
+            static constexpr bool _S_is_partial = false;
+
+            struct _SimdBase
+            {};
+
+            struct _MaskBase
+            {};
+
+            class _MaskCastType
+            {};
+
+            class _SimdCastType
+            {};
+          };
+      };
+
+    template <typename _Abi0, size_t... _Is>
+      struct _SimdImplArray
+      {
+        static constexpr _SimdSizeType _Np = sizeof...(_Is);
+
+        using abi_type = _AbiArray<_Abi0, _Np>;
+
+        template <typename _Tp>
+          using _TypeTag = _Tp*;
+
+        template <typename _Tp>
+          using _SimdMember = typename abi_type::template __traits<_Tp>::_SimdMember;
+
+        template <typename _Tp>
+          using _ValueTypeOf = typename _VectorTraits<typename _Tp::value_type>::value_type;
+
+        template <typename _Tp>
+          using _MaskMember = typename abi_type::template __traits<
+                                conditional_t<__vectorizable<_Tp>, _Tp,
+                                              _ValueTypeOf<_Tp>>>::_MaskMember;
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType _S_size = abi_type::template _S_size<_Tp>;
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType _S_chunk_size = _Abi0::template _S_size<_Tp>;
+
+        using _Impl0 = typename _Abi0::_SimdImpl;
+
+        using _MaskImpl = typename abi_type::_MaskImpl;
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
+          _S_broadcast(_Tp __x) noexcept
+          { return {((void)_Is, _Impl0::_S_broadcast(__x))...}; }
+
+        template <typename _Fp, typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
+          _S_generator(_Fp&& __gen, _TypeTag<_Tp> __tag)
+          {
+            return {_Impl0::_S_generator([&](auto __i) _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+                      return invoke(__gen, std::integral_constant<
+                                             _SimdSizeType, __i + _Is * _S_chunk_size<_Tp>>());
+                    }, __tag)...};
+          }
+
+        template <typename _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
+          _S_load(const _Up* __mem, _TypeTag<_Tp> __tag) noexcept
+          { return {_Impl0::_S_load(__mem + _Is * _S_chunk_size<_Tp>, __tag)...}; }
+
+        template <typename _Tp, typename _Up>
+          static constexpr inline _Tp
+          _S_masked_load(_Tp const& __merge, _MaskMember<_Tp> const& __k,
+                         const _Up* __mem) noexcept
+          {
+            _SimdMember<_Tp> __ret = __merge;
+            (_Impl0::_S_masked_load(__ret[_Is], __k[_Is], __mem + _Is * _S_chunk_size<_Tp>), ...);
+            return __ret;
+          }
+
+        template <typename _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_store(_SimdMember<_Tp> const& __v, _Up* __mem, _TypeTag<_Tp> __tag) noexcept
+          { (_Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size<_Tp>, __tag), ...); }
+
+        template <typename _Tp, typename _Up>
+          static constexpr inline void
+          _S_masked_store(const _Tp __v, _Up* __mem, const _MaskMember<_Tp> __k) noexcept
+          { (_Impl0::_S_masked_store(__v[_Is], __mem + _Is * _S_chunk_size<_Tp>, __k[_Is]), ...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_complement(_Tp __x) noexcept
+          { return {_Impl0::_S_complement(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_unary_minus(_Tp __x) noexcept
+          { return {_Impl0::_S_unary_minus(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_plus(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_plus(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_minus(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_minus(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_multiplies(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_multiplies(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_divides(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_divides(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_modulus(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_modulus(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_and(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_bit_and(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_or(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_bit_or(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_xor(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_bit_xor(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_shift_left(_Tp __x, _Tp __y) noexcept
+          { return {_Impl0::_S_bit_shift_left(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_shift_right(_Tp __x, _Tp __y) noexcept
+          { return {_Impl0::_S_bit_shift_right(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_shift_left(_Tp __x, int __y) noexcept
+          { return {_Impl0::_S_bit_shift_left(__x[_Is], __y)...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_shift_right(_Tp __x, int __y) noexcept
+          { return {_Impl0::_S_bit_shift_right(__x[_Is], __y)...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_equal_to(_Tp __x, _Tp __y) noexcept
+          { return {_Impl0::_S_equal_to(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_not_equal_to(_Tp __x, _Tp __y) noexcept
+          { return __x._M_data != __y._M_data; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_less(_Tp __x, _Tp __y) noexcept
+          { return __x._M_data < __y._M_data; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_less_equal(_Tp __x, _Tp __y) noexcept
+          { return __x._M_data <= __y._M_data; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_negate(_Tp __x) noexcept
+          { return !__x._M_data; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_increment(_SimdMember<_Tp>& __x)
+          { (_Impl0::_S_increment(__x[_Is]), ...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_decrement(_SimdMember<_Tp>& __x)
+          { (_Impl0::_S_decrement(__x[_Is]), ...); }
+
+        template <typename _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_set(_SimdMember<_Tp>& __v, int __i, _Up&& __x) noexcept
+          {
+            ((__i >= _Is * _S_chunk_size<_Tp> and __i < (_Is + 1) * _S_chunk_size<_Tp>
+              ? _Impl0::_S_set(__v[_Is], __i - _Is * _S_chunk_size<_Tp>, static_cast<_Up&&>(__x))
+              : 0), ...);
+          }
+      };
+
+    template <typename _Abi0, size_t... _Is>
+      struct _MaskImplArray
+      {
+
+      };
+
     template <_SimdSizeType _Np, typename _Tag, typename = experimental::__detail::__odr_helper>
       struct _MaskImplAbiCombine;
 
@@ -315,9 +614,17 @@ namespace std
       struct _DeduceAbi<_Tp, _Np>
       { using type = _AllNativeAbis::_FirstValidAbi<_Tp, _Np>; };
 
-    // fall back to fixed_size only if scalar and native ABIs don't match
+    // next try _AbiArray of _NativeAbi
     template <typename _Tp, _SimdSizeType _Np>
       requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
+                  and _Np % _NativeAbi<_Tp>::template _S_size<_Tp> == 0)
+      struct _DeduceAbi<_Tp, _Np>
+      { using type = _AbiArray<_NativeAbi<_Tp>, _Np / _NativeAbi<_Tp>::template _S_size<_Tp>>; };
+
+    // fall back to _AbiCombine of inhomogenous ABI tags
+    template <typename _Tp, _SimdSizeType _Np>
+      requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
+                  and _Np % _NativeAbi<_Tp>::template _S_size<_Tp> != 0
                   and _AbiCombine<_Np, _NativeAbi<_Tp>>::template _S_is_valid_v<_Tp>)
       struct _DeduceAbi<_Tp, _Np>
       { using type = _AbiCombine<_Np, _NativeAbi<_Tp>>; };

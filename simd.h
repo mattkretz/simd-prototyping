@@ -289,16 +289,26 @@ namespace std
         return __ret;
       }
 
-      ///////////////////////
-      // P2664::begin
-
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr reference
       operator[](__detail::_SimdSizeType __i) &
-      { return _Base::operator[](__i); }
+      { return {_M_data(), __i}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr value_type
       operator[](__detail::_SimdSizeType __i) const&
-      { return _Base::operator[](__i); }
+      {
+        if constexpr (__detail::__is_scalar_abi<_Abi>())
+          {
+            _GLIBCXX_DEBUG_ASSERT(__i == 0);
+            return _M_data();
+          }
+        else if constexpr (requires {_Abi::_S_abiarray_size;})
+          return _M_data()[__i / _Abi::_S_abiarray_size][__i % _Abi::_S_abiarray_size];
+        else
+          return _M_data()[__i];
+      }
+
+      ///////////////////////
+      // P2664::begin
 
       template <std::integral _Up, typename _Ap>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr simd<_Tp, simd_size_v<_Up, _Ap>>
