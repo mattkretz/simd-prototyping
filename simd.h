@@ -82,7 +82,7 @@ namespace std
                    and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         basic_simd(_It __first, _Flags __f = {})
-        : _Base(std::addressof(*__first), __f)
+        : _Base(std::to_address(__first), __f)
         {}
 
       template <typename _It, typename _Flags = __detail::element_aligned_tag>
@@ -92,7 +92,7 @@ namespace std
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         basic_simd(_It __first, const mask_type& __k, _Flags __f = {})
         : _Base()
-        { __detail::where(__k, *this).copy_from(std::addressof(*__first), __f); }
+        { __detail::where(__k, *this).copy_from(std::to_address(__first), __f); }
 
       // private init
       _GLIBCXX_SIMD_INTRINSIC constexpr
@@ -106,20 +106,20 @@ namespace std
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_from(_It __first, _Flags __f = {})
-        { _Base::copy_from(std::addressof(*__first), __f); }
+        { _Base::copy_from(std::to_address(__first), __f); }
 
       template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
         requires __detail::__vectorizable<std::iter_value_t<_It>>
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_from(_It __first, const mask_type& __k, _Flags __f = {})
-        { __detail::where(__k, *this).copy_from(std::addressof(*__first), __f); }
+        { __detail::where(__k, *this).copy_from(std::to_address(__first), __f); }
 
       template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, _Flags __f = {}) const
-        { _Base::copy_to(std::addressof(*__first), __f); }
+        { _Base::copy_to(std::to_address(__first), __f); }
 
       template <std::contiguous_iterator _It, typename _Flags = __detail::element_aligned_tag>
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
