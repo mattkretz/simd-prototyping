@@ -194,6 +194,26 @@ namespace std
       requires requires (value_type __a) { __a ^ __a; }
       { return {__detail::__private_init, _Impl::_S_bit_xor(__data(__x), __data(__y))}; }
 
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator>>(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a >> __a; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator<<(const basic_simd& __x, const basic_simd& __y)
+      requires requires (value_type __a) { __a << __a; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator>>(const basic_simd& __x, int __y)
+      requires requires (value_type __a, int __b) { __a >> __b; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator<<(const basic_simd& __x, int __y)
+      requires requires (value_type __a, int __b) { __a << __b; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)}; }
+
       // compares [basic_simd.comparison]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator==(const basic_simd& __x, const basic_simd& __y)
