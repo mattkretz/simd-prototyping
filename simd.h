@@ -235,12 +235,15 @@ namespace std
         : _Base(std::ranges::data(__range), __detail::element_aligned)
         {}
 
+      /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
+       * (decay to pointer) as well as contiguous ranges.
+       *
       template <std::ranges::random_access_range _Rg>
         requires(std::convertible_to<std::ranges::range_value_t<_Rg>, _Tp>)
         constexpr explicit (not std::same_as<std::ranges::range_value_t<_Rg>, _Tp>)
         basic_simd(const _Rg& __range)
         : _Base([&__range](auto __i) -> _Tp { return __range[__i]; })
-        {}
+        {}*/
 
       constexpr std::array<_Tp, size()>
       to_array() const noexcept
