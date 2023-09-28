@@ -111,7 +111,7 @@ namespace std
   template <__detail::_SimdSizeType _Np = 0, __detail::__simd_or_mask _Vp,
             __detail::__index_permutation_function<_Vp> _Fp>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>
-    permute(_Vp const& __v, _Fp const __idx_perm) noexcept
+    simd_permute(_Vp const& __v, _Fp const __idx_perm) noexcept
     {
       using _Tp = typename _Vp::value_type;
       using _Rp = resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>;
