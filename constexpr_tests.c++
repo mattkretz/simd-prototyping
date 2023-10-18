@@ -12,6 +12,22 @@ namespace test01
 {
   using namespace std::__detail;
 
+  template <typename T, int N>
+    class MyArray
+    {
+      T data[N];
+
+    public:
+      static constexpr std::integral_constant<int, N> size = {};
+    };
+
+  static_assert(__static_range_size<MyArray<int, 4>> == 4);
+  static_assert(__static_range_size<std::array<int, 4>> == 4);
+  static_assert(__static_range_size<int[4]> == 4);
+  static_assert(__static_range_size<std::span<int, 4>> == 4);
+  static_assert(__static_range_size<std::span<int>> == std::dynamic_extent);
+  static_assert(__static_range_size<std::vector<int>> == std::dynamic_extent);
+
   static_assert(std::same_as<__nopromot_common_type_t<short, signed char>, short>);
   static_assert(std::same_as<__nopromot_common_type_t<short, unsigned char>, short>);
   static_assert(std::same_as<__nopromot_common_type_t<short, unsigned short>, unsigned short>);
