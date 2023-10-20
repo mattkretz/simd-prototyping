@@ -64,6 +64,6 @@ help:
 	@echo "... check"
 	@echo "... check-core2"
 	@echo "... check-skylake"
-	@echo "... check-avx512"
+	@echo "... check-skylake-avx512"
 	@echo "... check-reduce"
 	@echo "... check-simd_cat"

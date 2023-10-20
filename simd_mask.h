@@ -16,15 +16,13 @@ namespace std
 {
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask
-    : public __detail::_SimdTraits<__detail::__int_with_sizeof_t<_Bytes>, _Abi>::_MaskBase
+    : public __pv2::_SimdTraits<__pv2::__int_with_sizeof_t<_Bytes>, _Abi>::_MaskBase
     {
-      using _Tp = __detail::__int_with_sizeof_t<_Bytes>;
+      using _Tp = __pv2::__int_with_sizeof_t<_Bytes>;
 
-      using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
+      using _Traits = __pv2::_SimdTraits<_Tp, _Abi>;
 
       using _MemberType = typename _Traits::_MaskMember;
-
-      //friend typename _Traits::_MaskBase;
 
       using _SimdType = std::basic_simd<_Tp, _Abi>;
 
@@ -34,15 +32,13 @@ namespace std
     public:
       using _Impl = typename _Traits::_MaskImpl;
 
-      //friend _Impl;
-
       static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _SimdType::size.value;
 
       // really public:
 
       using value_type = bool;
 
-      using reference = __detail::_SmartReference<_MemberType, _Impl, value_type>;
+      using reference = __pv2::_SmartReference<_MemberType, _Impl, value_type>;
 
       using abi_type = _Abi;
 
@@ -59,7 +55,7 @@ namespace std
 
       // private init (implementation detail)
       _GLIBCXX_SIMD_INTRINSIC constexpr
-      basic_simd_mask(__detail::_PrivateInit, const _MemberType& __init) noexcept
+      basic_simd_mask(__pv2::_PrivateInit, const _MemberType& __init) noexcept
       : _M_data(__init)
       {}
 
@@ -76,7 +72,7 @@ namespace std
         requires(size() == basic_simd_mask<_UBytes, _UAbi>::size.value)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
         basic_simd_mask(const basic_simd_mask<_UBytes, _UAbi>& __x) noexcept
-        : basic_simd_mask(__detail::__private_init, _Impl::template _S_convert<_Tp>(__x))
+        : basic_simd_mask(__pv2::__private_init, _Impl::template _S_convert<_Tp>(__x))
         {}
 
       // generator ctor
@@ -84,12 +80,17 @@ namespace std
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
         basic_simd_mask(_Fp&& __gen) noexcept
         : _M_data([&]<__detail::_SimdSizeType... _Is>(__detail::_SimdIndexSequence<_Is...>) {
-            if constexpr (size.value == 1)
-              return __gen(__detail::__ic<0>);
-            else if constexpr (_S_is_bitmask)
-              return ((uint64_t(__gen(__detail::__ic<_Is>)) << _Is) | ...);
+            if constexpr (requires {_Impl::template _S_generator<_Tp>(__gen);})
+              return _Impl::template _S_generator<_Tp>(__gen);
             else
-              return _MemberType { -__gen(__detail::__ic<_Is>)... };
+              {
+                if constexpr (size.value == 1)
+                  return invoke(__gen, __detail::__ic<0>);
+                else if constexpr (_S_is_bitmask)
+                  return ((uint64_t(invoke(__gen, __detail::__ic<_Is>)) << _Is) | ...);
+                else
+                  return _MemberType { -invoke(__gen, __detail::__ic<_Is>)... };
+              }
           }(__detail::_MakeSimdIndexSequence<size()>()))
         {}
 
@@ -176,18 +177,23 @@ namespace std
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr reference
       operator[](__detail::_SimdSizeType __i) &
       {
-        if (__i >= size())
-          __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
+        if (__i >= size.value or __i < 0)
+          __pv2::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
         return {_M_data, __i};
       }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr value_type
       operator[](__detail::_SimdSizeType __i) const &
       {
-        if (__i >= size())
-          __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
+        if (__i >= size.value or __i < 0)
+          __pv2::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
         if constexpr (size.value == 1)
           return _M_data;
+        else if constexpr (requires {abi_type::_S_abiarray_size;})
+          {
+            constexpr __detail::_SimdSizeType __n = size.value / abi_type::_S_abiarray_size;
+            return static_cast<bool>(_M_data[__i / __n][__i % __n]);
+          }
         else
           return static_cast<bool>(_M_data[__i]);
       }
@@ -195,7 +201,7 @@ namespace std
       // [simd.mask.unary]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd_mask
       operator!() const noexcept
-      { return {__detail::__private_init, _Impl::_S_bit_not(_M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_bit_not(_M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _SimdType
       operator+() const noexcept
@@ -209,7 +215,7 @@ namespace std
         else
           {
             _SimdType __r = {};
-            _SimdType::_Impl::_S_masked_assign(_M_data, __r._M_data(), _Tp(-1));
+            _SimdType::_Impl::_S_masked_assign(_M_data, __data(__r), _Tp(-1));
             return __r;
           }
       }
@@ -222,14 +228,14 @@ namespace std
         else
           {
             _SimdType __r = _Tp(-1);
-            _SimdType::_Impl::_S_masked_assign(_M_data, __r._M_data(), _Tp(-2));
+            _SimdType::_Impl::_S_masked_assign(_M_data, __data(__r), _Tp(-2));
             return __r;
           }
       }
 
       // [simd.mask.conv]
       template <typename _Up, typename _UAbi>
-        requires (__detail::simd_size_v<_Up, _UAbi> == size.value)
+        requires (simd_size_v<_Up, _UAbi> == size.value)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit(sizeof(_Up) != _Bytes)
         operator basic_simd<_Up, _UAbi>() const noexcept
         {
@@ -255,23 +261,23 @@ namespace std
       // [simd.mask.binary]
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator&&(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_logical_and(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_logical_and(__x._M_data, __y._M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator||(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_logical_or(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_logical_or(__x._M_data, __y._M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator&(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_bit_and(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_bit_and(__x._M_data, __y._M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator|(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_bit_or(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_bit_or(__x._M_data, __y._M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator^(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_bit_xor(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_bit_xor(__x._M_data, __y._M_data)}; }
 
       // [simd.mask.cassign]
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask&
@@ -299,13 +305,13 @@ namespace std
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator==(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
       {
-        return {__detail::__private_init,
+        return {__pv2::__private_init,
                 _Impl::_S_bit_not(_Impl::_S_bit_xor(__x._M_data, __y._M_data))};
       }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator!=(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
-      { return {__detail::__private_init, _Impl::_S_bit_xor(__x._M_data, __y._M_data)}; }
+      { return {__pv2::__private_init, _Impl::_S_bit_xor(__x._M_data, __y._M_data)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
       operator>=(const basic_simd_mask& __x, const basic_simd_mask& __y) noexcept
@@ -375,6 +381,8 @@ namespace std
       {
         if constexpr (size.value == 1)
           return __builtin_constant_p(_M_data);
+        else if constexpr (requires {_Impl::_S_is_constprop(_M_data);})
+          return _Impl::_S_is_constprop(_M_data);
         else
           return _M_data._M_is_constprop();
       }

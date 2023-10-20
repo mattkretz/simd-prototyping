@@ -21,6 +21,13 @@ namespace std
 {
   namespace __detail
   {
+    template <typename _Tp>
+      concept __arithmetic = integral<_Tp> || floating_point<_Tp>;
+
+    template <typename _Tp>
+      concept __vectorizable
+        = __arithmetic<_Tp> and not same_as<_Tp, bool> and not same_as<_Tp, long double>;
+
     template <_SimdSizeType... _Is>
       using _SimdIndexSequence = std::integer_sequence<_SimdSizeType, _Is...>;
 
@@ -207,8 +214,8 @@ namespace std
         requires (sizeof(__v[0]) < sizeof(__v));
         { auto(__v[0]) } -> __vectorizable;
         { __v[0] = __v[1] };
-        requires same_as<typename __vector_type<remove_cvref_t<decltype(__v[0])>,
-                                                sizeof(_Tp)>::type, _Tp>;
+        requires same_as<typename __pv2::__vector_type<remove_cvref_t<decltype(__v[0])>,
+                                                       sizeof(_Tp)>::type, _Tp>;
       };
 
     template <typename _Tp, size_t _ElementSize, size_t _VecSize = sizeof(_Tp)>

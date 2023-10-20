@@ -109,7 +109,7 @@ namespace std
         constexpr int __x0_size = sizeof(__x0) / sizeof(_Tp);
         constexpr int __size = _T0::size.value + _T1::size.value;
         const std::resize_simd_t<__size, _T0>
-          __x01(__private_init,
+          __x01(__pv2::__private_init,
                 [&]<_SimdSizeType... _Is, _SimdSizeType... _Js,
                     _SimdSizeType... _Ks>(_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
                                           _SimdIndexSequence<_Ks...>)
@@ -159,10 +159,10 @@ namespace std
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    simd_mask<__detail::__int_with_sizeof_t<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    simd_mask<__pv2::__int_with_sizeof_t<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
     simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept
     {
-      return simd_mask<__detail::__int_with_sizeof_t<_Bs>,
+      return simd_mask<__pv2::__int_with_sizeof_t<_Bs>,
                        (basic_simd_mask<_Bs, _Abis>::size.value + ...)>([&](auto __i)
              _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
                return __detail::__get_simd_element_from_pack(__i, __xs...);

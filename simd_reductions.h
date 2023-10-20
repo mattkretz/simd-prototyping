@@ -48,9 +48,9 @@ namespace std
   }
 
   template <typename _Tp, typename _Abi,
-            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation = plus<>>
+            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {})
+    reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
     {
       using _V1 = basic_simd<_Tp, _Abi>;
       if constexpr (std::__has_single_bit(_V1::size.value))
@@ -59,10 +59,10 @@ namespace std
             {
 #if _GLIBCXX_SIMD_HAVE_SSE
               if constexpr (same_as<_BinaryOperation, plus<>> and _V1::size.value > 1
-                              and __detail::__have_ssse3 and is_integral_v<_Tp>)
+                              and __pv2::__have_ssse3 and is_integral_v<_Tp>)
                 {
-                  auto __y = __detail::__vector_bitcast<
-                               __detail::__int_for_sizeof_t<_Tp>>(__detail::__as_simd_builtin(__x));
+                  auto __y = __pv2::__vector_bitcast<
+                               __pv2::__int_for_sizeof_t<_Tp>>(__detail::__as_simd_builtin(__x));
 
                   if constexpr (_V1::size.value == 16 and sizeof(_Tp) == 1)
                     {
@@ -95,7 +95,7 @@ namespace std
                     }
                 }
               else if constexpr (same_as<_BinaryOperation, plus<>> and _V1::size.value > 1
-                                   and __detail::__have_sse3 and is_floating_point_v<_Tp>)
+                                   and __pv2::__have_sse3 and is_floating_point_v<_Tp>)
                 {
                   auto __y = __detail::__as_simd_builtin(__x);
                   if constexpr (_V1::size.value == 4 and sizeof(_Tp) == 4)
@@ -155,7 +155,7 @@ namespace std
   template <typename _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           plus<> __binary_op = {})
+           plus<> __binary_op)
     { return reduce(simd_select(__k, __x, _Tp())); }
 
   template <typename _Tp, typename _Abi>

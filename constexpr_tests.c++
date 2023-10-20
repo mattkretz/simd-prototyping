@@ -49,6 +49,10 @@ namespace test01
   static_assert(__value_preserving_convertible_to<bool, bool>);
   static_assert(__broadcast_constructible<bool, bool>);
   static_assert(__simd_broadcast_invokable<decltype([] (int) { return true; }), bool, 4>);
+
+  static_assert(std::is_trivially_copyable_v<std::__detail::_SimdTuple<float, _NativeAbi<float>>>);
+  static_assert(std::is_trivially_copyable_v<_AbiCombine<63, _NativeAbi<float>>::__traits<float>::_SimdMember>);
+  static_assert(std::is_trivially_copyable_v<_AbiCombine<63, _NativeAbi<float>>::__traits<float>::_SimdBase>);
 }
 
 template <auto X>
@@ -68,9 +72,9 @@ concept usable_simd = std::is_nothrow_move_constructible_v<T>
                         and std::is_standard_layout_v<T>;
 
 static_assert(
-  usable_simd<std::__detail::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdBase>);
+  usable_simd<std::__pv2::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdBase>);
 static_assert(
-  usable_simd<std::__detail::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdMember>);
+  usable_simd<std::__pv2::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdMember>);
 
 template <typename T>
   struct test_usable_simd
