@@ -1,6 +1,6 @@
 all: check
 
-CXXFLAGS=-std=gnu++23 -Wall -Wextra -O2 -g0
+CXXFLAGS=-std=gnu++23 -Wall -Wextra -O2 -g0 -fconcepts-diagnostics-depth=3
 
 Makefile.depend: Makefile constexpr_tests.c++ codegen/*.c++ *.h
 	@echo "Updating dependencies"

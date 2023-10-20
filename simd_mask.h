@@ -8,6 +8,7 @@
 
 #include "detail.h"
 #include "simd_abi.h"
+#include "simd_iterator.h"
 
 #include <concepts>
 #include <climits>
@@ -43,6 +44,19 @@ namespace std
       using abi_type = _Abi;
 
       static constexpr auto size = _SimdType::size;
+
+      using iterator = __simd_mask_iterator<_Bytes, _Abi>;
+
+      static_assert(std::random_access_iterator<iterator>);
+      static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
+
+      constexpr iterator
+      begin() const
+      { return iterator(*this, 0); }
+
+      constexpr __simd_iterator_sentinel
+      end() const
+      { return {}; }
 
       constexpr
       basic_simd_mask() noexcept = default;

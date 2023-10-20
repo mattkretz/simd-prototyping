@@ -9,6 +9,7 @@
 #include "detail.h"
 #include "simd_mask.h"
 #include "flags.h"
+#include "simd_iterator.h"
 #include <span>
 #include <iterator>
 
@@ -39,6 +40,19 @@ namespace std
 
       static inline constexpr auto size
         = __detail::__ic<__detail::_SimdSizeType(__pv2::__size_or_zero_v<_Tp, _Abi>)>;
+
+      using iterator = __simd_iterator<_Tp, _Abi>;
+
+      static_assert(std::random_access_iterator<iterator>);
+      static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
+
+      constexpr iterator
+      begin() const
+      { return iterator(*this, 0); }
+
+      constexpr __simd_iterator_sentinel
+      end() const
+      { return {}; }
 
       constexpr
       basic_simd() = default;

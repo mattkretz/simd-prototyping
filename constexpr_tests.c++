@@ -69,12 +69,9 @@ concept usable_simd = std::is_nothrow_move_constructible_v<T>
                         and std::is_nothrow_move_assignable_v<T>
                         and std::is_nothrow_default_constructible_v<T>
                         and std::is_trivially_copyable_v<T>
-                        and std::is_standard_layout_v<T>;
-
-static_assert(
-  usable_simd<std::__pv2::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdBase>);
-static_assert(
-  usable_simd<std::__pv2::_SimdTraits<int, std::__detail::__deduce_t<int, 6>>::_SimdMember>);
+                        and std::is_standard_layout_v<T>
+                        and std::ranges::random_access_range<T&>
+                        and not std::ranges::output_range<T&, typename T::value_type>;
 
 template <typename T>
   struct test_usable_simd
@@ -325,3 +322,4 @@ static_assert(std::simd_flag_aligned.test(std::simd_flag_aligned));
 static_assert(std::simd_flag_aligned.test(std::simd_flag_default));
 
 static_assert(not std::simd_flag_default.test(std::simd_flag_aligned));
+
