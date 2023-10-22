@@ -252,9 +252,10 @@ namespace vir
         { return {}; }
 
       template <constexpr_value Ap>
-        constexpr constexpr_wrapper<Xp = Ap::value>
+        requires requires { typename constexpr_wrapper<(Xp = Ap::value)>; }
+        constexpr auto
         operator=(Ap) const
-        { return {}; }
+        { return constexpr_wrapper<(Xp = Ap::value)>{}; }
 
       template <detail::_lhs_constexpr_wrapper<constexpr_wrapper> Ap, constexpr_value Bp>
         friend constexpr constexpr_wrapper<(Ap::value += Bp::value)>
@@ -306,7 +307,7 @@ namespace vir
         operator>>=(Ap, Bp)
         { return {}; }
 
-#ifdef __cpp_static_call_operator
+#if defined __cpp_static_call_operator && __cplusplus >= 202302L
 #define _static static
 #define _const
 #else
@@ -316,9 +317,10 @@ namespace vir
 
       // overload operator() for constexpr_value and non-constexpr_value
       template <constexpr_value... Args>
-        _static constexpr constexpr_wrapper<value(Args::value...)>
+        requires requires { typename constexpr_wrapper<value(Args::value...)>; }
+        _static constexpr auto
         operator()(Args...) _const
-        { return {}; }
+        { return constexpr_wrapper<value(Args::value...)>{}; }
 
       template <typename... Args>
         requires (not constexpr_value<std::remove_cvref_t<Args>> || ...)
