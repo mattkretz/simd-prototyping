@@ -143,11 +143,25 @@ namespace std
       template <std::contiguous_iterator _It, typename _Flags = __pv2::element_aligned_tag>
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_It __first, const mask_type& __k, _Flags __f = {}) const
+        copy_to(_It __first, const mask_type& __k, _Flags = {}) const
         {
           _Impl::_S_masked_store(
             __data(*this), _Flags::template _S_apply<basic_simd>(std::to_address(__first)),
             __data(__k));
+        }
+
+      template <std::ranges::contiguous_range _Rg, typename _Flags = __pv2::element_aligned_tag>
+        requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
+                    && std::ranges::output_range<_Rg, _Tp>
+                    && __detail::__static_range_size<_Rg> == std::dynamic_extent)
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_to(_Rg&& __range, _Flags __f = {})
+        {
+          const auto __b = std::ranges::begin(__range);
+          if(std::ranges::size(__range) >= size())
+            copy_to(__b, __f);
+          else
+            __builtin_memcpy(std::to_address(__b), &_M_data, size() - std::ranges::size(__range));
         }
 
       // unary operators (for any _Tp)
@@ -274,9 +288,25 @@ namespace std
         requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
                     && __detail::__static_range_size<_Rg> == size())
         constexpr
-        basic_simd(const _Rg& __range)
+        basic_simd(_Rg&& __range)
         : basic_simd(std::ranges::begin(__range))
         {}
+
+      template <std::ranges::contiguous_range _Rg>
+        requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
+                    && __detail::__static_range_size<_Rg> == std::dynamic_extent)
+        constexpr
+        basic_simd(_Rg&& __range)
+        {
+          const auto __b = std::ranges::begin(__range);
+          if(std::ranges::size(__range) >= size())
+            copy_from(__b);
+          else
+            {
+              *this = _Tp();
+              __builtin_memcpy(&_M_data, std::to_address(__b), size() - std::ranges::size(__range));
+            }
+        }
 
       /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
        * (decay to pointer) as well as contiguous ranges.
