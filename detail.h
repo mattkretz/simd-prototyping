@@ -62,9 +62,10 @@ namespace std
     template <typename _Tp>
       using __make_unsigned_t = typename __make_unsigned<sizeof(_Tp)>::type;
 
-    template <typename _Tp>
+    template <typename _Rg>
       constexpr inline std::size_t
       __static_range_size = [] {
+        using _Tp = std::remove_cvref_t<_Rg>;
         if constexpr (requires { typename std::integral_constant<std::size_t, _Tp::size()>; })
           return _Tp::size();
         else if constexpr (requires { typename std::integral_constant<std::size_t, _Tp::extent>; })
