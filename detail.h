@@ -74,9 +74,13 @@ namespace std
           return std::extent_v<_Tp>;
         else if constexpr (requires { typename std::integral_constant<
                                         std::size_t, std::tuple_size<_Tp>::value>; })
-          return std::tuple_size_v<_Tp>;
-        else
-          return std::dynamic_extent;
+          {
+            if constexpr (std::tuple_size_v<_Tp> >= 1
+                            && std::same_as<std::tuple_element_t<0, _Tp>,
+                                            std::ranges::range_value_t<_Rg>>)
+              return std::tuple_size_v<_Tp>;
+          }
+        return std::dynamic_extent;
       }();
 
     template <auto _Value>
