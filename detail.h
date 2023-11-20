@@ -83,6 +83,32 @@ namespace std
         return std::dynamic_extent;
       }();
 
+    _GLIBCXX_SIMD_INTRINSIC _SimdSizeType
+    __lowest_bit(std::integral auto __bits)
+    {
+      if constexpr (sizeof(__bits) <= sizeof(int))
+        return __builtin_ctz(__bits);
+      else if constexpr (sizeof(__bits) <= sizeof(long))
+        return __builtin_ctzl(__bits);
+      else if constexpr (sizeof(__bits) <= sizeof(long long))
+        return __builtin_ctzll(__bits);
+      else
+        __pv2::__assert_unreachable<decltype(__bits)>();
+    }
+
+    _GLIBCXX_SIMD_INTRINSIC _SimdSizeType
+    __highest_bit(std::integral auto __bits)
+    {
+      if constexpr (sizeof(__bits) <= sizeof(int))
+        return sizeof(int) * __CHAR_BIT__ - 1 - __builtin_clz(__bits);
+      else if constexpr (sizeof(__bits) <= sizeof(long))
+        return sizeof(long) * __CHAR_BIT__ - 1 - __builtin_clzl(__bits);
+      else if constexpr (sizeof(__bits) <= sizeof(long long))
+        return sizeof(long long) * __CHAR_BIT__ - 1 - __builtin_clzll(__bits);
+      else
+        __pv2::__assert_unreachable<decltype(__bits)>();
+    }
+
     template <auto _Value>
       using _Ic = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;
 

@@ -286,15 +286,15 @@ namespace std
     {
       constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
-        return int(!__k[0]);
+        return 0;
 
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
         {
           const int __r = [&] {
-            for (int __i = 0; __i < __size; ++__i)
+            for (int __i = 0; __i < __size - 1; ++__i)
               if (__k[__i])
                 return __i;
-            return __size;
+            return __size - 1;
           }();
           if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
             return __r;
@@ -302,29 +302,18 @@ namespace std
 
 #if _GLIBCXX_SIMD_HAVE_SSE
       if constexpr (__pv2::__is_avx512_abi<_Abi>())
-        return std::__countr_zero(__data(__k)._M_data);
+        return __detail::__lowest_bit(__data(__k)._M_data);
 
       if constexpr (__pv2::__is_avx_abi<_Abi>() or __pv2::__is_sse_abi<_Abi>())
         {
-          uint32_t __bits = __detail::__movmsk(__data(__k)._M_data);
-          if constexpr (__size == 32)
-            return std::__countr_zero(__bits);
-          else if constexpr (__size == 16 and _Bs == 2)
-            return std::__countr_zero(__bits) / 2;
-          else if constexpr (_Bs == 2)
-            {
-              __bits << 1;
-              __bits |= 1u << __size * 2 + 1;
-              return std::__countr_zero(__bits) / 2;
-            }
+          const uint32_t __bits = __detail::__movmsk(__data(__k)._M_data);
+          if constexpr (_Bs == 2)
+            return __detail::__lowest_bit(__bits) / 2;
           else
-            {
-              __bits |= 1u << __size;
-              return std::__countr_zero(__bits);
-            }
+            return __detail::__lowest_bit(__bits);
         }
 #endif
-      return std::__countr_zero(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
+      return __detail::__lowest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
     }
 
   template <size_t _Bs, typename _Abi>
@@ -333,15 +322,15 @@ namespace std
     {
       constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
-        return -int(!__k[0]);
+        return 0;
 
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
         {
           const int __r = [&] {
-            for (int __i = __size - 1; __i >= 0; --__i)
+            for (int __i = __size - 1; __i > 0; --__i)
               if (__k[__i])
                 return __i;
-            return -1;
+            return 0;
           }();
           if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
             return __r;
@@ -349,9 +338,18 @@ namespace std
 
 #if _GLIBCXX_SIMD_HAVE_SSE
       if constexpr (__pv2::__is_avx512_abi<_Abi>())
-        return std::__countr_zero(__data(__k)._M_data);
+        return __detail::__highest_bit(__data(__k)._M_data);
+
+      if constexpr (__pv2::__is_avx_abi<_Abi>() or __pv2::__is_sse_abi<_Abi>())
+        {
+          const uint32_t __bits = __detail::__movmsk(__data(__k)._M_data);
+          if constexpr (_Bs == 2)
+            return __detail::__highest_bit(__bits) / 2;
+          else
+            return __detail::__highest_bit(__bits);
+        }
 #endif
-      return std::__bit_width(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits()) - 1;
+      return __detail::__highest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
     }
 
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
