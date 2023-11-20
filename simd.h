@@ -298,14 +298,12 @@ namespace std
         constexpr
         basic_simd(_Rg&& __range)
         {
+          *this = _Tp();
           const auto __b = std::ranges::begin(__range);
           if(std::ranges::size(__range) >= size())
             copy_from(__b);
           else
-            {
-              *this = _Tp();
-              __builtin_memcpy(&_M_data, std::to_address(__b), size() - std::ranges::size(__range));
-            }
+            __builtin_memcpy(&_M_data, std::to_address(__b), size() - std::ranges::size(__range));
         }
 
       /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
