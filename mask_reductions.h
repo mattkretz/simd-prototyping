@@ -30,6 +30,9 @@ namespace std
           return true;
         }
 
+      else if constexpr (requires {_Abi::_MaskImpl::_S_all_of(__data(__k));})
+        return _Abi::_MaskImpl::_S_all_of(__data(__k));
+
       else if constexpr (not _Kp::_S_is_bitmask and __size * _Bs <= sizeof(int64_t))
         {
           const auto __as_int
@@ -120,6 +123,9 @@ namespace std
           return false;
         }
 
+      else if constexpr (requires {_Abi::_MaskImpl::template _S_any_of<_Tp>(__data(__k));})
+        return _Abi::_MaskImpl::template _S_any_of<_Tp>(__data(__k));
+
       else if constexpr (not _Kp::_S_is_bitmask and __size * _Bs <= sizeof(int64_t))
         return __builtin_bit_cast(__pv2::__int_with_sizeof_t<sizeof(__k)>, __data(__k)) != 0;
 
@@ -185,6 +191,9 @@ namespace std
               return false;
           return true;
         }
+
+      else if constexpr (requires {_Abi::_MaskImpl::_S_none_of(__data(__k));})
+        return _Abi::_MaskImpl::_S_none_of(__data(__k));
 
       else if constexpr (not _Kp::_S_is_bitmask and sizeof(__k) <= sizeof(int64_t))
         return __builtin_bit_cast(__pv2::__int_with_sizeof_t<sizeof(__k)>,
@@ -284,6 +293,7 @@ namespace std
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
     {
+      using _Tp = __pv2::__int_with_sizeof_t<_Bs>;
       constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
         return 0;
@@ -300,11 +310,14 @@ namespace std
             return __r;
         }
 
+      if constexpr (requires {_Abi::_MaskImpl::template _S_find_first_set<_Tp>(__data(__k));})
+        return _Abi::_MaskImpl::template _S_find_first_set<_Tp>(__data(__k));
+
 #if _GLIBCXX_SIMD_HAVE_SSE
-      if constexpr (__pv2::__is_avx512_abi<_Abi>())
+      else if constexpr (__pv2::__is_avx512_abi<_Abi>())
         return __detail::__lowest_bit(__data(__k)._M_data);
 
-      if constexpr (__pv2::__is_avx_abi<_Abi>() or __pv2::__is_sse_abi<_Abi>())
+      else if constexpr (__pv2::__is_avx_abi<_Abi>() or __pv2::__is_sse_abi<_Abi>())
         {
           const uint32_t __bits = __detail::__movmsk(__data(__k)._M_data);
           if constexpr (_Bs == 2)
@@ -313,7 +326,8 @@ namespace std
             return __detail::__lowest_bit(__bits);
         }
 #endif
-      return __detail::__lowest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
+      else
+        return __detail::__lowest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
     }
 
   template <size_t _Bs, typename _Abi>

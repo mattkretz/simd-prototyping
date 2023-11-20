@@ -335,6 +335,9 @@ namespace std
 
         using abi_type = _AbiArray<_Abi0, _Np>;
 
+        template <typename _Ts>
+          using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
+
         template <__vectorizable _Tp>
           using _MaskMember0 = typename _Abi0::template __traits<_Tp>::_MaskMember;
 
@@ -354,6 +357,47 @@ namespace std
           static constexpr _SimdSizeType _S_chunk_size = _Abi0::template _S_size<_Tp>;
 
         using _Impl0 = typename _Abi0::_MaskImpl;
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC
+          static constexpr mask_type<_Tp>
+          _S_to_mask(const _MaskMember0<_Tp>& __k)
+          { return {__pv2::__private_init, __k}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC
+          static constexpr bool
+          _S_any_of(std::array<_MaskMember0<_Tp>, _Np> const& __masks)
+          { return (std::any_of(_S_to_mask<_Tp>(__masks[_Is])) or ...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC
+          static constexpr bool
+          _S_all_of(std::array<_MaskMember0<_Tp>, _Np> const& __masks)
+          { return (std::all_of(_S_to_mask<_Tp>(__masks[_Is])) and ...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC
+          static constexpr bool
+          _S_none_of(std::array<_MaskMember0<_Tp>, _Np> const& __masks)
+          { return (std::none_of(_S_to_mask<_Tp>(__masks[_Is])) and ...); }
+
+        template <typename _Tp>
+          static constexpr _SimdSizeType
+          _S_find_first_set(std::array<_MaskMember0<_Tp>, _Np> const& __masks)
+          {
+            if (std::any_of(_S_to_mask<_Tp>(__masks[0])))
+              return std::reduce_min_index(_S_to_mask<_Tp>(__masks[0]));
+
+            for (int __i = 1; __i < _Np - 1; ++__i)
+              {
+                if (std::any_of(mask_type<_Tp>(__pv2::__private_init, __masks[__i])))
+                  return __i * __masks[0]._S_size
+                           + std::reduce_min_index(_S_to_mask<_Tp>(__masks[__i]));
+              }
+            return (_Np - 1) * __masks[0]._S_size
+                           + std::reduce_min_index(_S_to_mask<_Tp>(__masks[_Np - 1]));
+          }
 
         template <__vectorizable _Tp, typename _Fp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
