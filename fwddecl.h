@@ -89,6 +89,13 @@ namespace std
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     inline constexpr __detail::_SimdSizeType simd_size_v = simd_size<_Tp, _Abi>::value;
 
+  template <typename _Tp, typename _Up = typename _Tp::value_type>
+    struct simd_alignment
+    {};
+
+  template <typename _Tp, typename _Up = typename _Tp::value_type>
+    inline constexpr size_t simd_alignment_v = simd_alignment<_Tp, _Up>::value;
+
   template <typename _Tp, typename _Vp>
     struct rebind_simd
     {};

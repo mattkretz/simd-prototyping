@@ -429,6 +429,17 @@ namespace std
   template <__detail::_SimdSizeType _Np, __detail::__mask_type _Mask>
     struct resize_simd<_Np, _Mask>
     { using type = simd_mask<typename decltype(+_Mask())::value_type, _Np>; };
+
+  template <typename _Tp, typename _Abi, __detail::__vectorizable _Up>
+    struct simd_alignment<basic_simd<_Tp, _Abi>, _Up>
+    : std::integral_constant<size_t, alignof(rebind_simd_t<_Up, basic_simd<_Tp, _Abi>>)>
+    {};
+
+  template <size_t _Bs, typename _Abi>
+    struct simd_alignment<basic_simd_mask<_Bs, _Abi>, bool>
+    : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_t<bool>,
+                                                  basic_simd_mask<_Bs, _Abi>::size()>)>
+    {};
 }
 
 #endif  // PROTOTYPE_SIMD2_H_
