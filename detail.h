@@ -63,17 +63,17 @@ namespace std
       using __make_unsigned_t = typename __make_unsigned<sizeof(_Tp)>::type;
 
     template <typename _Rg>
-      constexpr inline std::size_t
-      __static_range_size = [] {
+      constexpr inline size_t
+      __static_range_size = [] -> size_t {
         using _Tp = std::remove_cvref_t<_Rg>;
-        if constexpr (requires { typename std::integral_constant<std::size_t, _Tp::size()>; })
+        if constexpr (requires { typename std::integral_constant<size_t, _Tp::size()>; })
           return _Tp::size();
-        else if constexpr (requires { typename std::integral_constant<std::size_t, _Tp::extent>; })
+        else if constexpr (requires { typename std::integral_constant<size_t, _Tp::extent>; })
           return _Tp::extent;
         else if constexpr (std::extent_v<_Tp> > 0)
           return std::extent_v<_Tp>;
         else if constexpr (requires { typename std::integral_constant<
-                                        std::size_t, std::tuple_size<_Tp>::value>; })
+                                        size_t, std::tuple_size<_Tp>::value>; })
           {
             if constexpr (std::tuple_size_v<_Tp> >= 1
                             && std::same_as<std::tuple_element_t<0, _Tp>,
