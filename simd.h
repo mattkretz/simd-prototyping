@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 #ifndef PROTOTYPE_SIMD2_H_
@@ -17,9 +17,8 @@ namespace std
 {
   template <typename _Tp, typename _Abi>
     class basic_simd
-    //TODO : public __pv2::_SimdTraits<_Tp, _Abi>::_SimdBase
     {
-      using _Traits = __pv2::_SimdTraits<_Tp, _Abi>;
+      using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
 
       using _MemberType = typename _Traits::_SimdMember;
 
@@ -30,21 +29,21 @@ namespace std
     public:
       using _Impl = typename _Traits::_SimdImpl;
 
-      using reference = __pv2::_SmartReference<_MemberType, _Impl, _Tp>;
+      using reference = __detail::_SmartReference<_MemberType, _Impl, _Tp>;
 
       using value_type = _Tp;
 
       using abi_type = _Abi;
 
-      using mask_type = std::basic_simd_mask<sizeof(_Tp), _Abi>;
+      using mask_type = std::basic_simd_mask<
+                          sizeof(conditional_t<__detail::__vectorizable<_Tp>, _Tp, int>), _Abi>;
 
-      static inline constexpr auto size
-        = __detail::__ic<__detail::_SimdSizeType(__pv2::__size_or_zero_v<_Tp, _Abi>)>;
+      static inline constexpr auto size = __detail::__simd_size_or_zero<_Tp, _Abi>();
 
       using iterator = __simd_iterator<_Tp, _Abi>;
 
-      static_assert(std::random_access_iterator<iterator>);
-      static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
+      //static_assert(std::random_access_iterator<iterator>);
+      //static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
 
       constexpr iterator
       begin() const
@@ -56,6 +55,20 @@ namespace std
 
       constexpr
       basic_simd() = default;
+
+      // ABI-specific conversions
+      template <typename _Up>
+        requires requires { _Traits::template _S_simd_conversion<_Up>(_M_data); }
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+        operator _Up() const
+        { return _Traits::template _S_simd_conversion<_Up>(_M_data); }
+
+      template <typename _Up>
+        requires (_Traits::template _S_is_simd_ctor_arg<_Up>)
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+        basic_simd(_Up __x)
+        : _M_data(_Traits::_S_simd_construction(__x))
+        {}
 
       // implicit broadcast constructor
       template <__detail::__broadcast_constructible<value_type> _Up>
@@ -71,18 +84,18 @@ namespace std
         explicit(not __detail::__value_preserving_convertible_to<_Up, value_type>
                    || __detail::__higher_rank_than<_Up, value_type>)
         basic_simd(const basic_simd<_Up, _UAbi>& __x) noexcept
-        : _M_data(__pv2::_SimdConverter<_Up, _UAbi, _Tp, _Abi>()(__data(__x)))
+        : _M_data(__detail::_SimdConverter<_Up, _UAbi, _Tp, _Abi>()(__data(__x)))
         {}
 
       // generator constructor
       template <__detail::__simd_broadcast_invokable<value_type, size()> _Fp>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
         basic_simd(_Fp&& __gen) noexcept
-        : _M_data(_Impl::_S_generator(static_cast<_Fp&&>(__gen), _S_type_tag))
+        : _M_data(_Impl::template _S_generator<value_type>(static_cast<_Fp&&>(__gen)))
         {}
 
       // load constructor
-      template <typename _It, typename _Flags = __pv2::element_aligned_tag>
+      template <typename _It, typename _Flags = element_aligned_tag>
         requires __detail::__vectorizable<std::iter_value_t<_It>>
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
                    and std::contiguous_iterator<_It>
@@ -92,7 +105,7 @@ namespace std
                                  _S_type_tag))
         {}
 
-      template <typename _It, typename _Flags = __pv2::element_aligned_tag>
+      template <typename _It, typename _Flags = element_aligned_tag>
         requires __detail::__vectorizable<std::iter_value_t<_It>>
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
                    and std::contiguous_iterator<_It>
@@ -105,12 +118,12 @@ namespace std
 
       // private init
       _GLIBCXX_SIMD_INTRINSIC constexpr
-      basic_simd(__pv2::_PrivateInit, const _MemberType& __init)
+      basic_simd(__detail::_PrivateInit, const _MemberType& __init)
       : _M_data(__init)
       {}
 
       // loads and stores
-      template <std::contiguous_iterator _It, typename _Flags = __pv2::element_aligned_tag>
+      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
         requires __detail::__vectorizable<std::iter_value_t<_It>>
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
@@ -120,7 +133,7 @@ namespace std
                                    _S_type_tag);
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = __pv2::element_aligned_tag>
+      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
         requires __detail::__vectorizable<std::iter_value_t<_It>>
                    and std::convertible_to<std::iter_value_t<_It>, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
@@ -131,7 +144,7 @@ namespace std
                                             std::to_address(__first)));
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = __pv2::element_aligned_tag>
+      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, _Flags = {}) const
@@ -140,7 +153,7 @@ namespace std
                           _S_type_tag);
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = __pv2::element_aligned_tag>
+      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
         requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, const mask_type& __k, _Flags = {}) const
@@ -150,7 +163,7 @@ namespace std
             __data(__k));
         }
 
-      template <std::ranges::contiguous_range _Rg, typename _Flags = __pv2::element_aligned_tag>
+      template <std::ranges::contiguous_range _Rg, typename _Flags = element_aligned_tag>
         requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
                     && std::ranges::output_range<_Rg, _Tp>
                     && __detail::__static_range_size<_Rg> == std::dynamic_extent)
@@ -166,115 +179,171 @@ namespace std
 
       // unary operators (for any _Tp)
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr mask_type
-        operator!() const
-        { return {__pv2::__private_init, _Impl::_S_negate(__data(*this))}; }
+      operator!() const
+      requires requires(value_type __a) { +__a; }
+      { return {__detail::__private_init, _Impl::_S_negate(__data(*this))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
-        operator+() const
-        { return *this; }
+      operator+() const
+      requires requires(value_type __a) { +__a; }
+      { return *this; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
-        operator-() const
-        { return {__pv2::__private_init, _Impl::_S_unary_minus(__data(*this))}; }
+      operator-() const
+      requires requires(value_type __a) { -__a; }
+      { return {__detail::__private_init, _Impl::_S_unary_minus(__data(*this))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
+      operator~() const
+      requires requires(value_type __a) { ~__a; }
+      { return {__detail::__private_init, _Impl::_S_complement(__data(*this))}; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd&
+      operator++()
+      requires requires(value_type __a) { ++__a; }
+      {
+        _Impl::_S_increment(_M_data);
+        return *this;
+      }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
+      operator++(int)
+      requires requires(value_type __a) { __a++; }
+      {
+        basic_simd __r = *this;
+        _Impl::_S_increment(_M_data);
+        return __r;
+      }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd&
+      operator--()
+      requires requires(value_type __a) { --__a; }
+      {
+        _Impl::_S_decrement(_M_data);
+        return *this;
+      }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
+      operator--(int)
+      requires requires(value_type __a) { __a--; }
+      {
+        basic_simd __r = *this;
+        _Impl::_S_decrement(_M_data);
+        return __r;
+      }
 
       // compound assignment [basic_simd.cassign]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
       operator+=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a + __b; }
       { return __lhs = __lhs + __x; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
       operator-=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a - __b; }
       { return __lhs = __lhs - __x; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
       operator*=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a * __b; }
       { return __lhs = __lhs * __x; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
       operator/=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a / __b; }
       { return __lhs = __lhs / __x; }
 
       // binary operators [basic_simd.binary]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator+(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_plus(__data(__x), __data(__y))}; }
+      requires requires(value_type __a) { __a + __a; }
+      { return {__detail::__private_init, _Impl::_S_plus(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator-(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_minus(__data(__x), __data(__y))}; }
+      requires requires(value_type __a) { __a - __a; }
+      { return {__detail::__private_init, _Impl::_S_minus(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator*(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_multiplies(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a * __a; }
+      { return {__detail::__private_init, _Impl::_S_multiplies(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator/(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_divides(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a / __a; }
+      { return {__detail::__private_init, _Impl::_S_divides(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator%(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a % __a; }
-      { return {__pv2::__private_init, _Impl::_S_modulus(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_modulus(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator&(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a & __a; }
-      { return {__pv2::__private_init, _Impl::_S_bit_and(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_bit_and(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator|(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a | __a; }
-      { return {__pv2::__private_init, _Impl::_S_bit_or(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_bit_or(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator^(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a ^ __a; }
-      { return {__pv2::__private_init, _Impl::_S_bit_xor(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_bit_xor(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator>>(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a >> __a; }
-      { return {__pv2::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator<<(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a << __a; }
-      { return {__pv2::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))}; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator>>(const basic_simd& __x, int __y)
       requires requires (value_type __a, int __b) { __a >> __b; }
-      { return {__pv2::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)}; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator<<(const basic_simd& __x, int __y)
       requires requires (value_type __a, int __b) { __a << __b; }
-      { return {__pv2::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)}; }
+      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)}; }
 
       // compares [basic_simd.comparison]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator==(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_equal_to(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a == __a; }
+      { return {__detail::__private_init, _Impl::_S_equal_to(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator!=(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_not_equal_to(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a != __a; }
+      { return {__detail::__private_init, _Impl::_S_not_equal_to(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator<(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_less(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a < __a; }
+      { return {__detail::__private_init, _Impl::_S_less(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator<=(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_less_equal(__data(__x), __data(__y))}; }
+      requires requires (value_type __a) { __a <= __a; }
+      { return {__detail::__private_init, _Impl::_S_less_equal(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator>(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_less(__data(__y), __data(__x))}; }
+      requires requires (value_type __a) { __a > __a; }
+      { return {__detail::__private_init, _Impl::_S_less(__data(__y), __data(__x))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
       operator>=(const basic_simd& __x, const basic_simd& __y)
-      { return {__pv2::__private_init, _Impl::_S_less_equal(__data(__y), __data(__x))}; }
+      requires requires (value_type __a) { __a >= __a; }
+      { return {__detail::__private_init, _Impl::_S_less_equal(__data(__y), __data(__x))}; }
 
       // construction from span is simple
       constexpr
@@ -320,7 +389,7 @@ namespace std
       to_array() const noexcept
       {
         std::array<_Tp, size()> __r = {};
-        this->copy_to(__r.data(), __pv2::element_aligned);
+        this->copy_to(__r.data(), element_aligned);
         return __r;
       }
 
@@ -340,7 +409,7 @@ namespace std
       operator[](__detail::_SimdSizeType __i) &
       {
         if (__i >= size.value or __i < 0)
-          __pv2::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
+          __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
         return {_M_data, __i};
       }
 
@@ -348,7 +417,7 @@ namespace std
       operator[](__detail::_SimdSizeType __i) const&
       {
         if (__i >= size.value or __i < 0)
-          __pv2::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
+          __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
         if constexpr (size.value == 1)
           return _M_data;
         else if constexpr (requires {abi_type::_S_abiarray_size;})
@@ -386,12 +455,12 @@ namespace std
       _GLIBCXX_SIMD_INTRINSIC constexpr bool
       _M_is_constprop() const
       {
-        if constexpr (size.value == 1)
-          return __builtin_constant_p(_M_data);
-        else if constexpr (requires {_Impl::_S_is_constprop(_M_data);})
+        if constexpr (requires {_Impl::_S_is_constprop(_M_data);})
           return _Impl::_S_is_constprop(_M_data);
-        else
+        else if constexpr (requires {_M_data._M_is_constprop();})
           return _M_data._M_is_constprop();
+        else
+          return __builtin_constant_p(_M_data);
       }
     };
 
@@ -411,7 +480,7 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     basic_simd(std::basic_simd_mask<_Bs, _Abi>)
-    -> basic_simd<__pv2::__int_with_sizeof_t<_Bs>, _Abi>;
+    -> basic_simd<__detail::__mask_integer_from<_Bs>, _Abi>;
 
   template <__detail::__vectorizable _Tp, __detail::__simd_type _Simd>
     struct rebind_simd<_Tp, _Simd>
@@ -437,7 +506,7 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     struct simd_alignment<basic_simd_mask<_Bs, _Abi>, bool>
-    : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_t<bool>,
+    : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_int_t<bool>,
                                                   basic_simd_mask<_Bs, _Abi>::size()>)>
     {};
 }

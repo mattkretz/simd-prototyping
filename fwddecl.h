@@ -1,34 +1,144 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 #ifndef PROTOTYPE_FWDDECL_H_
 #define PROTOTYPE_FWDDECL_H_
 
-#include <experimental/simd>
+//#include <experimental/bits/simd_detail.h>
+#include "simd_config.h"
 
+#include <functional>
 #include <optional>
+#include <stdfloat>
 #include <type_traits>
 
 namespace std
 {
-  namespace __pv2
-  {
-    using namespace std::experimental::parallelism_v2;
-    using namespace std::experimental::parallelism_v2::__proposed;
-  }
+  template <int _UsedBytes>
+    struct _VecAbi;
+
+  template <int _UsedBytes>
+    struct _Avx512Abi;
+
+  struct _ScalarAbi;
 
   namespace __detail
   {
+    template <size_t _Bytes>
+      struct __make_unsigned_int;
+
+    template <>
+      struct __make_unsigned_int<sizeof(unsigned int)>
+      { using type = unsigned int; };
+
+    template <>
+      struct __make_unsigned_int<sizeof(unsigned long)
+                               + (sizeof(unsigned long) == sizeof(unsigned int))>
+      { using type = unsigned long; };
+
+    template <>
+      struct __make_unsigned_int<sizeof(unsigned long long)
+                               + (sizeof(unsigned long long) == sizeof(unsigned long))>
+      { using type = unsigned long long; };
+
+    template <>
+      struct __make_unsigned_int<sizeof(unsigned short)>
+      { using type = unsigned short; };
+
+    template <>
+      struct __make_unsigned_int<sizeof(unsigned char)>
+      { using type = unsigned char; };
+
     template <typename _Tp>
-      using _NativeAbi = std::experimental::parallelism_v2::simd_abi::native<_Tp>;
+      using __make_unsigned_int_t = typename __make_unsigned_int<sizeof(_Tp)>::type;
+
+    template <typename _Tp>
+      using __make_signed_int_t = make_signed_t<__make_unsigned_int_t<_Tp>>;
+
+    template <size_t _Bs>
+      using __mask_integer_from = make_signed_t<typename __make_unsigned_int<_Bs>::type>;
+
+    template <typename _Tp>
+      struct __is_vectorizable
+      : bool_constant<false>
+      {};
+
+    // TODO
+    //template <> struct __is_vectorizable<std::byte> : bool_constant<true> {};
+
+    template <> struct __is_vectorizable<char> : bool_constant<true> {};
+    template <> struct __is_vectorizable<wchar_t> : bool_constant<true> {};
+    template <> struct __is_vectorizable<char8_t> : bool_constant<true> {};
+    template <> struct __is_vectorizable<char16_t> : bool_constant<true> {};
+    template <> struct __is_vectorizable<char32_t> : bool_constant<true> {};
+
+    template <> struct __is_vectorizable<  signed char> : bool_constant<true> {};
+    template <> struct __is_vectorizable<unsigned char> : bool_constant<true> {};
+    template <> struct __is_vectorizable<  signed short> : bool_constant<true> {};
+    template <> struct __is_vectorizable<unsigned short> : bool_constant<true> {};
+    template <> struct __is_vectorizable<  signed int> : bool_constant<true> {};
+    template <> struct __is_vectorizable<unsigned int> : bool_constant<true> {};
+    template <> struct __is_vectorizable<  signed long> : bool_constant<true> {};
+    template <> struct __is_vectorizable<unsigned long> : bool_constant<true> {};
+    template <> struct __is_vectorizable<  signed long long> : bool_constant<true> {};
+    template <> struct __is_vectorizable<unsigned long long> : bool_constant<true> {};
+
+    template <> struct __is_vectorizable<float> : bool_constant<true> {};
+    template <> struct __is_vectorizable<double> : bool_constant<true> {};
+#ifdef __STDCPP_FLOAT16_T__
+    template <> struct __is_vectorizable<std::float16_t> : bool_constant<true> {};
+#endif
+#ifdef __STDCPP_FLOAT32_T__
+    template <> struct __is_vectorizable<std::float32_t> : bool_constant<true> {};
+#endif
+#ifdef __STDCPP_FLOAT64_T__
+    template <> struct __is_vectorizable<std::float64_t> : bool_constant<true> {};
+#endif
+
+    template <int _Bs, typename _Tp>
+      consteval auto
+      __native_abi_impl_recursive()
+      {
+        if constexpr (_Avx512Abi<_Bs>::template _S_is_valid_v<_Tp>)
+          return _Avx512Abi<_Bs>();
+        else if constexpr (_VecAbi<_Bs>::template _S_is_valid_v<_Tp>)
+          return _VecAbi<_Bs>();
+        else if constexpr (_Bs > sizeof(_Tp))
+          return __native_abi_impl_recursive<_Bs / 2, _Tp>();
+        else
+          return _ScalarAbi();
+      }
+
+    struct _InvalidAbi
+    {};
+
+    template <typename _Tp>
+      consteval auto
+      __native_abi_impl()
+      {
+        if constexpr (__is_vectorizable<_Tp>::value)
+          {
+            // __one is used to make _VecAbi a dependent type
+            constexpr int __one = sizeof(_Tp) / sizeof(_Tp);
+            if constexpr (sizeof(_Tp) > 8)
+              return _ScalarAbi();
+            else
+              return __native_abi_impl_recursive<__one * 256, _Tp>();
+          }
+        else
+          return _InvalidAbi();
+      }
+
+    template <typename _Tp>
+      using _NativeAbi = decltype(__native_abi_impl<_Tp>());
 
     using _SimdSizeType = int;
 
     template <typename _Tp, _SimdSizeType _Np>
       struct _DeduceAbi
-      {};
+      { using type = _InvalidAbi; };
 
     template <typename _Tp, _SimdSizeType _Np>
       using __deduce_t = typename _DeduceAbi<_Tp, _Np>::type;
@@ -40,50 +150,31 @@ namespace std
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask;
 
-  using element_aligned_tag = std::experimental::element_aligned_tag;
+  struct element_aligned_tag;
 
-  using vector_aligned_tag = std::experimental::vector_aligned_tag;
-
-  template <size_t _Np>
-    using overaligned_tag = std::experimental::overaligned_tag<_Np>;
-
-  inline constexpr element_aligned_tag element_aligned = {};
-
-  inline constexpr vector_aligned_tag vector_aligned = {};
+  struct vector_aligned_tag;
 
   template <size_t _Np>
-    inline constexpr overaligned_tag<_Np> overaligned = {};
+    struct overaligned_tag;
 
   template <typename _Tp>
-    struct is_abi_tag : std::experimental::is_abi_tag<_Tp>
-    {};
-
-  template <typename _Tp>
-    inline constexpr bool is_abi_tag_v = is_abi_tag<_Tp>::value;
-
-  template <typename _Tp>
-    struct is_simd : std::experimental::is_simd<_Tp>
+    struct is_simd
+    : bool_constant<false>
     {};
 
   template <typename _Tp>
     inline constexpr bool is_simd_v = is_simd<_Tp>::value;
 
   template <typename _Tp>
-    struct is_simd_mask : std::experimental::is_simd_mask<_Tp>
+    struct is_simd_mask
+    : bool_constant<false>
     {};
 
   template <typename _Tp>
     inline constexpr bool is_simd_mask_v = is_simd_mask<_Tp>::value;
 
-/*  template <typename _Tp>
-    struct is_simd_flag_type : std::experimental::is_simd_flag_type<_Tp>
-    {};
-
-  template <typename _Tp>
-    inline constexpr bool is_simd_flag_type_v = is_simd_flag_type<_Tp>::value;*/
-
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
-    struct simd_size : std::experimental::simd_size<_Tp, _Abi>
+    struct simd_size
     {};
 
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
@@ -116,6 +207,7 @@ namespace std
   template <typename _Tp, __detail::_SimdSizeType _Np>
     using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 
+  // mask_reductions.h
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
     all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
@@ -134,11 +226,11 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
+    reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k);
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
+    reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k);
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::optional<__detail::_SimdSizeType>
@@ -163,7 +255,7 @@ namespace std
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    simd_mask<__pv2::__int_with_sizeof_t<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
     simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept;
 
   template <typename _Tp, typename _Abi,

@@ -80,6 +80,7 @@ template <typename T>
     static_assert(usable_simd<std::simd<T, 2>>);
     static_assert(usable_simd<std::simd<T, 3>>);
     static_assert(usable_simd<std::simd<T, 4>>);
+    static_assert(usable_simd<std::simd<T, 7>>);
     static_assert(usable_simd<std::simd<T, 8>>);
     static_assert(usable_simd<std::simd<T, 16>>);
     static_assert(usable_simd<std::simd<T, 32>>);
@@ -90,6 +91,7 @@ template <typename T>
     static_assert(usable_simd<std::simd_mask<T, 2>>);
     static_assert(usable_simd<std::simd_mask<T, 3>>);
     static_assert(usable_simd<std::simd_mask<T, 4>>);
+    static_assert(usable_simd<std::simd_mask<T, 7>>);
     static_assert(usable_simd<std::simd_mask<T, 8>>);
     static_assert(usable_simd<std::simd_mask<T, 16>>);
     static_assert(usable_simd<std::simd_mask<T, 32>>);
@@ -128,6 +130,9 @@ static_assert(
   all_of(std::simd_mask<float, 4>([](int i) { return i < 2; })
            == std::simd_mask<float, 4>(std::array{true, true, false, false}.begin())));
 
+static_assert(
+  all_of(std::simd<int, 4>([](int i) { return i << 10; }) >> 10 == std::iota_v<std::simd<int, 4>>));
+
 static_assert([] constexpr {
   constexpr std::simd_mask<float, 7> a([](int i) -> bool { return i < 3; });
   constexpr std::basic_simd b = -a;
@@ -140,7 +145,31 @@ static_assert([] constexpr {
 
 static_assert([] constexpr {
   constexpr std::simd_mask<float, 4> a([](int i) -> bool { return i < 2; });
+  constexpr std::basic_simd b = a;
+  static_assert(b[0] == 1);
+  static_assert(b[1] == 1);
+  static_assert(b[2] == 0);
+  return b[3] == 0;
+}());
+
+static_assert([] constexpr {
+  constexpr std::simd_mask<float, 5> a([](int i) -> bool { return i >= 2; });
+  constexpr std::basic_simd b = a;
+  static_assert(b[0] == 0);
+  static_assert(b[1] == 0);
+  static_assert(b[2] == 1);
+  static_assert(b[3] == 1);
+  return b[4] == 1;
+}());
+
+static_assert([] constexpr {
+  constexpr std::simd_mask<float, 4> a([](int i) -> bool { return i < 2; });
   constexpr std::basic_simd b = ~a;
+  constexpr std::basic_simd c = a;
+  static_assert(c[0] == int(a[0]));
+  static_assert(c[1] == int(a[1]));
+  static_assert(c[2] == int(a[2]));
+  static_assert(c[3] == int(a[3]));
   static_assert(b[0] == ~int(0 < 2));
   static_assert(b[1] == ~int(1 < 2));
   static_assert(b[2] == ~int(2 < 2));

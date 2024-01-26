@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 #ifndef PROTOTYPE_IOTA_H_
@@ -34,7 +34,7 @@ namespace std
 
   template <__detail::__simd_type _Tp>
     inline constexpr _Tp
-    iota_v<_Tp> = _Tp([](auto __i) { return static_cast<typename _Tp::value_type>(__i); });
+    iota_v<_Tp> = _Tp([](int __i) { return static_cast<typename _Tp::value_type>(__i); });
 
   template <typename _Tp, std::size_t _Np>
     inline constexpr std::array<_Tp, _Np>

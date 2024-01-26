@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 #ifndef PROTOTYPE_SIMD_SPLIT_H_
@@ -97,6 +97,8 @@ namespace std
             using _Vp [[__gnu__::__vector_size__(sizeof(_Tp))]] = typename _Tp::value_type;
             return _Vp {__data(__x)};
           }
+        else if constexpr (__vec_builtin<__remove_cvref_t<decltype(__data(__x))>>)
+          return __data(__x);
         else
           return __data(__x)._M_data;
       }
@@ -109,11 +111,11 @@ namespace std
         constexpr int __x0_size = sizeof(__x0) / sizeof(_Tp);
         constexpr int __size = _T0::size.value + _T1::size.value;
         const std::resize_simd_t<__size, _T0>
-          __x01(__pv2::__private_init,
+          __x01(__private_init,
                 [&]<_SimdSizeType... _Is, _SimdSizeType... _Js,
-                    _SimdSizeType... _Ks>(_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
-                                          _SimdIndexSequence<_Ks...>)
-                _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+                    _SimdSizeType... _Ks> [[__gnu__::__always_inline__]]
+                    (_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
+                                          _SimdIndexSequence<_Ks...>) {
 #ifdef __clang__
                   if constexpr (sizeof(__x0) != sizeof(__x1))
                     {
@@ -151,20 +153,20 @@ namespace std
       else if constexpr (__size <= simd_size_v<_Tp>)
         return __detail::__cat_recursive(__xs...);
       else
-        return simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>([&](auto __i)
-               _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+        return simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>([&] [[__gnu__::__always_inline__]]
+               (auto __i) {
                  return __detail::__get_simd_element_from_pack(__i, __xs...);
                });
     }
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    simd_mask<__pv2::__int_with_sizeof_t<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
     simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept
     {
-      return simd_mask<__pv2::__int_with_sizeof_t<_Bs>,
-                       (basic_simd_mask<_Bs, _Abis>::size.value + ...)>([&](auto __i)
-             _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA {
+      return simd_mask<__detail::__mask_integer_from<_Bs>,
+                       (basic_simd_mask<_Bs, _Abis>::size.value + ...)>(
+                           [&] [[__gnu__::__always_inline__]] (auto __i) {
                return __detail::__get_simd_element_from_pack(__i, __xs...);
              });
     }

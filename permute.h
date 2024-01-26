@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 // Implements non-members of P2664
@@ -115,7 +115,7 @@ namespace std
     {
       using _Tp = typename _Vp::value_type;
       using _Rp = resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>;
-      return _Rp([&](auto __i) _GLIBCXX_SIMD_ALWAYS_INLINE_LAMBDA -> _Tp {
+      return _Rp([&] [[__gnu__::__always_inline__]] (auto __i) -> _Tp {
                constexpr int __j = [&] {
                  if constexpr (__detail::__index_permutation_function_nosize<_Fp>)
                    return __idx_perm(__i);

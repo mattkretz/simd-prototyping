@@ -1,13 +1,57 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
+
+#include "simd_config.h"
 
 #include <bit>
 #include <concepts>
 
 namespace std
 {
+  struct element_aligned_tag
+  {
+    template <typename _Tp, typename _Up = typename _Tp::value_type>
+      static constexpr size_t _S_alignment = alignof(_Up);
+
+    template <typename _Tp, typename _Up>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Up*
+      _S_apply(_Up* __ptr)
+      { return __ptr; }
+  };
+
+  struct vector_aligned_tag
+  {
+    template <typename _Tp, typename _Up = typename _Tp::value_type>
+      static constexpr size_t _S_alignment
+      = std::__bit_ceil(sizeof(_Up) * _Tp::size());
+
+    template <typename _Tp, typename _Up>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Up*
+      _S_apply(_Up* __ptr)
+      { return static_cast<_Up*>(__builtin_assume_aligned(__ptr, _S_alignment<_Tp, _Up>)); }
+  };
+
+  template <size_t _Np>
+    struct overaligned_tag
+    {
+      template <typename _Tp, typename _Up = typename _Tp::value_type>
+        static constexpr size_t _S_alignment = _Np;
+
+      template <typename _Tp, typename _Up>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _Up*
+        _S_apply(_Up* __ptr)
+        { return static_cast<_Up*>(__builtin_assume_aligned(__ptr, _Np)); }
+    };
+
+  inline constexpr element_aligned_tag element_aligned = {};
+
+  inline constexpr vector_aligned_tag vector_aligned = {};
+
+  template <size_t _Np>
+    inline constexpr overaligned_tag<_Np> overaligned = {};
+
   namespace __detail
   {
     struct _LoadStoreTag
