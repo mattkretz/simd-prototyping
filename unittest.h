@@ -120,7 +120,10 @@ template <typename T, template<typename> class Test>
                                        : 64 + (Width - 64) * std::simd<T>::size();
         if constexpr (std::destructible<std::simd<T, N>>)
           {
+            static_assert(std::destructible<std::simd_mask<T, N>>);
+            static_assert(std::destructible<typename std::simd<T, N>::mask_type>);
             static_assert(std::simd<T, N>::size() == N);
+            static_assert(std::simd_mask<T, N>::size() == N);
             Test<std::simd<T, N>>::run();
           }
         else

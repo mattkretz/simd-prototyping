@@ -36,7 +36,7 @@ namespace std
       using abi_type = _Abi;
 
       using mask_type = std::basic_simd_mask<
-                          sizeof(conditional_t<__detail::__vectorizable<_Tp>, _Tp, int>), _Abi>;
+                          sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
 
       static inline constexpr auto size = __detail::__simd_size_or_zero<_Tp, _Abi>();
 
@@ -401,7 +401,7 @@ namespace std
       simd_select_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
       {
         auto __ret = __f;
-        _Impl::_S_masked_assign(__data(__k), __data(__ret), __data(__t));
+        _Impl::_S_masked_assign(__data(__k), __ret._M_data, __t._M_data);
         return __ret;
       }
 
@@ -480,7 +480,8 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     basic_simd(std::basic_simd_mask<_Bs, _Abi>)
-    -> basic_simd<__detail::__mask_integer_from<_Bs>, _Abi>;
+    -> basic_simd<__detail::__mask_integer_from<_Bs>,
+                  __detail::__simd_abi_for_mask_t<_Bs, _Abi>>;
 
   template <__detail::__vectorizable _Tp, __detail::__simd_type _Simd>
     struct rebind_simd<_Tp, _Simd>

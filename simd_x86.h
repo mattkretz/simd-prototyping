@@ -13,7 +13,7 @@
 
 namespace std
 {
-  template <int _UsedBytes>
+  template <int _Width>
     struct _Avx512Abi
 #if not __AVX512F__
     {
@@ -32,14 +32,11 @@ namespace std
       template <typename>
         static constexpr bool _S_is_valid_v = false;
 
-      template <typename>
-        static constexpr __detail::_SimdSizeType _S_size = -1;
+      static constexpr __detail::_SimdSizeType _S_size = 0;
 
-      template <typename>
-        static constexpr __detail::_SimdSizeType _S_full_size = -1;
+      static constexpr __detail::_SimdSizeType _S_full_size = 0;
 
-      template <typename _Tp>
-        static constexpr bool _S_is_partial = false;
+      static constexpr bool _S_is_partial = false;
 
       template <typename _Tp>
         struct __traits
@@ -47,11 +44,9 @@ namespace std
         {};
     };
 #else
-    : _VecAbi<_UsedBytes>
+    : _VecAbi<_Width>
     {
       using _SimdSizeType = __detail::_SimdSizeType;
-
-      static constexpr _SimdSizeType _S_bytes = _UsedBytes;
 
       template <typename _Tp>
         struct __traits
@@ -59,7 +54,7 @@ namespace std
         {};
 
       template <typename _Tp>
-        requires (_VecAbi<_UsedBytes>::template _S_is_valid_v<_Tp>)
+        requires (_VecAbi<_Width>::template _S_is_valid_v<_Tp>)
         struct __traits<_Tp>
         {
           using _IsValid = true_type;
@@ -70,20 +65,20 @@ namespace std
 
           using _MaskImpl = _Impl;
 
-          using _SimdMember = _VecAbi<_UsedBytes>::template _SimdMember<_Tp>;
+          static constexpr _SimdSizeType _S_size = _Width;
+
+          static constexpr _SimdSizeType _S_full_size = std::__bit_ceil(_Width);
+
+          static constexpr bool _S_is_partial = _S_full_size > _S_size;
+
+          using _SimdMember = _VecAbi<_Width>::template _SimdMember<_Tp>;
 
           using _MaskMember = typename __detail::__make_unsigned_int<
-                                __bit_ceil(_UsedBytes / sizeof(_Tp)) / __CHAR_BIT__>::type;
+                                std::max(8, _S_full_size) / __CHAR_BIT__>::type;
 
           static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
           static constexpr size_t _S_mask_align = alignof(_MaskMember);
-
-          static constexpr _SimdSizeType _S_size = _UsedBytes / sizeof(_Tp);
-
-          static constexpr _SimdSizeType _S_full_size = __detail::__width_of<_SimdMember>;
-
-          static constexpr bool _S_is_partial = _S_full_size > _S_size;
 
           template <typename _Arg>
             static constexpr bool _S_is_simd_ctor_arg
@@ -124,20 +119,16 @@ namespace std
 
       using _MaskImpl = _Impl;
 
-      template <typename _Tp>
-        static constexpr _SimdSizeType _S_size = __traits<_Tp>::_S_size;
+      static constexpr _SimdSizeType _S_size = _Width;
 
-      template <typename _Tp>
-        static constexpr _SimdSizeType _S_full_size = __traits<_Tp>::_S_full_size;
+      static constexpr _SimdSizeType _S_full_size = std::__bit_ceil(_Width);
 
-      template <typename _Tp>
-        static constexpr bool _S_is_partial = __traits<_Tp>::_S_is_partial;
+      static constexpr bool _S_is_partial = _S_full_size > _S_size;
 
-      template <__detail::__vectorizable _Up, __detail::__vec_builtin _TV,
-                _SimdSizeType _Np = _S_size<__detail::__value_type_of<_TV>>>
+      template <__detail::__vectorizable _Up>
         using _Rebind = std::conditional_t<
-                          _Avx512Abi<sizeof(_Up) * _Np>::template _S_is_valid_v<_Up>,
-                          _Avx512Abi<sizeof(_Up) * _Np>, __detail::__deduce_t<_Up, _Np>>;
+                          _Avx512Abi<_S_size>::template _S_is_valid_v<_Up>,
+                          _Avx512Abi<_S_size>, __detail::__deduce_t<_Up, _S_size>>;
 
       template <typename _Tp>
         using _SimdMember = __traits<_Tp>::_SimdMember;
@@ -147,28 +138,28 @@ namespace std
 
       template <__detail::__vectorizable _Tp>
         static constexpr _MaskMember<_Tp>
-        _S_implicit_mask = _S_is_partial<_Tp> ? _MaskMember<_Tp>((1ULL << _S_size<_Tp>) - 1)
-                                              : ~_MaskMember<_Tp>();
+        _S_implicit_mask = _S_is_partial ? _MaskMember<_Tp>((1ULL << _S_size) - 1)
+                                         : ~_MaskMember<_Tp>();
 
       template <__detail::__vectorizable _ValueType, integral _Up>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Up
         _S_masked(_Up __x)
         {
-          constexpr auto _Np = _S_size<_ValueType>;
+          constexpr auto _Np = _S_size;
           if constexpr (_Np < 8 or not std::__has_single_bit(_Np))
             return __x & _S_implicit_mask<_ValueType>;
           else
             return __x;
         }
 
-      using _VecAbi<_UsedBytes>::_S_masked;
+      using _VecAbi<_Width>::_S_masked;
 
       template <__detail::__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
         __make_padding_nonzero(_TV __x)
         {
           using _Tp = __detail::__value_type_of<_TV>;
-          if constexpr (not _S_is_partial<_Tp>)
+          if constexpr (not _S_is_partial)
             return __x;
           else
             return _Impl::_S_select(_S_implicit_mask<_Tp>, __x,
@@ -181,6 +172,18 @@ namespace std
 #if __x86_64__ or __i386__
 namespace std::__detail
 {
+  template <typename _Abi, auto _Flags>
+    struct _SimdMaskTraits<sizeof(float), _Abi, _Flags>
+    : _SimdTraits<conditional_t<_Flags._M_have_avx and not _Flags._M_have_avx2,
+                                float, __mask_integer_from<sizeof(float)>>, _Abi, _Flags>
+    {};
+
+  template <typename _Abi, auto _Flags>
+    struct _SimdMaskTraits<sizeof(double), _Abi, _Flags>
+    : _SimdTraits<conditional_t<_Flags._M_have_avx and not _Flags._M_have_avx2,
+                                double, __mask_integer_from<sizeof(double)>>, _Abi, _Flags>
+    {};
+
   enum class _X86Round
   {
     _ToNearestInt = 0x00,
@@ -208,20 +211,19 @@ namespace std::__detail
       template <typename _Tp>
         using _SimdMember = typename _Abi::template _SimdMember<_Tp>;
 
+      // _Tp can be a __vec_builtin or __arithmetic type
       template <typename _Tp>
         using _MaskMember = typename _Abi::template _MaskMember<__value_type_of<_Tp>>;
 
-      template <typename _Tp>
-        static constexpr size_t _S_size = _Abi::template _S_size<__value_type_of<_Tp>>;
+      static constexpr _SimdSizeType _S_size = _Abi::_S_size;
+
+      static constexpr _SimdSizeType _S_full_size = _Abi::_S_full_size;
+
+      static constexpr bool _S_use_bitmasks = is_same_v<_Abi, _Avx512Abi<_S_size>>;
 
       template <typename _Tp>
-        static constexpr size_t _S_full_size = _Abi::template _S_full_size<__value_type_of<_Tp>>;
-
-      static constexpr bool _S_use_bitmasks = is_same_v<_Abi, _Avx512Abi<_Abi::_S_bytes>>;
-
-      template <typename _Tp>
-        using _BitMaskType = typename __make_unsigned_int<
-                               std::__bit_ceil(_S_size<_Tp>) / __CHAR_BIT__>::type;
+        using _BitMaskType = typename __detail::__make_unsigned_int<
+                               std::max(8, _S_full_size) / __CHAR_BIT__>::type;
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _BitMaskType<__value_type_of<_TV>>
@@ -232,6 +234,33 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_to_bitmask(_Tp __k)
         { return __k; }
+
+      template <typename _Tp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+        _S_load(const bool* __mem)
+        {
+          if constexpr (_S_use_bitmasks)
+            {
+              if (__builtin_is_constant_evaluated())
+                {
+                  return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                           return ((_MaskMember<_Tp>(__mem[_Is]) << _Is) | ...);
+                         });
+                }
+              else
+                {
+                  using _BV = __vec_builtin_type_bytes<__make_signed_int_t<bool>,
+                                                       _S_full_size * sizeof(bool)>;
+                  _BV __bools = {};
+                  __builtin_memcpy(&__bools, __mem, _S_size * sizeof(bool));
+                  return _S_not_equal_to(__bools, _BV());
+                }
+            }
+          else
+            return _Base::template _S_load<_Tp>(__mem);
+        }
+
+      using _Base::_S_load;
 
       template <__vec_builtin _TV, typename _Up>
         static inline _TV
@@ -386,28 +415,39 @@ namespace std::__detail
           return __merge;
         }
 
-      // Returns: __k ? __b : __a
+      // Returns: __k ? __a : __b
       // Requires: _TV to be a __vec_builtin_type matching valuetype for the bitmask __k
       template <integral _Kp, __vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static _TV
-        _S_select_bitmask(const _Kp __k, const _TV __b, const _TV __a)
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
+        _S_select_bitmask(const _Kp __k, const _TV __a, const _TV __b)
         {
           using _Tp = __value_type_of<_TV>;
           static_assert(sizeof(_TV) >= 16);
           static_assert(sizeof(_Tp) <= 8);
-          if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>) == 0)
-            return __a;
+          if (__builtin_is_constant_evaluated()
+                or (__builtin_constant_p(__k) and __builtin_constant_p(__a)
+                      and __builtin_constant_p(__b)))
+            {
+              const _TV __r = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                return _TV{(((__k >> _Is) & 1) == 1 ? __a[_Is] : __b[_Is])...};
+                              });
+              if (__builtin_constant_p(__r))
+                return __r;
+            }
+
+          else if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>) == 0)
+            return __b;
           else if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>)
                      == _Abi::template _S_implicit_mask<_Tp>)
-            return __b;
+            return __a;
 
 #ifdef __clang__
-          return __movm<_S_full_size<_Tp>, _Tp>(__k) ? __b : __a;
+          return __movm<_S_full_size, _Tp>(__k) ? __a : __b;
 #else
           using _IntT = __x86_builtin_int_t<_Tp>;
-          using _IntV = __vec_builtin_type_bytes<_IntT, sizeof(__a)>;
-          [[maybe_unused]] const auto __aa = reinterpret_cast<_IntV>(__a);
-          [[maybe_unused]] const auto __bb = reinterpret_cast<_IntV>(__b);
+          using _IntV = __vec_builtin_type_bytes<_IntT, sizeof(__b)>;
+          [[maybe_unused]] const auto __aa = reinterpret_cast<_IntV>(__b);
+          [[maybe_unused]] const auto __bb = reinterpret_cast<_IntV>(__a);
           if constexpr (sizeof(_TV) == 64)
             {
               if constexpr (sizeof(_Tp) == 1)
@@ -415,11 +455,11 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 2)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmw_512_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 4 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmps_512_mask(__a, __b, __k);
+                return __builtin_ia32_blendmps_512_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 4)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmd_512_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 8 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmpd_512_mask(__a, __b, __k);
+                return __builtin_ia32_blendmpd_512_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_512_mask(__aa, __bb, __k));
             }
@@ -430,11 +470,11 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 2)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmw_256_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 4 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmps_256_mask(__a, __b, __k);
+                return __builtin_ia32_blendmps_256_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 4)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmd_256_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 8 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmpd_256_mask(__a, __b, __k);
+                return __builtin_ia32_blendmpd_256_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_256_mask(__aa, __bb, __k));
             }
@@ -445,11 +485,11 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 2)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmw_128_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 4 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmps_128_mask(__a, __b, __k);
+                return __builtin_ia32_blendmps_128_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 4)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmd_128_mask(__aa, __bb, __k));
               else if constexpr (sizeof(_Tp) == 8 and is_floating_point_v<_Tp>)
-                return __builtin_ia32_blendmpd_128_mask(__a, __b, __k);
+                return __builtin_ia32_blendmpd_128_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_128_mask(__aa, __bb, __k));
             }
@@ -457,7 +497,7 @@ namespace std::__detail
         }
 
       template <integral _Kp, __vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static _TV
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_select(const _Kp __k, const _TV __a, const _TV __b)
         { return _S_select_bitmask(__k, __a, __b); }
 
@@ -475,11 +515,11 @@ namespace std::__detail
             return __a;
           else if (_Base::_S_is_constprop_none_of(__k))
             return __b;
-          else if (__builtin_constant_p(__ia) and _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+          else if (__builtin_constant_p(__ia) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ia[_Is] == 0) and ...);
                                                   }))
             return __vec_andnot(reinterpret_cast<_TV>(__k), __b);
-          else if (__builtin_constant_p(__ib) and _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+          else if (__builtin_constant_p(__ib) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ib[_Is] == 0) and ...);
                                                   }))
             return __vec_and(reinterpret_cast<_TV>(__k), __a);
@@ -511,6 +551,7 @@ namespace std::__detail
        * Pre-condition: \p __k is a mask (all bits either 0 or 1)
        */
       template <__vec_builtin _TV>
+        requires (not integral<_MaskMember<_TV>>)
         _GLIBCXX_SIMD_INTRINSIC static _TV
         _S_select(const _MaskMember<_TV> __k, const _TV __a, const _TV __b)
         {
@@ -521,11 +562,11 @@ namespace std::__detail
             return __a;
           else if (_Base::_S_is_constprop_none_of(__k))
             return __b;
-          else if (__builtin_constant_p(__ia) and _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+          else if (__builtin_constant_p(__ia) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ia[_Is] == 0) and ...);
                                                   }))
             return __vec_andnot(reinterpret_cast<_TV>(__k), __b);
-          else if (__builtin_constant_p(__ib) and _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+          else if (__builtin_constant_p(__ib) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ib[_Is] == 0) and ...);
                                                   }))
             return __vec_and(reinterpret_cast<_TV>(__k), __a);
@@ -538,7 +579,7 @@ namespace std::__detail
                   const _IV __ki = reinterpret_cast<_IV>(__k);
                   const _IV __ai = reinterpret_cast<_IV>(__a);
                   const _IV __bi = reinterpret_cast<_IV>(__b);
-                  if (sizeof(_Tp) != 1 and _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+                  if (sizeof(_Tp) != 1 and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                              return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
                                            }))
                     __invoke_ub("Undefined behavior: invalid mask value(s)");
@@ -560,7 +601,7 @@ namespace std::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if (_GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+          else if (_GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                      return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
                    }))
             __invoke_ub("Undefined behavior: invalid mask value(s)");
@@ -584,7 +625,7 @@ namespace std::__detail
                          __type_identity_t<__value_type_of<_TV>> __rhs)
         {
           if constexpr (_S_use_bitmasks)
-            __lhs = _S_select_bitmask(__k, __rhs, __lhs);
+            __lhs = _S_select_bitmask(__k, __vec_broadcast<_S_size>(__rhs), __lhs);
           else
             _Base::_S_masked_assign(__k, __lhs, __rhs);
         }
@@ -606,7 +647,7 @@ namespace std::__detail
                   return reinterpret_cast<__vec_builtin_type<_Tp, 2>>(
                            short(((__xs * __ys) & 0xff) | ((__xs >> 8) * (__ys & 0xff00))));
                 }
-              else if constexpr (sizeof(_TV) == 4 and _S_size<_Tp> == 3)
+              else if constexpr (sizeof(_TV) == 4 and _S_size == 3)
                 {
                   const auto __xi = reinterpret_cast<int>(__x);
                   const auto __yi = reinterpret_cast<int>(__y);
@@ -642,7 +683,7 @@ namespace std::__detail
               else
                 {
                   // codegen of `x*y` is suboptimal (as of GCC 13.1)
-                  constexpr int _Np = sizeof(_TV) >= 16 ? _S_full_size<_Tp> / 2 : 8;
+                  constexpr int _Np = sizeof(_TV) >= 16 ? _S_full_size / 2 : 8;
                   using _ShortW = __vec_builtin_type<short, _Np>;
                   const _ShortW __even = __vec_bitcast<short, _Np>(__x)
                                            * __vec_bitcast<short, _Np>(__y);
@@ -723,12 +764,12 @@ namespace std::__detail
                   //} __csr;
 
                   using _Float = conditional_t<sizeof(_Tp) == 4, double, float>;
-                  constexpr size_t __n_intermediate
-                    = std::min(_S_full_size<_Tp>, (_Flags._M_have_avx512f
-                                                     ? 64 : _Flags._M_have_avx ? 32 : 16)
-                                 / sizeof(_Float));
+                  constexpr int __n_intermediate
+                    = std::min(_S_full_size, (_Flags._M_have_avx512f
+                                                ? 64 : _Flags._M_have_avx ? 32 : 16)
+                                 / int(sizeof(_Float)));
                   using _FloatV = __vec_builtin_type<_Float, __n_intermediate>;
-                  constexpr size_t __n_floatv = __div_roundup(_S_size<_Tp>, __n_intermediate);
+                  constexpr int __n_floatv = __div_roundup(_S_size, __n_intermediate);
                   const auto __xf = __vec_convert_all<_FloatV, __n_floatv>(__x);
                   const auto __yf = __vec_convert_all<_FloatV, __n_floatv>(
                                       _Abi::__make_padding_nonzero(__y));
@@ -772,6 +813,27 @@ namespace std::__detail
       using _Base::_S_modulus;
 
 #endif
+
+      template <unsigned_integral _Tp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+        _S_bit_and(_Tp __x, _Tp __y)
+        { return __x & __y; }
+
+      using _Base::_S_bit_and;
+
+      template <unsigned_integral _Tp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+        _S_bit_or(_Tp __x, _Tp __y)
+        { return __x | __y; }
+
+      using _Base::_S_bit_or;
+
+      template <unsigned_integral _Tp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+        _S_bit_xor(_Tp __x, _Tp __y)
+        { return __x ^ __y; }
+
+      using _Base::_S_bit_xor;
 
       // Notes on UB. C++2a [expr.shift] says:
       // -1- [...] The operands shall be of integral or unscoped enumeration type
@@ -943,7 +1005,7 @@ namespace std::__detail
         _S_bit_shift_left(_TV __x, _TV __y)
         {
           using _Tp = __value_type_of<_TV>;
-          constexpr int _Np = _S_size<_Tp>;
+          constexpr int _Np = _S_size;
           const auto __ix = __to_x86_intrin(__x);
           const auto __iy = __to_x86_intrin(__y);
           if (_GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
@@ -996,7 +1058,7 @@ namespace std::__detail
                                                               _mm512_cvtepu8_epi16(__iy))));
               else if constexpr (sizeof __x <= 8 and _Flags._M_have_avx512bw
                                    and _Flags._M_have_avx512vl)
-                return reinterpret_cast<_TV>(
+                return __vec_bitcast_trunc<_TV>(
                          _mm_cvtepi16_epi8(_mm_sllv_epi16(_mm_cvtepu8_epi16(__ix),
                                                           _mm_cvtepu8_epi16(__iy))));
               else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw
@@ -1006,9 +1068,10 @@ namespace std::__detail
                                                                  _mm256_cvtepu8_epi16(__iy))));
               else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw)
                 return reinterpret_cast<_TV>(
-                         __vec_lo128(_mm512_cvtepi16_epi8(_mm512_sllv_epi16(
-                                                        _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__ix)),
-                                                        _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__iy))))));
+                         __vec_lo128(_mm512_cvtepi16_epi8(
+                                       _mm512_sllv_epi16(
+                                         _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__ix)),
+                                         _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__iy))))));
               else if constexpr (_Flags._M_have_sse4_1 and sizeof(__x) == 16)
                 {
                   using _MV = __mask_vec_from<_TV>;
@@ -1116,7 +1179,7 @@ namespace std::__detail
                   // If __y is constant propagated and one of the values is 31, then _mm_cvttps_epi32
                   // below produces 0x7fff'ffff instead of 0x8000'0000. Therefore, create a constprop
                   // vector of all the shifts applied to 1, avoiding the float conversion trick.
-                  const _TV __factor = _GLIBCXX_SIMD_INT_PACK(_S_size<_TV>, _Is, {
+                  const _TV __factor = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                          return _TV {_Tp(1u << __y[_Is])...};
                                        });
                   if (__builtin_constant_p(__factor))
@@ -1197,7 +1260,7 @@ namespace std::__detail
         _S_bit_shift_right(_TV __x, _TV __y)
         {
           using _Tp = __value_type_of<_TV>;
-          constexpr int _Np = _S_size<_Tp>;
+          constexpr int _Np = _S_size;
           [[maybe_unused]] const auto __ix = __to_x86_intrin(__x);
           [[maybe_unused]] const auto __iy = __to_x86_intrin(__y);
 
@@ -1220,7 +1283,7 @@ namespace std::__detail
             {
               if constexpr (sizeof(__x) <= 8 and _Flags._M_have_avx512bw
                               and _Flags._M_have_avx512vl)
-                return reinterpret_cast<_TV>(
+                return __vec_bitcast_trunc<_TV>(
                          _mm_cvtepi16_epi8(is_signed_v<_Tp> ? _mm_srav_epi16(_mm_cvtepi8_epi16(__ix),
                                                                              _mm_cvtepi8_epi16(__iy))
                                                             : _mm_srlv_epi16(_mm_cvtepu8_epi16(__ix),
@@ -1338,7 +1401,7 @@ namespace std::__detail
                 }
               else if constexpr (_Flags._M_have_sse4_1 and is_signed_v<_Tp> and sizeof(__x) > 2)
                 {
-                  using _Impl16 = _VecAbi<16>::_Impl;
+                  using _Impl8 = _VecAbi<8>::_Impl;
                   using _MV = __v8int16;
                   auto __mask = reinterpret_cast<__v16uchar>(
                                   reinterpret_cast<__v8uint16>(__iy) << 5);
@@ -1346,21 +1409,21 @@ namespace std::__detail
                   auto __xl = __xh << 8;
                   auto __xh4 = __xh >> 4;
                   auto __xl4 = __xl >> 4;
-                  __xh = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __xh4, __xh);
-                  __xl = _Impl16::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl4, __xl);
+                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh4, __xh);
+                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl4, __xl);
                   __mask += __mask;
                   auto __xh2 = __xh >> 2;
                   auto __xl2 = __xl >> 2;
-                  __xh = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __xh2, __xh);
-                  __xl = _Impl16::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl2, __xl);
+                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh2, __xh);
+                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl2, __xl);
                   __mask += __mask;
                   auto __xh1 = __xh >> 1;
                   auto __xl1 = __xl >> 1;
-                  __xh = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __xh1, __xh);
-                  __xl = _Impl16::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl1, __xl);
+                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh1, __xh);
+                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl1, __xl);
                   // y > 7 must return either 0 or -1 depending on the sign bit of __x
                   return __vec_bitcast_trunc<_TV>(
-                           _Impl16::_S_select(
+                           _VecAbi<16>::_Impl::_S_select(
                              __vec_zero_pad_to_16(__y) > char(7),
                              __vec_zero_pad_to_16(__x) < 0,
                              reinterpret_cast<__v16schar>(__xh & short(0xff00))
@@ -1432,9 +1495,9 @@ namespace std::__detail
                 };
               if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
                               and sizeof(_TV) <= 16)
-                return reinterpret_cast<_TV>(is_signed_v<_Tp>
-                                               ? _mm_srav_epi16(__ix, __iy)
-                                               : _mm_srlv_epi16(__ix, __iy));
+                return __vec_bitcast_trunc<_TV>(is_signed_v<_Tp>
+                                                  ? _mm_srav_epi16(__ix, __iy)
+                                                  : _mm_srlv_epi16(__ix, __iy));
               else if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
                                    and sizeof(_TV) == 32)
                 return __vec_bitcast<_Tp>(is_signed_v<_Tp>
@@ -1544,14 +1607,14 @@ namespace std::__detail
                   };
                   const auto __r0 = __shift(__ix, _mm_unpacklo_epi32(__iy, __m128i()));
                   const auto __r1 = __shift(__ix, _mm_srli_epi64(__iy, 32));
-                  const auto __r2 = _S_size<_Tp> >= 3
+                  const auto __r2 = _S_size >= 3
                                       ? __shift(__ix, _mm_unpackhi_epi32(__iy, __m128i()))
                                       : __m128i();
-                  const auto __r3 = _S_size<_Tp> == 4
+                  const auto __r3 = _S_size == 4
                                       ? __shift(__ix, _mm_srli_si128(__iy, 12))
                                       : __m128i();
                   if constexpr (_Flags._M_have_sse4_1)
-                    return reinterpret_cast<_TV>(
+                    return __vec_bitcast_trunc<_TV>(
                              _mm_blend_epi16(_mm_blend_epi16(__r1, __r0, 0x3),
                                              _mm_blend_epi16(__r3, __r2, 0x30), 0xf0));
                   else
@@ -1575,8 +1638,8 @@ namespace std::__detail
               if (__builtin_is_constant_evaluated()
                     or (__builtin_constant_p(__x) and __builtin_constant_p(__y)))
                 {
-                  const _MaskMember<_Tp> __k
-                    = _GLIBCXX_SIMD_INT_PACK(_S_size<_Tp>, _Is, {
+                  const _MaskMember<_TV> __k
+                    = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                         return ((__x[_Is] == __y[_Is] ? (1ULL << _Is) : 0) | ...);
                       });
                   if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
@@ -1600,11 +1663,11 @@ namespace std::__detail
                     return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
                   else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                     return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
                   else
                     __assert_unreachable<_Tp>();
@@ -1625,13 +1688,13 @@ namespace std::__detail
                 return _mm256_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                 return _mm256_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+              else if constexpr (sizeof(_Tp) == 8)
                 return _mm_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+              else if constexpr (sizeof(_Tp) == 4)
                 return _mm_mask_cmpeq_epi32_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+              else if constexpr (sizeof(_Tp) == 2)
                 return _mm_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+              else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
               else
                 __assert_unreachable<_Tp>();
@@ -1651,8 +1714,8 @@ namespace std::__detail
               if (__builtin_is_constant_evaluated()
                     or (__builtin_constant_p(__x) and __builtin_constant_p(__y)))
                 {
-                  const _MaskMember<_Tp> __k
-                    = _GLIBCXX_SIMD_INT_PACK(_S_size<_Tp>, _Is, {
+                  const _MaskMember<_TV> __k
+                    = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                         return ((__x[_Is] != __y[_Is] ? (1ULL << _Is) : 0) | ...);
                       });
                   if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
@@ -1676,11 +1739,11 @@ namespace std::__detail
                     return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
                   else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                     return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
                   else
                     __assert_unreachable<_Tp>();
@@ -1701,13 +1764,13 @@ namespace std::__detail
                 return ~_mm256_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                 return ~_mm256_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+              else if constexpr (sizeof(_Tp) == 8)
                 return ~_mm_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+              else if constexpr (sizeof(_Tp) == 4)
                 return ~_mm_mask_cmpeq_epi32_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+              else if constexpr (sizeof(_Tp) == 2)
                 return ~_mm_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+              else if constexpr (sizeof(_Tp) == 1)
                 return ~_mm_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
               else
                 __assert_unreachable<_Tp>();
@@ -1727,11 +1790,11 @@ namespace std::__detail
               if (__builtin_is_constant_evaluated()
                     or (__builtin_constant_p(__x) and __builtin_constant_p(__y)))
                 {
-                  const _MaskMember<_Tp> __k
-                    = _GLIBCXX_SIMD_INT_PACK(_S_size<_Tp>, _Is, {
+                  const _MaskMember<_TV> __k
+                    = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                         return ((__x[_Is] < __y[_Is] ? (1ULL << _Is) : 0) | ...);
                       });
-                  if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
+                  if (__builtin_constant_p(__k))
                     return __k;
                 }
 
@@ -1752,11 +1815,11 @@ namespace std::__detail
                     return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LT_OS);
                   else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                     return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LT_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LT_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OS);
                   else
                     __assert_unreachable<_Tp>();
@@ -1779,13 +1842,13 @@ namespace std::__detail
                     return _mm256_mask_cmplt_epi16_mask(__k1, __xi, __yi);
                   else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                     return _mm256_mask_cmplt_epi8_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmplt_epi64_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmplt_epi32_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmplt_epi16_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+                  else if constexpr (sizeof(_Tp) == 1)
                     return _mm_mask_cmplt_epi8_mask(__k1, __xi, __yi);
                   else
                     __assert_unreachable<_Tp>();
@@ -1806,13 +1869,13 @@ namespace std::__detail
                 return _mm256_mask_cmplt_epu16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                 return _mm256_mask_cmplt_epu8_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+              else if constexpr (sizeof(_Tp) == 8)
                 return _mm_mask_cmplt_epu64_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+              else if constexpr (sizeof(_Tp) == 4)
                 return _mm_mask_cmplt_epu32_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+              else if constexpr (sizeof(_Tp) == 2)
                 return _mm_mask_cmplt_epu16_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+              else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmplt_epu8_mask(__k1, __xi, __yi);
               else
                 __assert_unreachable<_Tp>();
@@ -1833,7 +1896,7 @@ namespace std::__detail
                     or (__builtin_constant_p(__x) and __builtin_constant_p(__y)))
                 {
                   const _MaskMember<_Tp> __k
-                    = _GLIBCXX_SIMD_INT_PACK(_S_size<_Tp>, _Is, {
+                    = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                         return ((__x[_Is] <= __y[_Is] ? (1ULL << _Is) : 0) | ...);
                       });
                   if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
@@ -1857,11 +1920,11 @@ namespace std::__detail
                     return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LE_OS);
                   else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                     return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LE_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LE_OS);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OS);
                   else
                     __assert_unreachable<_Tp>();
@@ -1884,13 +1947,13 @@ namespace std::__detail
                     return _mm256_mask_cmple_epi16_mask(__k1, __xi, __yi);
                   else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                     return _mm256_mask_cmple_epi8_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+                  else if constexpr (sizeof(_Tp) == 8)
                     return _mm_mask_cmple_epi64_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+                  else if constexpr (sizeof(_Tp) == 4)
                     return _mm_mask_cmple_epi32_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+                  else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmple_epi16_mask(__k1, __xi, __yi);
-                  else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+                  else if constexpr (sizeof(_Tp) == 1)
                     return _mm_mask_cmple_epi8_mask(__k1, __xi, __yi);
                   else
                     __assert_unreachable<_Tp>();
@@ -1911,13 +1974,13 @@ namespace std::__detail
                 return _mm256_mask_cmple_epu16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
                 return _mm256_mask_cmple_epu8_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
+              else if constexpr (sizeof(_Tp) == 8)
                 return _mm_mask_cmple_epu64_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+              else if constexpr (sizeof(_Tp) == 4)
                 return _mm_mask_cmple_epu32_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+              else if constexpr (sizeof(_Tp) == 2)
                 return _mm_mask_cmple_epu16_mask(__k1, __xi, __yi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 1, 16>)
+              else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmple_epu8_mask(__k1, __xi, __yi);
               else
                 __assert_unreachable<_Tp>();
@@ -1944,24 +2007,24 @@ namespace std::__detail
         _S_sqrt(_TV __x)
         {
           using _Tp = __value_type_of<_TV>;
-          if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16)
-            return __builtin_ia32_sqrtph128_mask(__x, _TV(), -1);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
-            return __builtin_ia32_sqrtps(__x);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
-            return __builtin_ia32_sqrtps(__x);
+          if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+            return __builtin_ia32_sqrtph512_mask_round(__x, _TV(), -1, _X86Round::_CurDirection);
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
+            return __builtin_ia32_sqrtps512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
+            return __builtin_ia32_sqrtpd512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16)
             return __builtin_ia32_sqrtph256_mask(__x, _TV(), -1);
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
             return __builtin_ia32_sqrtps256(__x);
           else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
             return __builtin_ia32_sqrtpd256(__x);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
-            return __builtin_ia32_sqrtph512_mask_round(__x, _TV(), -1, _X86Round::_CurDirection);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
-            return __builtin_ia32_sqrtps512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
-            return __builtin_ia32_sqrtpd512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
+          else if constexpr (__vec_builtin_sizeof<_TV, 2> and _Flags._M_have_avx512fp16)
+            return __builtin_ia32_sqrtph128_mask(__x, _TV(), -1);
+          else if constexpr (__vec_builtin_sizeof<_TV, 4>)
+            return __builtin_ia32_sqrtps(__x);
+          else if constexpr (__vec_builtin_sizeof<_TV, 8>)
+            return __builtin_ia32_sqrtps(__x);
           else
             __assert_unreachable<_Tp>();
         }
@@ -1969,11 +2032,12 @@ namespace std::__detail
       template <__vec_builtin _TV>
         requires floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
-        _S_ldexp(_TV __x, typename _Abi::template _Rebind<int, _TV>::_SimdMember<int> __exp)
+        _S_ldexp(_TV __x, typename _Abi::template _Rebind<
+                            __make_dependent_t<int, _TV>>::_SimdMember<int> __exp)
         {
-          using _ExpAbi = typename _Abi::template _Rebind<int, _TV>;
+          using _ExpAbi = typename _Abi::template _Rebind<int>;
           using _Tp = __value_type_of<_TV>;
-          constexpr int _Np = _S_size<_Tp>;
+          constexpr int _Np = _S_size;
           if constexpr (sizeof(__x) == 64 or _Flags._M_have_avx512vl)
             {
               const auto __xi = __to_x86_intrin(__x);
@@ -1981,24 +2045,24 @@ namespace std::__detail
               const auto __expi = __to_x86_intrin(__cvt(__exp));
               using _Up = _MaskMember<_Tp>;
               constexpr _Up __k1 = _Np < sizeof(_Up) * __CHAR_BIT__ ? _Up((1ULL << _Np) - 1) : ~_Up();
-              if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
-                return _mm_maskz_scalef_pd(__k1, __xi, __expi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
-                return _mm_maskz_scalef_ps(__k1, __xi, __expi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
-                return _mm_maskz_scalef_ph(__k1, __xi, __expi);
+              if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
+                return _mm512_maskz_scalef_pd(__k1, __xi, __expi);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
+                return _mm512_maskz_scalef_ps(__k1, __xi, __expi);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
+                return _mm512_maskz_scalef_ph(__k1, __xi, __expi);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_maskz_scalef_pd(__k1, __xi, __expi);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_maskz_scalef_ps(__k1, __xi, __expi);
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                 return _mm256_maskz_scalef_ph(__k1, __xi, __expi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
-                return _mm512_maskz_scalef_pd(__k1, __xi, __expi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
-                return _mm512_maskz_scalef_ps(__k1, __xi, __expi);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
-                return _mm512_maskz_scalef_ph(__k1, __xi, __expi);
+              else if constexpr (__vec_builtin_sizeof<_TV, 8>)
+                return _mm_maskz_scalef_pd(__k1, __xi, __expi);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4>)
+                return _mm_maskz_scalef_ps(__k1, __xi, __expi);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2>)
+                return _mm_maskz_scalef_ph(__k1, __xi, __expi);
               else
                 __assert_unreachable<_TV>();
             }
@@ -2023,13 +2087,13 @@ namespace std::__detail
             return _mm256_round_ps(__x, 0xb);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
             return _mm_round_pd(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
             return _mm_round_ps(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4>)
             {
               auto __truncated = _mm_cvtepi32_ps(_mm_cvttps_epi32(__to_x86_intrin(__x)));
               const auto __no_fractional_values
@@ -2063,13 +2127,13 @@ namespace std::__detail
             __truncated = _mm256_round_ps(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             __truncated = _mm256_round_ph(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
             __truncated = _mm_round_pd(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
             __truncated = _mm_round_ps(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             __truncated = _mm_round_ph(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4>)
             __truncated = _mm_cvtepi32_ps(_mm_cvttps_epi32(__x));
           else
             return _Base::_S_round(__x);
@@ -2104,11 +2168,11 @@ namespace std::__detail
             return _mm256_round_ps(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
             return _mm_round_pd(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
             return _mm_round_ps(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
           else
             return _Base::_S_nearbyint(__x);
@@ -2131,11 +2195,11 @@ namespace std::__detail
             return _mm256_round_ps(__x, _MM_FROUND_CUR_DIRECTION);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, _MM_FROUND_CUR_DIRECTION);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
             return _mm_round_pd(__x, _MM_FROUND_CUR_DIRECTION);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
             return _mm_round_ps(__x, _MM_FROUND_CUR_DIRECTION);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, _MM_FROUND_CUR_DIRECTION);
           else
             return _Base::_S_rint(__x);
@@ -2158,11 +2222,11 @@ namespace std::__detail
             return _mm256_round_ps(__x, 0x09);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
             return _mm_round_pd(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
             return _mm_round_ps(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, 0x09);
           else
             return _Base::_S_floor(__x);
@@ -2273,7 +2337,7 @@ namespace std::__detail
             }
           else if constexpr (_Flags._M_have_avx512f)
             {
-              constexpr int _Np = _S_full_size<_Tp>;
+              constexpr int _Np = _S_full_size;
               const auto __a = __x * __infinity_v<_Tp>; // NaN if __x == 0
               const auto __b = __x * _Tp();             // NaN if __x == inf
               if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 4, 16>)
@@ -2432,7 +2496,7 @@ namespace std::__detail
             }
           else if constexpr (_S_use_bitmasks)
             {
-              constexpr int _Np = _S_size<_Tp>;
+              constexpr int _Np = _S_size;
               using _Ip = __make_signed_int_t<_Tp>;
               const auto __absn = __vec_bitcast<_Ip>(_S_abs(__x));
               const auto __minn = __vec_bitcast<_Ip>(__vec_broadcast<_Np>(__norm_min_v<_Tp>));
@@ -2837,13 +2901,14 @@ namespace std::__detail
       static constexpr bool _S_have_ssse3 = _Flags._M_have_ssse3;
 
       template <typename _Tp>
-        requires(std::__has_single_bit(_S_size<_Tp>) and _S_size<_Tp> >= 2
+        requires(std::__has_single_bit(_S_size) and _S_size >= 2
+                   and _S_size * sizeof(_Tp) <= 16
                    and ((_S_have_ssse3 and is_integral_v<_Tp>)
                           or (_S_have_sse3 and is_floating_point_v<_Tp>)))
         static constexpr _Tp
         _S_reduce(basic_simd<_Tp, _Abi> __x, const plus<>&)
         {
-          constexpr auto _Np = _S_size<_Tp>;
+          constexpr auto _Np = _S_size;
           using _Ip = __x86_builtin_int_t<_Tp>;
           if constexpr (is_integral_v<_Tp>)
             {
@@ -2913,6 +2978,13 @@ namespace std::__detail
           else
             __assert_unreachable<_Tp>();
         }
+
+      template <unsigned_integral _Kp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_S_size>
+        _S_to_bits(_Kp __x)
+        { return __x; }
+
+      using _Base::_S_to_bits;
 
       template <unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
@@ -2989,7 +3061,7 @@ namespace std::__detail
               static_assert(sizeof(__k) <= 32);
               if constexpr (_Flags._M_have_sse4_1)
                 {
-                  if constexpr (_Abi::template _S_is_partial<_Tp> || sizeof(__k) < 16)
+                  if constexpr (_Abi::_S_is_partial || sizeof(__k) < 16)
                     return 0 == _S_testz(__data(__k), _Abi::template _S_implicit_mask<_Tp>);
                   else
                     return not _S_is_zero(__data(__k));
@@ -3014,7 +3086,7 @@ namespace std::__detail
               using _Tp = __mask_integer_from<_Bs>;
               if constexpr (_Flags._M_have_sse4_1)
                 {
-                  if constexpr (_Abi::template _S_is_partial<_Tp> || sizeof(__k) < 16)
+                  if constexpr (_Abi::_S_is_partial || sizeof(__k) < 16)
                     return 0 != _S_testz(__data(__k), _Abi::template _S_implicit_mask<_Tp>);
                   else
                     return _S_is_zero(__data(__k));

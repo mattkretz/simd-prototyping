@@ -15,6 +15,9 @@
 
 namespace std
 {
+  template <typename _Abi0, __detail::_SimdSizeType _Np>
+    struct _AbiArray;
+
   namespace __detail
   {
     template <int _Bytes>
@@ -33,8 +36,7 @@ namespace std
       {
         template <typename _Tp, int _Np>
           static constexpr bool _S_A0_is_valid
-            = _A0<sizeof(_Tp) * _Np>::template _S_is_valid_v<_Tp>
-                and _A0<sizeof(_Tp) * _Np>::template _S_size<_Tp> == _Np;
+            = _A0<_Np>::template _S_is_valid_v<_Tp> and _A0<_Np>::_S_size == _Np;
 
         template <typename _Tp, int _Np>
           static constexpr bool _S_has_valid_abi
@@ -42,22 +44,22 @@ namespace std
 
         template <typename _Tp, int _Np>
           using _FirstValidAbi = conditional_t<
-                                   _S_A0_is_valid<_Tp, _Np>, _A0<sizeof(_Tp) * _Np>,
+                                   _S_A0_is_valid<_Tp, _Np>, _A0<_Np>,
                                    typename _AbiList<_Rest...>::template _FirstValidAbi<_Tp, _Np>>;
 
-        template <int _Bytes, typename _Tp>
+        template <typename _Tp, int _Np>
           static consteval auto
           _S_find_next_valid_abi()
           {
-            constexpr int _NextBytes = std::__bit_ceil(_Bytes) / 2;
-            using _NextAbi = _A0<_NextBytes>;
-            if constexpr (_NextBytes < sizeof(_Tp) * 2) // break recursion
-              return _A0<_Bytes>();
-            else if constexpr (_NextAbi::template _S_is_partial<_Tp> == false
+            constexpr int _Next = std::__bit_ceil(_Np) / 2;
+            using _NextAbi = _A0<_Next>;
+            if constexpr (_Next <= 1) // break recursion
+              return _A0<_Np>();
+            else if constexpr (_NextAbi::_S_is_partial == false
                                  and _NextAbi::template _S_is_valid_v<_Tp>)
               return _NextAbi();
             else
-              return _S_find_next_valid_abi<_NextBytes, _Tp>();
+              return _S_find_next_valid_abi<_Tp, _Next>();
           }
 
         template <typename _Tp, int _Np>
@@ -65,26 +67,24 @@ namespace std
           _S_determine_best_abi()
           {
             static_assert(_Np >= 1);
-            constexpr int _Bytes = sizeof(_Tp) * _Np;
             if constexpr (_Np == 1)
               return _ScalarAbi();
             else
               {
-                constexpr int __fullsize = _A0<_Bytes>::template _S_full_size<_Tp>;
+                constexpr int __fullsize = _A0<_Np>::_S_full_size;
                 constexpr bool __excess_padding = __fullsize / 2 >= _Np;
-                // _A0<_Bytes> is good if:
+                // _A0<_Np> is good if:
                 // 1. The ABI tag is valid for _Tp
                 // 2. The storage overhead is no more than padding to fill the next
                 //    power-of-2 number of bytes
                 if constexpr (_S_A0_is_valid<_Tp, _Np> and not __excess_padding)
-                  return _A0<_Bytes>();
+                  return _A0<_Np>();
                 else if constexpr (__fullsize == 1)
-                  return _A0<_Bytes>();
+                  return _A0<_Np>();
                 else
                   {
-                    using _Bp = decltype(_S_find_next_valid_abi<_Bytes, _Tp>());
-                    if constexpr (_Bp::template _S_is_valid_v<_Tp>
-                                    and _Bp::template _S_size<_Tp> <= _Np)
+                    using _Bp = decltype(_S_find_next_valid_abi<_Tp, _Np>());
+                    if constexpr (_Bp::template _S_is_valid_v<_Tp> and _Bp::_S_size <= _Np)
                       return _Bp{};
                     else
                       return _AbiList<_Rest...>::template _S_determine_best_abi<_Tp, _Np>();
@@ -109,6 +109,45 @@ namespace std
 
     template <typename _Abi0, size_t... _Is>
       struct _MaskImplArray;
+
+    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
+      struct _SimdImplAbiCombine;
+
+    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
+      struct _MaskImplAbiCombine;
+
+    template <typename _Tp, __valid_abi_tag<_Tp>... _As>
+      struct _SimdTuple;
+
+    template <typename _Tp, _SimdSizeType _Np>
+      struct _NextAbiTuple
+      {
+        using _Native = _AllNativeAbis::_BestPartialAbi<_Tp, _Np>;
+        static constexpr int _S_native_size = simd_size_v<_Tp, _Native>;
+        static constexpr int _S_array_size = _Np / _S_native_size;
+        using type
+          = std::conditional_t<_S_array_size >= 2, _AbiArray<_Native, _S_array_size>, _Native>;
+      };
+
+    template <typename _Tp, int _Np, typename _Tuple,
+              typename _Next = typename _NextAbiTuple<_Tp, _Np>::type,
+              int _Remain = _Np - int(simd_size_v<_Tp, _Next>)>
+      struct __fixed_size_storage_builder;
+
+    template <typename _Tp, int _Np, typename... _As, typename _Next>
+      struct __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp, _As...>, _Next, 0>
+      { using type = _SimdTuple<_Tp, _As..., _Next>; };
+
+    template <typename _Tp, int _Np, typename... _As, typename _Next, int _Remain>
+      struct __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp, _As...>, _Next, _Remain>
+      {
+        using type = typename __fixed_size_storage_builder<
+                       _Tp, _Remain, _SimdTuple<_Tp, _As..., _Next>>::type;
+      };
+
+    template <typename _Tp, int _Np>
+      using __fixed_size_storage_t
+        = typename __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp>>::type;
   }
 
   template <typename _Abi0, __detail::_SimdSizeType _Np>
@@ -118,29 +157,22 @@ namespace std
 
       static constexpr _SimdSizeType _S_abiarray_size = _Np;
 
-      template <typename _Tp>
-        static constexpr _SimdSizeType _S_size = _Np * _Abi0::template _S_size<_Tp>;
+      static constexpr _SimdSizeType _S_size = _Np * _Abi0::_S_size;
 
-      template <typename _Tp>
-        static constexpr _SimdSizeType _S_full_size = _Np * _Abi0::template _S_size<_Tp>;
+      static constexpr _SimdSizeType _S_full_size = _Np * _Abi0::_S_size;
 
-      template <typename _Tp>
-        static constexpr bool _S_is_partial = false;
+      static constexpr bool _S_is_partial = false;
 
-      template <typename _Tp>
-        static constexpr _SimdSizeType _S_max_size
-          = std::max(_SimdSizeType(64), _SimdSizeType(8 * _Abi0::template _S_size<_Tp>));
+      static constexpr _SimdSizeType _S_max_size
+        = std::max(_SimdSizeType(64), _SimdSizeType(8 * _Abi0::_S_size));
 
       struct _IsValidAbiTag
-      : bool_constant<_Abi0::_IsValidAbiTag::value and (_Np > 1)>
+      : bool_constant<_Abi0::_IsValidAbiTag::value and not _Abi0::_S_is_partial
+                        and _Np >= 2 and _S_size <= _S_max_size>
       {};
 
       template <typename _Tp>
-        struct _IsValidSizeFor
-        : bool_constant<(_S_size<_Tp> <= _S_max_size<_Tp>)
-                            and not _Abi0::template _S_is_partial<_Tp>
-                            and _Abi0::template _IsValidSizeFor<_Tp>::value>
-        {};
+        using _IsValidSizeFor = _Abi0::template _IsValidSizeFor<_Tp>;
 
       template <typename _Tp>
         struct _IsValid
@@ -161,6 +193,12 @@ namespace std
                                    }(make_index_sequence<_Np>()));
 
       template <typename _Tp>
+        using _SimdMember = std::array<typename _Abi0::_SimdMember<_Tp>, _Np>;
+
+      template <typename _Tp>
+        using _MaskMember = std::array<typename _Abi0::_MaskMember<_Tp>, _Np>;
+
+      template <typename _Tp>
         struct __traits
         : __detail::_InvalidTraits
         {};
@@ -175,11 +213,9 @@ namespace std
 
           using _MaskImpl = _AbiArray::_MaskImpl;
 
-          using _SimdMember
-            = std::array<typename _Abi0::template __traits<_Tp>::_SimdMember, _Np>;
+          using _SimdMember = std::array<typename _Abi0::_SimdMember<_Tp>, _Np>;
 
-          using _MaskMember
-            = std::array<typename _Abi0::template __traits<_Tp>::_MaskMember, _Np>;
+          using _MaskMember = std::array<typename _Abi0::_MaskMember<_Tp>, _Np>;
 
           static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
@@ -187,17 +223,106 @@ namespace std
 
           static constexpr bool _S_is_partial = false;
 
-          struct _SimdBase
-          {};
-
-          struct _MaskBase
-          {};
-
           class _MaskCastType
           {};
 
           class _SimdCastType
           {};
+        };
+    };
+
+  template <__detail::_SimdSizeType _Np, typename _Tag>
+    struct _AbiCombine
+    {
+      static constexpr __detail::_SimdSizeType _S_size = _Np;
+
+      static constexpr __detail::_SimdSizeType _S_full_size = _Np;
+
+      struct _IsValidAbiTag
+      : public bool_constant<(_Np > 1)>
+      {};
+
+      template <typename _Tp>
+        static constexpr __detail::_SimdSizeType _S_max_size = 64;
+
+      template <typename _Tp>
+        struct _IsValidSizeFor
+        : bool_constant<(_Np <= _S_max_size<_Tp>)>
+        {};
+
+      template <typename _Tp>
+        struct _IsValid
+        : conjunction<_IsValidAbiTag, __detail::__is_vectorizable<_Tp>, _IsValidSizeFor<_Tp>>
+        {};
+
+      template <typename _Tp>
+        static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
+
+      _GLIBCXX_SIMD_INTRINSIC static constexpr __detail::_SanitizedBitMask<_Np>
+      _S_masked(__detail::_BitMask<_Np> __x)
+      { return __x._M_sanitized(); }
+
+      _GLIBCXX_SIMD_INTRINSIC static constexpr __detail::_SanitizedBitMask<_Np>
+      _S_masked(__detail::_SanitizedBitMask<_Np> __x)
+      { return __x; }
+
+      struct _CommonImpl {};
+
+      using _SimdImpl = __detail::_SimdImplAbiCombine<_Np, _Tag>;
+
+      using _MaskImpl = __detail::_MaskImplAbiCombine<_Np, _Tag>;
+
+      template <typename _Tp>
+        using _SimdMember = __detail::__fixed_size_storage_t<_Tp, _Np>;
+
+      template <typename>
+        using _MaskMember = __detail::_SanitizedBitMask<_Np>;
+
+      template <typename _Tp>
+        struct __traits
+        : __detail::_InvalidTraits
+        {};
+
+      template <typename _Tp>
+        requires _S_is_valid_v<_Tp>
+        struct __traits<_Tp>
+        {
+          using _IsValid = true_type;
+
+          using _SimdImpl = __detail::_SimdImplAbiCombine<_Np, _Tag>;
+
+          using _MaskImpl = __detail::_MaskImplAbiCombine<_Np, _Tag>;
+
+          using _SimdMember = __detail::__fixed_size_storage_t<_Tp, _Np>;
+
+          using _MaskMember = __detail::_SanitizedBitMask<_Np>;
+
+          static constexpr size_t _S_simd_align = alignof(_SimdMember);
+
+          static constexpr size_t _S_mask_align = alignof(_MaskMember);
+
+          struct _SimdCastType
+          {
+            _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+            _SimdCastType(const array<_Tp, _Np>& __a)
+            { __builtin_memcpy(&_M_data, __a.data(), _Np * sizeof(_Tp)); }
+
+            _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+            _SimdCastType(const _SimdMember& __dd)
+            : _M_data(__dd)
+            {}
+
+            _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
+            operator const _SimdMember &() const { return _M_data; }
+
+          private:
+            _SimdMember _M_data;
+          };
+
+          class _MaskCastType
+          {
+            _MaskCastType() = delete;
+          };
         };
     };
 
@@ -214,27 +339,26 @@ namespace std
           using _TypeTag = _Tp*;
 
         template <__vectorizable _Tp>
-          using _SimdMember = typename abi_type::template __traits<_Tp>::_SimdMember;
+          using _SimdMember = typename abi_type::_SimdMember<_Tp>;
 
         template <typename _Tp> // std::array of __vec_builtin
           using _ValueTypeOf = __value_type_of<typename _Tp::value_type>;
 
         template <typename _Tp>
           struct _MaskMemberImpl
-          { using type = typename abi_type::template __traits<_ValueTypeOf<_Tp>>::_MaskMember; };
+          { using type = typename abi_type::_MaskMember<_ValueTypeOf<_Tp>>; };
 
         template <__vectorizable _Tp>
           struct _MaskMemberImpl<_Tp>
-          { using type = typename abi_type::template __traits<_Tp>::_MaskMember; };
+          { using type = typename abi_type::_MaskMember<_Tp>; };
 
         template <typename _Tp>
           using _MaskMember = typename _MaskMemberImpl<_Tp>::type;
 
-        template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_size = abi_type::template _S_size<_Tp>;
+        static constexpr _SimdSizeType _S_size = abi_type::_S_size;
 
         template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_chunk_size = _Abi0::template _S_size<_Tp>;
+          static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
 
         using _Impl0 = typename _Abi0::_SimdImpl;
 
@@ -391,15 +515,39 @@ namespace std
               : 0), ...);
           }
 
-        template <typename _Tp>
+        // There's a curious case of _SimdMember and _MaskMember mismatch for the AVX w/o AVX2 case:
+        // The mask type can either be array<int8, 2> or array<int4, 4> depending on whether it
+        // originates for an integer or floating-point simd comparison. E.g.:
+        // !simd<float, 16>    -> array<int8, 2>
+        // !simd<unsigned, 16> -> array<int4, 4>
+
+        template <typename _Tp, typename _UV, size_t _KSize>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_masked_assign(const _MaskMember<_Tp> __k, _Tp& __lhs,
+          _S_masked_assign(const std::array<_UV, _KSize>& __k, _Tp& __lhs,
                            const __type_identity_t<_Tp>& __rhs)
-          { (_Impl0::_S_masked_assign(__k[_Is], __lhs[_Is], __rhs[_Is]), ...); }
+          {
+            if constexpr (_Np == _KSize)
+              (_Impl0::_S_masked_assign(__k[_Is], __lhs[_Is], __rhs[_Is]), ...);
+            else if constexpr (_Np == _KSize * 2)
+              (_Impl0::_S_masked_assign(__vec_extract_part<_Is % 1, 2>(__k[_Is / 2]),
+                                        __lhs[_Is], __rhs[_Is]), ...);
+            else
+              __assert_unreachable<_Tp>();
+          }
 
         template <typename _Tp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_masked_assign(const _MaskMember<_Tp> __k, _Tp& __lhs, _ValueTypeOf<_Tp> __rhs)
+          _S_masked_assign(const __vec_builtin auto __k, _Tp& __lhs,
+                           const __type_identity_t<_Tp>& __rhs)
+          {
+            static_assert(_Np == 2);
+            _Impl0::_S_masked_assign(__vec_extract_part<0, 2>(__k), __lhs[0], __rhs[0]);
+            _Impl0::_S_masked_assign(__vec_extract_part<1, 2>(__k), __lhs[1], __rhs[1]);
+          }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_masked_assign(const auto& __k, _Tp& __lhs, _ValueTypeOf<_Tp> __rhs)
           { (_Impl0::_S_masked_assign(__k[_Is], __lhs[_Is], __rhs), ...); }
 
         template <typename _Tp>
@@ -426,20 +574,19 @@ namespace std
           using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
 
         template <__vectorizable _Tp>
-          using _MaskMember0 = typename _Abi0::template __traits<_Tp>::_MaskMember;
+          using _MaskMember0 = typename _Abi0::_MaskMember<_Tp>;
 
         template <__vectorizable _Tp>
           using _MaskMember = std::array<_MaskMember0<_Tp>, _Np>;
 
         template <__vectorizable _Tp>
-          using _SimdMember = typename abi_type::template __traits<_Tp>::_SimdMember;
+          using _SimdMember = typename abi_type::_SimdMember<_Tp>;
 
-        template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_size = abi_type::template _S_size<_Tp>;
+        static constexpr _SimdSizeType _S_size = abi_type::_S_size;
 
         // equal to full_size because _AbiArray ensures not-partial _Abi0
         template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_chunk_size = _Abi0::template _S_size<_Tp>;
+          static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
 
         using _Impl0 = typename _Abi0::_MaskImpl;
 
@@ -602,14 +749,14 @@ namespace std
       struct _SimdTupleData
       {
         static_assert(sizeof...(_As) != 0);
-        typename _A0::__traits<_Tp>::_SimdMember _M_x;
+        typename _A0::_SimdMember<_Tp> _M_x;
         _SimdTuple<_Tp, _As...> _M_tail;
       };
 
     template <typename _Tp, __valid_abi_tag<_Tp> _A0>
       struct _SimdTupleData<_Tp, _A0>
       {
-        typename _A0::__traits<_Tp>::_SimdMember _M_x;
+        typename _A0::_SimdMember<_Tp> _M_x;
         static constexpr _SimdTuple<_Tp> _M_tail = {};
       };
 
@@ -738,153 +885,6 @@ namespace std
         _GLIBCXX_SIMD_INTRINSIC constexpr explicit
         _SimdTuple(auto &&__fun)
         { _M_forall(__fun); }
-      };
-
-    template <typename _Tp, _SimdSizeType _Np>
-      struct _NextAbiTuple
-      {
-        using _Native = _AllNativeAbis::_BestPartialAbi<_Tp, _Np>;
-        static constexpr int _S_native_size = simd_size_v<_Tp, _Native>;
-        static constexpr int _S_array_size = _Np / _S_native_size;
-        using type
-          = std::conditional_t<_S_array_size >= 2, _AbiArray<_Native, _S_array_size>, _Native>;
-      };
-
-    template <typename _Tp, int _Np, typename _Tuple,
-              typename _Next = typename _NextAbiTuple<_Tp, _Np>::type,
-              int _Remain = _Np - int(simd_size_v<_Tp, _Next>)>
-      struct __fixed_size_storage_builder;
-
-    template <typename _Tp, int _Np, typename... _As, typename _Next>
-      struct __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp, _As...>, _Next, 0>
-      { using type = _SimdTuple<_Tp, _As..., _Next>; };
-
-    template <typename _Tp, int _Np, typename... _As, typename _Next, int _Remain>
-      struct __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp, _As...>, _Next, _Remain>
-      {
-        using type = typename __fixed_size_storage_builder<
-                       _Tp, _Remain, _SimdTuple<_Tp, _As..., _Next>>::type;
-      };
-
-    template <typename _Tp, int _Np>
-      using __fixed_size_storage_t
-        = typename __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp>>::type;
-
-    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
-      struct _SimdImplAbiCombine;
-
-    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
-      struct _MaskImplAbiCombine;
-
-    template <_SimdSizeType _Np, typename _Tag>
-      struct _AbiCombine
-      {
-        template <typename _Tp>
-          static constexpr _SimdSizeType _S_size = _Np;
-
-        template <typename _Tp>
-          static constexpr _SimdSizeType _S_full_size = _Np;
-
-        struct _IsValidAbiTag
-        : public bool_constant<(_Np > 1)>
-        {};
-
-        template <typename _Tp>
-          static constexpr _SimdSizeType _S_max_size = 64;
-
-        template <typename _Tp>
-          struct _IsValidSizeFor
-          : bool_constant<(_Np <= _S_max_size<_Tp>)>
-          {};
-
-        template <typename _Tp>
-          struct _IsValid
-          : conjunction<_IsValidAbiTag, __is_vectorizable<_Tp>, _IsValidSizeFor<_Tp>>
-          {};
-
-        template <typename _Tp>
-          static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
-
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_Np>
-        _S_masked(_BitMask<_Np> __x)
-        { return __x._M_sanitized(); }
-
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_Np>
-        _S_masked(_SanitizedBitMask<_Np> __x)
-        { return __x; }
-
-        struct _CommonImpl {};
-        //using _CommonImpl = _CommonImplFixedSize;
-
-        using _SimdImpl = _SimdImplAbiCombine<_Np, _Tag>;
-
-        using _MaskImpl = _MaskImplAbiCombine<_Np, _Tag>;
-
-        template <typename _Tp>
-          struct __traits
-          : _InvalidTraits
-          {};
-
-        template <typename _Tp>
-          requires _S_is_valid_v<_Tp>
-          struct __traits<_Tp>
-          {
-            using _IsValid = true_type;
-
-            using _SimdImpl = _SimdImplAbiCombine<_Np, _Tag>;
-
-            using _MaskImpl = _MaskImplAbiCombine<_Np, _Tag>;
-
-            using _SimdMember = __fixed_size_storage_t<_Tp, _Np>;
-
-            using _MaskMember = _SanitizedBitMask<_Np>;
-
-            static constexpr size_t _S_simd_align = alignof(_SimdMember);
-
-            static constexpr size_t _S_mask_align = alignof(_MaskMember);
-
-            // base class for simd, providing extra conversions
-            struct _SimdBase
-            {
-              _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
-              operator const _SimdMember &() const
-              { return static_cast<const std::basic_simd<_Tp, _AbiCombine>*>(this)->_M_data(); }
-
-              _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
-              operator array<_Tp, _Np>() const
-              {
-                array<_Tp, _Np> __r;
-                static_cast<const std::basic_simd<_Tp, _AbiCombine>*>(this)->copy_to(__r.begin());
-                return __r;
-              }
-            };
-
-            // empty. The bitset interface suffices
-            struct _MaskBase {};
-
-            struct _SimdCastType
-            {
-              _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-              _SimdCastType(const array<_Tp, _Np>& __a)
-              { __builtin_memcpy(&_M_data, __a.data(), _Np * sizeof(_Tp)); }
-
-              _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-              _SimdCastType(const _SimdMember& __dd)
-              : _M_data(__dd)
-              {}
-
-              _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
-              operator const _SimdMember &() const { return _M_data; }
-
-            private:
-              _SimdMember _M_data;
-            };
-
-            class _MaskCastType
-            {
-              _MaskCastType() = delete;
-            };
-          };
       };
 
     template <_SimdSizeType _Np, typename _Tag, auto>
@@ -1566,17 +1566,21 @@ namespace std
     // next try _AbiArray of _NativeAbi
     template <__vectorizable _Tp, _SimdSizeType _Np>
       requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
-                  and _Np % _NativeAbi<_Tp>::template _S_size<_Tp> == 0)
+                  and _Np % _NativeAbi<_Tp>::_S_size == 0)
       struct _DeduceAbi<_Tp, _Np>
-      { using type = _AbiArray<_NativeAbi<_Tp>, _Np / _NativeAbi<_Tp>::template _S_size<_Tp>>; };
+      { using type = _AbiArray<_NativeAbi<_Tp>, _Np / _NativeAbi<_Tp>::_S_size>; };
 
     // fall back to _AbiCombine of inhomogenous ABI tags
     template <__vectorizable _Tp, _SimdSizeType _Np>
       requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
-                  and _Np % _NativeAbi<_Tp>::template _S_size<_Tp> != 0
+                  and _Np % _NativeAbi<_Tp>::_S_size != 0
                   and _AbiCombine<_Np, _NativeAbi<_Tp>>::template _S_is_valid_v<_Tp>)
       struct _DeduceAbi<_Tp, _Np>
       { using type = _AbiCombine<_Np, _NativeAbi<_Tp>>; };
+
+    template <typename _Tp, _SimdSizeType _Np>
+      struct _DeduceAbi
+      { using type = _InvalidAbi; };
   }
 }
 

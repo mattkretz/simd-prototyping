@@ -20,6 +20,13 @@ namespace std::__detail
     struct __assert_unreachable
     { static_assert(!is_same_v<_Tp, _Tp>, "this should be unreachable"); };
 
+  template <typename _Tp, typename>
+    struct __make_dependent
+    { using type = _Tp; };
+
+  template <typename _Tp, typename _Up>
+    using __make_dependent_t = typename __make_dependent<_Tp, _Up>::type;
+
   /**@internal
    * Helper __may_alias<_Tp> that turns _Tp into the type to be used for an
    * aliasing pointer. This adds the __may_alias attribute to _Tp (with compilers
@@ -175,11 +182,9 @@ namespace std
       };
 
       using _IsValid = false_type;
-      using _SimdBase = _Unusable;
-      using _MaskBase = _Unusable;
 
-      static constexpr int _S_size = -1;
-      static constexpr int _S_full_size = -1;
+      static constexpr int _S_size = 0;
+      static constexpr int _S_full_size = 0;
       static constexpr bool _S_is_partial = false;
 
       static constexpr size_t _S_simd_align = 1;
@@ -193,15 +198,23 @@ namespace std
       struct _MaskCastType;
     };
 
-    template <typename _Tp, typename _Abi>
+    template <typename _Tp, typename _Abi, auto = __build_flags()>
       struct _SimdTraits
       : _InvalidTraits
       {};
 
-    template <typename _Tp, typename _Abi>
+    template <typename _Tp, typename _Abi, auto _Flags>
       requires (_Abi::template _IsValid<_Tp>::value)
-      struct _SimdTraits<_Tp, _Abi>
+      struct _SimdTraits<_Tp, _Abi, _Flags>
       : _Abi::template __traits<_Tp>
+      {};
+
+    /**
+     * Masks need to be different for AVX without AVX2.
+     */
+    template <size_t _Bs, typename _Abi, auto _Flags = __build_flags()>
+      struct _SimdMaskTraits
+      : _SimdTraits<__mask_integer_from<_Bs>, _Abi, _Flags>
       {};
 
     template <typename _Tp>
@@ -277,7 +290,7 @@ namespace std
     template <__vectorizable _Tp, typename _Abi>
       requires (_Abi::template _IsValid<_Tp>::value)
       struct __simd_size_or_zero<_Tp, _Abi>
-      : integral_constant<_SimdSizeType, _Abi::template _S_size<_Tp>>
+      : integral_constant<_SimdSizeType, _Abi::_S_size>
       {};
 
     template <typename _Abi>
@@ -570,7 +583,7 @@ namespace std::__detail
     using __vec_builtin_type_bytes [[__gnu__::__vector_size__(_Bytes)]] = _Tp;
 
   /**
-   * Alias for a vector builtin with given value type and width.
+   * Alias for a vector builtin with given value type \p _Tp and \p _Width.
    */
   template <__vectorizable _Tp, _SimdSizeType _Width>
     requires (__has_single_bit(_Width))
@@ -1118,9 +1131,9 @@ namespace std::__detail
 namespace std
 {
   template <__detail::__vectorizable _Tp, __detail::__simd_abi_tag _Abi>
-    requires requires { _Abi::template _S_size<_Tp>; }
+    requires requires { _Abi::_S_size; }
     struct simd_size<_Tp, _Abi>
-    : integral_constant<__detail::_SimdSizeType, _Abi::template _S_size<_Tp>>
+    : integral_constant<__detail::_SimdSizeType, _Abi::_S_size>
     {};
 }
 

@@ -41,14 +41,11 @@ namespace std
 {
   struct _ScalarAbi
   {
-    template <typename>
-      static constexpr __detail::_SimdSizeType _S_size = 1;
+    static constexpr __detail::_SimdSizeType _S_size = 1;
 
-    template <typename>
-      static constexpr __detail::_SimdSizeType _S_full_size = 1;
+    static constexpr __detail::_SimdSizeType _S_full_size = 1;
 
-    template <typename>
-      static constexpr bool _S_is_partial = false;
+    static constexpr bool _S_is_partial = false;
 
     struct _IsValidAbiTag
     : true_type
@@ -72,6 +69,12 @@ namespace std
     using _SimdImpl = __detail::_SimdImplScalar;
 
     using _MaskImpl = __detail::_MaskImplScalar;
+
+    template <typename _Tp>
+      using _SimdMember = _Tp;
+
+    template <typename>
+      using _MaskMember = bool;
 
     template <typename _Tp>
       struct __traits
@@ -99,10 +102,6 @@ namespace std
 	struct _SimdCastType { _SimdCastType() = delete; };
 
 	struct _MaskCastType { _MaskCastType() = delete; };
-
-	struct _SimdBase {};
-
-	struct _MaskBase {};
       };
   };
 }

@@ -51,9 +51,48 @@ namespace test01
   static_assert(__simd_broadcast_invokable<decltype([] (int) { return true; }), bool, 4>);
 
   static_assert(std::is_trivially_copyable_v<std::__detail::_SimdTuple<float, _NativeAbi<float>>>);
-  static_assert(std::is_trivially_copyable_v<_AbiCombine<63, _NativeAbi<float>>::__traits<float>::_SimdMember>);
-  static_assert(std::is_trivially_copyable_v<_AbiCombine<63, _NativeAbi<float>>::__traits<float>::_SimdBase>);
+  static_assert(std::is_trivially_copyable_v<std::_AbiCombine<63, _NativeAbi<float>>::__traits<float>::_SimdMember>);
+
+#if defined __SSE__ and not defined __AVX__
+  static_assert(std::same_as<__deduce_t<float, 7>, std::_AbiCombine<7, std::_VecAbi<4>>>);
+  static_assert(std::_VecAbi<7>::_S_size == 7);
+  static_assert(std::_VecAbi<7>::_S_full_size == 8);
+  static_assert(std::_VecAbi<7>::_S_is_valid_v<float> == false);
+  static_assert(std::_VecAbi<std::__bit_ceil(7) / 2>::_S_is_partial == false);
+  static_assert(std::_VecAbi<std::__bit_ceil(7) / 2>::_S_is_valid_v<float> == true);
+  static_assert(std::same_as<_AllNativeAbis::_BestPartialAbi<float, 7>, std::_VecAbi<4>>);
+  static_assert(std::same_as<__fixed_size_storage_t<float, 7>,
+                             _SimdTuple<float, std::_VecAbi<4>, std::_VecAbi<3>>>);
+
+  static_assert(std::simd<float>::size > 1);
+  static_assert(alignof(std::simd<float>) > alignof(float));
+  static_assert(alignof(std::simd<float, 4>) > alignof(float));
+  static_assert(alignof(std::simd<float, 3>) > alignof(float));
+  static_assert(alignof(std::simd<float, 7>) > alignof(float));
+#endif
+#if defined __AVX__ and not defined __AVX512F__
+  static_assert(std::same_as<__deduce_t<float, 8>, std::_VecAbi<8>>);
+  static_assert(std::same_as<__deduce_t<float, 16>, std::_AbiArray<std::_VecAbi<8>, 2>>);
+  static_assert(std::same_as<__deduce_t<float, 16>::_SimdMember<float>,
+                             std::array<__vec_builtin_type<float, 8>, 2>>);
+  static_assert(std::same_as<__deduce_t<float, 16>::_MaskMember<int>,
+                             std::array<__vec_builtin_type<int, 8>, 2>>);
+  static_assert(std::same_as<std::simd_mask<float, 16>::abi_type, __deduce_t<float, 16>>);
+  static_assert(std::same_as<_SimdMaskTraits<4, __deduce_t<float, 16>>::_MaskMember,
+                             std::array<__vec_builtin_type<int, 8>, 2>>);
+#endif
 }
+
+#if defined __AVX__ and not defined __AVX2__
+static_assert(alignof(std::simd_mask<int, 8>) == 16);
+static_assert(alignof(std::simd_mask<float, 8>) == 32);
+static_assert(alignof(std::simd_mask<int, 16>) == 16);
+static_assert(alignof(std::simd_mask<float, 16>) == 32);
+static_assert(alignof(std::simd_mask<long long, 4>) == 16);
+static_assert(alignof(std::simd_mask<double, 4>) == 32);
+static_assert(alignof(std::simd_mask<long long, 8>) == 16);
+static_assert(alignof(std::simd_mask<double, 8>) == 32);
+#endif
 
 template <auto X>
   using Ic = std::__detail::_Ic<X>;

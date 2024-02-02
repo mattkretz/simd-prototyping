@@ -6,7 +6,7 @@
 #ifndef PROTOTYPE_POWER_DETAIL_H_
 #define PROTOTYPE_POWER_DETAIL_H_
 
-#include "simd_config.h"
+#include "detail.h"
 
 #if __powerpc__
 namespace std::__detail

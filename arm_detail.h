@@ -6,7 +6,7 @@
 #ifndef PROTOTYPE_ARM_DETAIL_H_
 #define PROTOTYPE_ARM_DETAIL_H_
 
-#include "simd_config.h"
+#include "detail.h"
 
 #if _GLIBCXX_SIMD_HAVE_NEON or _GLIBCXX_SIMD_HAVE_SVE
 namespace std::__detail

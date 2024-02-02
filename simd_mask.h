@@ -15,16 +15,34 @@
 
 namespace std
 {
+  namespace __detail
+  {
+    // Deducing the right ABI tag for basic_simd_mask -> basic_simd is tricky for the AVX w/o AVX2
+    // case, where basic_simd<T, Abi> might be unusable and we therefore need to deduce another ABI
+    // tag.
+    template <size_t _Bytes, typename _Abi>
+      struct __simd_abi_for_mask
+      { using type = __deduce_t<__mask_integer_from<_Bytes>, _Abi::_S_size>; };
+
+    template <size_t _Bytes, typename _Abi>
+      requires std::destructible<std::basic_simd<__mask_integer_from<_Bytes>, _Abi>>
+      struct __simd_abi_for_mask<_Bytes, _Abi>
+      { using type = _Abi; };
+
+    template <size_t _Bytes, typename _Abi>
+      using __simd_abi_for_mask_t = typename __simd_abi_for_mask<_Bytes, _Abi>::type;
+  }
+
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask
     {
       using _Tp = __detail::__mask_integer_from<_Bytes>;
 
-      using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
+      using _Traits = __detail::_SimdMaskTraits<_Bytes, _Abi>;
 
       using _MemberType = typename _Traits::_MaskMember;
 
-      using _SimdType = std::basic_simd<_Tp, _Abi>;
+      using _SimdType = std::basic_simd<_Tp, __detail::__simd_abi_for_mask_t<_Bytes, _Abi>>;
 
       // the only non-static data member
       alignas(_Traits::_S_mask_align) _MemberType _M_data;
@@ -32,7 +50,7 @@ namespace std
     public:
       using _Impl = typename _Traits::_MaskImpl;
 
-      static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _SimdType::size.value;
+      static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _Abi::_S_size;
 
       // really public:
 
@@ -42,7 +60,7 @@ namespace std
 
       using abi_type = _Abi;
 
-      static constexpr auto size = _SimdType::size;
+      static constexpr auto size = __detail::__ic<_Abi::_S_size >= 1 ? _Abi::_S_size : 0>;
 
       using iterator = __simd_mask_iterator<_Bytes, _Abi>;
 

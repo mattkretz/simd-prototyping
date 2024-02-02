@@ -16,10 +16,10 @@
 
 namespace std
 {
-  template <int _UsedBytes>
+  template <int _Width>
     struct _VecAbi;
 
-  template <int _UsedBytes>
+  template <int _Width>
     struct _Avx512Abi;
 
   struct _ScalarAbi;
@@ -88,7 +88,7 @@ namespace std
     template <> struct __is_vectorizable<float> : bool_constant<true> {};
     template <> struct __is_vectorizable<double> : bool_constant<true> {};
 #ifdef __STDCPP_FLOAT16_T__
-    template <> struct __is_vectorizable<std::float16_t> : bool_constant<true> {};
+    //template <> struct __is_vectorizable<std::float16_t> : bool_constant<true> {};
 #endif
 #ifdef __STDCPP_FLOAT32_T__
     template <> struct __is_vectorizable<std::float32_t> : bool_constant<true> {};
@@ -101,10 +101,11 @@ namespace std
       consteval auto
       __native_abi_impl_recursive()
       {
-        if constexpr (_Avx512Abi<_Bs>::template _S_is_valid_v<_Tp>)
-          return _Avx512Abi<_Bs>();
-        else if constexpr (_VecAbi<_Bs>::template _S_is_valid_v<_Tp>)
-          return _VecAbi<_Bs>();
+        constexpr int _Width = _Bs / sizeof(_Tp);
+        if constexpr (_Avx512Abi<_Width>::template _S_is_valid_v<_Tp>)
+          return _Avx512Abi<_Width>();
+        else if constexpr (_VecAbi<_Width>::template _S_is_valid_v<_Tp>)
+          return _VecAbi<_Width>();
         else if constexpr (_Bs > sizeof(_Tp))
           return __native_abi_impl_recursive<_Bs / 2, _Tp>();
         else
@@ -137,8 +138,7 @@ namespace std
     using _SimdSizeType = int;
 
     template <typename _Tp, _SimdSizeType _Np>
-      struct _DeduceAbi
-      { using type = _InvalidAbi; };
+      struct _DeduceAbi;
 
     template <typename _Tp, _SimdSizeType _Np>
       using __deduce_t = typename _DeduceAbi<_Tp, _Np>::type;

@@ -112,6 +112,27 @@ namespace std::__detail
     struct __x86_builtin_int<_Tp>
     { using type = long long; };
 
+  template <__vectorizable _Tp>
+    struct __x86_builtin_fp;
+
+  template <__vectorizable _Tp>
+    using __x86_builtin_fp_t = typename __x86_builtin_fp<_Tp>::type;
+
+  template <__vectorizable _Tp>
+    requires(sizeof(_Tp) == 2)
+    struct __x86_builtin_fp<_Tp>
+    { using type = std::float16_t; };
+
+  template <__vectorizable _Tp>
+    requires(sizeof(_Tp) == 4)
+    struct __x86_builtin_fp<_Tp>
+    { using type = float; };
+
+  template <__vectorizable _Tp>
+    requires(sizeof(_Tp) == 8)
+    struct __x86_builtin_fp<_Tp>
+    { using type = double; };
+
   /**
    * Return __x with suitable type for Intel intrinsics. If __x is smaller than a full XMM register,
    * then a zero-padded 16-Byte object will be returned.
@@ -122,7 +143,8 @@ namespace std::__detail
     {
       static_assert(sizeof(_TV) <= 64);
       using _Tp = __value_type_of<_TV>;
-      using _Rp = conditional_t<is_floating_point_v<_Tp>, _Tp, long long>;
+      using _Rp = typename conditional_t<is_floating_point_v<_Tp>, __x86_builtin_fp<_Tp>,
+                                         type_identity<long long>>::type;
       if constexpr (sizeof(_TV) < 16)
         {
           using _Up = __make_signed_int_t<_TV>;
