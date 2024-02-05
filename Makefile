@@ -46,6 +46,11 @@ gettype = $(subst -, ,$(subst --,::,$(subst .,,$(basename $(notdir $(1))))))
 getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
+fortests := for t in $(tests); do
+fortestarchs := for a in $(testarchs); do
+fortesttypes := for type in $(testtypes); do
+fortestwidths := for w in $(testwidths); do
+
 .PHONY: debug
 debug:
 	@echo "$(testarchs)"
@@ -61,113 +66,125 @@ debug:
 help/%:
 	@echo "... $*"
 
+helptargets:=
+
+# argument: arch
+define pch_template
+obj/$(1).h: unittest.h tests/*.cpp
+	@echo "Generate $$@"
+	@grep -h '^ *# *include ' unittest.h tests/*.cpp|grep -v unittest.h|sed 's/\.\.\///'|sort -u > $$@
+
+obj/$(1).depend: obj/$(1).h
+	@echo "Update $(1) dependencies"
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -I. -MM -MT "obj/$(1).h.gch" $$< > $$@
+
+include obj/$(1).depend
+
+obj/$(1).h.gch: obj/$(1).h
+	@echo "Build pre-compiled header for $(1)"
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -I. obj/$(1).h
+
+endef
+
+$(foreach arch,$(testarchs),\
+	$(eval $(call pch_template,$(arch))))
+
+# arguments: test, arch
+define exe_template
+obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch unittest.h
+	@echo "Build check/$(1).$(2)/$$*"
+	@mkdir -p $$(dir $$@)
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -I. -include obj/$(2).h -c -o $$(@:.exe=.o) $$<
+	@echo " Link check/$(1).$(2)/$$*"
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
+	@rm $$(@:.exe=.o)
+
+endef
+
+$(foreach arch,$(testarchs),\
+	$(foreach t,$(tests),\
+	$(eval $(call exe_template,$(t),$(arch)))))
+
 define simple_check_template
 check-$(1): $(2)
 
-help-check-targets: help/check-$(1)
+helptargets+=check-$(1)
 
 endef
 
 define check_template
 check-$(1):
-	@$$(MAKE) --no-print-directory $$(shell shuf -e -- $(2))
+	@$$(MAKE) --no-print-directory $$(shell $(2) | shuf)
 
-help-check-targets: help/check-$(1)
+helptargets+=check-$(1)
 
 endef
 
-$(foreach arch,$(testarchs),\
-	$(foreach type,$(testtypes),\
-	$(foreach w,$(testwidths),\
-	$(eval $(call check_template,$(arch).$(type).$(w),\
-	$(foreach t,$(tests),\
-	check/$(t).$(arch)/$(type).$(w)))))))
-
 $(foreach t,$(tests),\
-	$(eval $(call check_template,$(t),\
-	$(foreach arch,$(testarchs),\
-	$(foreach w,$(testwidths),\
-	$(foreach type,$(testtypes),\
-	check/$(t).$(arch)/$(type).$(w)))))))
-
-$(foreach t,$(tests),\
-	$(foreach arch,$(testarchs),\
-	$(foreach type,$(testtypes),\
-	$(eval $(call check_template,$(t).$(arch).$(type),\
-	$(foreach w,$(testwidths),\
-	check/$(t).$(arch)/$(type).$(w)))))))
-
-$(foreach t,$(tests),\
-	$(foreach type,$(testtypes),\
-	$(eval $(call check_template,$(t).$(type),\
-	$(foreach w,$(testwidths),\
-	$(foreach arch,$(testarchs),\
-	check/$(t).$(arch)/$(type).$(w)))))))
-
-$(foreach t,$(tests),\
-	$(foreach type,$(testtypes),\
-	$(foreach w,$(testwidths),\
-	$(eval $(call check_template,$(t).$(type).$(w),\
-	$(foreach arch,$(testarchs),\
-	check/$(t).$(arch)/$(type).$(w)))))))
+	$(eval $(call check_template,$(t),$(fortestarchs) $(fortestwidths) $(fortesttypes) \
+	  echo "check/$(t).$$$$a/$$$$type.$$$$w";done;done;done)) \
+	)
 
 $(foreach type,$(testtypes),\
-	$(eval $(call check_template,$(type),\
-	$(foreach arch,$(testarchs),\
-	$(foreach w,$(testwidths),\
-	$(foreach t,$(tests),\
-	check/$(t).$(arch)/$(type).$(w)))))))
+	$(eval $(call check_template,$(type),$(fortests) $(fortestarchs) $(fortestwidths) \
+	  echo "check/$$$$t.$$$$a/$(type).$$$$w";done;done;done)) \
+	)
+
+$(foreach arch,$(testarchs),\
+	$(eval $(call simple_check_template,constexpr-$(arch),obj/constexpr.$(arch).s))\
+	$(eval $(call check_template,$(arch),$(fortesttypes) $(fortestwidths) \
+	  echo "check-$(arch).$$$$type.$$$$w";done;done;\
+	  echo "check-constexpr-$(arch)")) \
+	)
 
 $(foreach type,$(testtypes),\
 	$(foreach w,$(testwidths),\
-	$(eval $(call check_template,$(type).$(w),\
+	  $(eval $(call check_template,$(type).$(w),$(fortests) $(fortestarchs) \
+	    echo "check/$$$$t.$$$$a/$(type).$(w)";done;done))) \
+	)
+
+$(foreach t,$(tests),\
+	$(foreach type,$(testtypes),\
+	  $(eval $(call check_template,$(t).$(type),$(fortestarchs) $(fortestwidths) \
+	    echo "check/$(t).$$$$a/$(type).$$$$w";done;done))) \
+	$(foreach type,$(testtypes),\
+	  $(foreach w,$(testwidths),\
+	    $(eval $(call check_template,$(t).$(type).$(w),$(fortestarchs) \
+	      echo "check/$(t).$$$$a/$(type).$(w)";done)))) \
 	$(foreach arch,$(testarchs),\
-	$(foreach t,$(tests),\
-	check/$(t).$(arch)/$(type).$(w)))))))
-
-$(foreach arch,$(testarchs),\
-	$(eval $(call simple_check_template,constexpr-$(arch),obj/constexpr.$(arch).s)))
-
-$(foreach arch,$(testarchs),\
-	$(eval $(call check_template,$(arch),check-constexpr-$(arch) \
-	$(foreach type,$(testtypes),\
-	$(foreach w,$(testwidths),\
-	check-$(arch).$(type).$(w))))))
-
-checks ::= $(foreach t,$(tests),\
-	$(foreach w,$(testwidths),\
-	$(foreach type,$(testtypes),\
-	$(foreach arch,$(testarchs),check/$(t).$(arch)/$(type).$(w)))))
+	  $(foreach type,$(testtypes),\
+	    $(eval $(call check_template,$(t).$(arch).$(type),$(fortestwidths) \
+	      echo "check/$(t).$(arch)/$(type).$$$$w";done)))) \
+	)
 
 constexpr_checks ::= $(foreach arch,$(testarchs),obj/constexpr.$(arch).s)
 
 .PHONY: check-constexpr
-check-constexpr:
-	@$(MAKE) --no-print-directory $(shell shuf -e -- $(constexpr_checks))
+check-constexpr: $(shell shuf -e -- $(constexpr_checks))
 
-.PHONY: check
-check: Makefile.depend
-	@$(MAKE) --no-print-directory $(shell shuf -e -- $(checks) check-simd_cat check-reduce $(constexpr_checks))
+check_targets := obj/check.targets
 
-# too many:
-#help-check-targets: $(subst check,help/check,$(checks))
+$(check_targets): $(wildcard tests/*.cpp) Makefile
+	$(file >$@)
+	$(foreach t,$(tests),$(foreach w,$(testwidths),$(foreach y,$(testtypes),$(foreach a,$(testarchs),\
+		$(file >>$@,check/$t.$a/$y.$w)))))
 
-.NOTINTERMEDIATE: $(subst check,obj,$(checks:=.exe))
+obj/Makefile.check: $(check_targets) Makefile
+	$(file >$@,.NOTINTERMEDIATE: $$(subst check,obj,$$(patsubst %,%.exe,$$(shell cat $(check_targets)))))
+	$(file >>$@,.PHONY: check)
+	$(file >>$@,check: $$(shell shuf $(check_targets)) check-constexpr check-simd_cat check-reduce)
 
-.PHONY: help-check-targets
+include obj/Makefile.check
 
-Makefile.depend: Makefile constexpr_tests.c++ $(wildcard codegen/*.c++) $(wildcard *.h)
-	@echo "Updating dependencies"
-	@for t in $(tests); do \
-	  for arch in $(testarchs); do \
-	    $(CXX) -std=gnu++23 -march=$$arch -MM -MT "obj/$$t.$$arch/%.exe" tests/$$t.cpp; \
-	  done; \
-	done > $@
-	@$(CXX) -std=gnu++23 -MM -MT "$(foreach arch,$(testarchs),obj/constexpr.$(arch).s)" constexpr_tests.c++ >> $@
-	@$(CXX) -std=gnu++23 -MM -MT obj/codegen.simd_cat.s codegen/simd_cat.c++ >> $@
-	@$(CXX) -std=gnu++23 -MM -MT obj/codegen.reduce.s codegen/reduce.c++ >> $@
+obj/codegen.depend: codegen/*.c++
+	@echo "Update codegen dependencies"
+	@mkdir -p obj
+	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.simd_cat.s codegen/simd_cat.c++ > $@
+	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.reduce.s codegen/reduce.c++ >> $@
 
-obj/constexpr.%.s:
+include obj/codegen.depend
+
+$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\')
 	@echo "Build constexpr tests for $*"
 	@$(CXX) $(CXXFLAGS) -march=$* -S -o $@ constexpr_tests.c++
 
@@ -180,17 +197,6 @@ obj/%.report:
 		-D UNITTEST_WIDTH=$(call getwidth,$*) \
 		-c -o obj/$*.o tests/$(call gettest,$*).cpp
 	@echo "Build time reports for $* done"
-
-obj/%.exe:
-	@mkdir -p obj/$(call gettest,$*).$(call getarch,$*)
-	@echo "Build check/$*"
-	@$(CXX) $(CXXFLAGS) -march=$(call getarch,$*) \
-		-D UNITTEST_TYPE="$(call gettype,$*)" \
-		-D UNITTEST_WIDTH=$(call getwidth,$*) \
-		-c -o obj/$*.o tests/$(call gettest,$*).cpp
-	@echo " Link check/$*"
-	@$(CXX) $(CXXFLAGS) -march=$(call getarch,$*) -o $@ obj/$*.o
-	@rm obj/$*.o
 
 check/%: obj/%.exe
 	@mkdir -p $(dir $@)
@@ -236,18 +242,24 @@ obj/codegen.%.s: codegen/%.c++
 	@cat $@ | grep -v '^\s*\.' | c++filt > $@.tmp
 	@mv $@.tmp $@
 
+helptxt := obj/help.txt
+
+$(helptxt): Makefile $(check_targets)
+	$(file >$@)
+	$(foreach t,$(helptargets),$(file >>$@,... $(t)))
+	@sed 's/^/... /' $(check_targets) >>$@
+
 .PHONY: help
-help: Makefile.depend help-check-targets
+help: $(helptxt)
 	@echo "... check"
 	@echo "... check-reduce"
 	@echo "... check-simd_cat"
 	@echo "... check-constexpr"
-
-include Makefile.depend
+	@cat $(helptxt)
 
 .PHONY: clean
 clean:
-	rm -f obj/*.o obj/*.exe obj/*.s
-	@rm -f $(subst check,obj,$(checks:=.exe))
-	@rm -f $(checks)
+	rm -f obj/*.o obj/*.exe obj/*.s obj/*.depend $(check_targets) obj/Makefile.* $(helptxt)
+	rm -rf obj/*.*/
+	rm -rf check/*.*/
 
