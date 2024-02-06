@@ -1,6 +1,6 @@
 all: check
 
-CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -fconcepts-diagnostics-depth=3
+CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -fconcepts-diagnostics-depth=3 -Wno-attributes
 #-D_GLIBCXX_DEBUG_UB=1
 
 icerun := $(shell which icerun)
@@ -89,9 +89,9 @@ helptargets:=
 
 # argument: arch
 define pch_template
-obj/$(1).h: tests/unittest.h tests/*.cpp
+obj/$(1).h: tests/unittest*.h tests/*.cpp
 	@echo "Generate $$@"
-	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u > $$@
+	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u|sed 's,","../tests/,' > $$@
 
 obj/$(1).depend: obj/$(1).h
 	@echo "Update $(1) dependencies"
@@ -110,7 +110,7 @@ $(foreach arch,$(testarchs),\
 
 # arguments: test, arch
 define exe_template
-obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest.h
+obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest*.h
 	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
 	@mkdir -p $$(dir $$@)
 	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<

@@ -70,9 +70,4 @@ template <typename V>
     }
   };
 
-int main()
-{
-  instantiate_tests<shift_right>();
-  std::cout << "Passed tests: " << passed_tests << "\nFailed tests: " << failed_tests << '\n';
-  return failed_tests;
-}
+auto tests = register_tests<shift_right>();

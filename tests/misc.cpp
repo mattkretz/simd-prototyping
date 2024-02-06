@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
+/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+ *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
 #include "unittest.h"
@@ -59,9 +59,4 @@ template <typename V>
     }
   };
 
-int main()
-{
-  instantiate_tests<misc>();
-  std::cout << "Passed tests: " << passed_tests << "\nFailed tests: " << failed_tests << '\n';
-  return failed_tests;
-}
+auto tests = register_tests<misc>();
