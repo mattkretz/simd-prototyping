@@ -203,6 +203,7 @@ check/%: obj/%.exe
 		echo "================================================================";\
 		obj/$*.exe; \
 	} | tee $@
+	@tail -n1 $@ | grep -q '^Failed tests: 0$$'
 
 .PHONY: check-simd_cat
 check-simd_cat: obj/codegen.simd_cat.s
