@@ -282,17 +282,6 @@ namespace std
     template <auto _Value>
       inline constexpr _Ic<_Value> __ic{};
 
-    template <typename _Tp, typename _Abi>
-      struct __simd_size_or_zero
-      : integral_constant<_SimdSizeType, 0>
-      {};
-
-    template <__vectorizable _Tp, typename _Abi>
-      requires (_Abi::template _IsValid<_Tp>::value)
-      struct __simd_size_or_zero<_Tp, _Abi>
-      : integral_constant<_SimdSizeType, _Abi::_S_size>
-      {};
-
     template <typename _Abi>
       concept __simd_abi_tag
         = not _Abi::template __traits<void>::_IsValid::value

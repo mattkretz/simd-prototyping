@@ -221,6 +221,10 @@ namespace std
 
           static constexpr size_t _S_mask_align = alignof(_MaskMember);
 
+          static constexpr _SimdSizeType _S_size = _Np * _Abi0::_S_size;
+
+          static constexpr _SimdSizeType _S_full_size = _Np * _Abi0::_S_size;
+
           static constexpr bool _S_is_partial = false;
 
           class _MaskCastType
@@ -296,6 +300,10 @@ namespace std
           using _SimdMember = __detail::__fixed_size_storage_t<_Tp, _Np>;
 
           using _MaskMember = __detail::_SanitizedBitMask<_Np>;
+
+          static constexpr __detail::_SimdSizeType _S_size = _Np;
+
+          static constexpr __detail::_SimdSizeType _S_full_size = _Np;
 
           static constexpr size_t _S_simd_align = alignof(_SimdMember);
 

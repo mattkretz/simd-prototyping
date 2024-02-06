@@ -25,7 +25,8 @@ namespace std
       { using type = __deduce_t<__mask_integer_from<_Bytes>, _Abi::_S_size>; };
 
     template <size_t _Bytes, typename _Abi>
-      requires std::destructible<std::basic_simd<__mask_integer_from<_Bytes>, _Abi>>
+      requires (std::destructible<std::basic_simd<__mask_integer_from<_Bytes>, _Abi>>
+                  or not __simd_abi_tag<_Abi>)
       struct __simd_abi_for_mask<_Bytes, _Abi>
       { using type = _Abi; };
 
@@ -50,7 +51,7 @@ namespace std
     public:
       using _Impl = typename _Traits::_MaskImpl;
 
-      static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _Abi::_S_size;
+      static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _Traits::_S_size;
 
       // really public:
 
@@ -60,7 +61,7 @@ namespace std
 
       using abi_type = _Abi;
 
-      static constexpr auto size = __detail::__ic<_Abi::_S_size >= 1 ? _Abi::_S_size : 0>;
+      static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 
       using iterator = __simd_mask_iterator<_Bytes, _Abi>;
 

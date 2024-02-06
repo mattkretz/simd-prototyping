@@ -86,6 +86,8 @@ namespace std
 
           static constexpr size_t _S_mask_align = alignof(_MaskMember);
 
+          static constexpr _SimdSizeType _S_size = _Width;
+
           static constexpr _SimdSizeType _S_full_size = std::__bit_ceil(_Width);
 
           static constexpr bool _S_is_partial = _S_full_size > _S_size;

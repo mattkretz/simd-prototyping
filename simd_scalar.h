@@ -95,6 +95,12 @@ namespace std
 
 	using _MaskMember = bool;
 
+        static constexpr __detail::_SimdSizeType _S_size = 1;
+
+        static constexpr __detail::_SimdSizeType _S_full_size = 1;
+
+        static constexpr bool _S_is_partial = false;
+
 	static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
 	static constexpr size_t _S_mask_align = alignof(_MaskMember);

@@ -38,7 +38,7 @@ namespace std
       using mask_type = std::basic_simd_mask<
                           sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
 
-      static inline constexpr auto size = __detail::__simd_size_or_zero<_Tp, _Abi>();
+      static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 
       using iterator = __simd_iterator<_Tp, _Abi>;
 
