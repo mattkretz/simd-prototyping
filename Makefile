@@ -3,6 +3,28 @@ all: check
 CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -fconcepts-diagnostics-depth=3
 #-D_GLIBCXX_DEBUG_UB=1
 
+icerun := $(shell which icerun)
+
+ifeq ($(icerun)$(shell which icecc),)
+# without icecream (icerun and icecc) set DIRECT=1
+DIRECT := 1
+else ifeq ($(ICECC),no)
+DIRECT := 1
+else ifeq ($(ICECC),disable)
+DIRECT := 1
+else ifneq ($(notdir $(realpath $(CXX))),icecc)
+# CXX isn't using icecream
+DIRECT := 1
+else ifneq ($(DIRECT),)
+ifneq ($(ICECC_CXX),)
+ifeq ($(notdir $(realpath $(CXX))),icecc)
+# with icecream, DIRECT, and ICECC_CXX set, and CXX resolving to icecc, compile
+# locally but allocate slots on the icecream scheduler
+CXX := $(icerun) $(ICECC_CXX)
+endif
+endif
+endif
+
 testarchs ::= athlon64 \
 	     nocona \
 	     core2 \
@@ -89,12 +111,14 @@ $(foreach arch,$(testarchs),\
 # arguments: test, arch
 define exe_template
 obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest.h
-	@echo "Build $$(@:obj/%.exe=check/%)"
+	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
 	@mkdir -p $$(dir $$@)
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h -c -o $$(@:.exe=.o) $$<
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<
+ifeq ($(DIRECT),)
 	@echo " Link $$(@:obj/%.exe=check/%)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
 	@rm $$(@:.exe=.o)
+endif
 
 endef
 
@@ -201,7 +225,7 @@ check/%: obj/%.exe
 		echo "================================================================";\
 		echo "  Run check/$*"; \
 		echo "================================================================";\
-		obj/$*.exe; \
+		$(icerun) obj/$*.exe; \
 	} | tee $@
 	@tail -n1 $@ | grep -q '^Failed tests: 0$$'
 
@@ -249,6 +273,7 @@ $(helptxt): Makefile $(check_targets)
 
 .PHONY: help
 help: $(helptxt)
+	@echo "Define `DIRECT` to anything non-empty to compile and link in one step"
 	@echo "... check"
 	@echo "... check-reduce"
 	@echo "... check-simd_cat"
