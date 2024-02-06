@@ -3,8 +3,8 @@
  *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
-#include "simd.h"
-#include "mask_reductions.h"
+#include "../simd.h"
+#include "../mask_reductions.h"
 
 #include <source_location>
 #include <iostream>

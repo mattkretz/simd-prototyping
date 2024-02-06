@@ -3,7 +3,7 @@
  *                  Matthias Kretz <m.kretz@gsi.de>
  */
 
-#include "../unittest.h"
+#include "unittest.h"
 
 #include "../interleave.h"
 #include "../permute.h"

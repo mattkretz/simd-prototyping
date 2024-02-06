@@ -63,26 +63,23 @@ debug:
 	@echo "test=$(call gettest,shift_left.core2/signed-char.34)"
 	@echo "type=$(call gettype,shift_left.core2/std--float32_t.34)"
 
-help/%:
-	@echo "... $*"
-
 helptargets:=
 
 # argument: arch
 define pch_template
-obj/$(1).h: unittest.h tests/*.cpp
+obj/$(1).h: tests/unittest.h tests/*.cpp
 	@echo "Generate $$@"
-	@grep -h '^ *# *include ' unittest.h tests/*.cpp|grep -v unittest.h|sed 's/\.\.\///'|sort -u > $$@
+	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u > $$@
 
 obj/$(1).depend: obj/$(1).h
 	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -I. -MM -MT "obj/$(1).h.gch" $$< > $$@
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).h.gch" $$< > $$@
 
 include obj/$(1).depend
 
 obj/$(1).h.gch: obj/$(1).h
 	@echo "Build pre-compiled header for $(1)"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -I. obj/$(1).h
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@
 
 endef
 
@@ -91,11 +88,11 @@ $(foreach arch,$(testarchs),\
 
 # arguments: test, arch
 define exe_template
-obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch unittest.h
-	@echo "Build check/$(1).$(2)/$$*"
+obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest.h
+	@echo "Build $$(@:obj/%.exe=check/%)"
 	@mkdir -p $$(dir $$@)
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -I. -include obj/$(2).h -c -o $$(@:.exe=.o) $$<
-	@echo " Link check/$(1).$(2)/$$*"
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h -c -o $$(@:.exe=.o) $$<
+	@echo " Link $$(@:obj/%.exe=check/%)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
 	@rm $$(@:.exe=.o)
 
@@ -132,8 +129,8 @@ $(foreach type,$(testtypes),\
 
 $(foreach arch,$(testarchs),\
 	$(eval $(call simple_check_template,constexpr-$(arch),obj/constexpr.$(arch).s))\
-	$(eval $(call check_template,$(arch),$(fortesttypes) $(fortestwidths) \
-	  echo "check-$(arch).$$$$type.$$$$w";done;done;\
+	$(eval $(call check_template,$(arch),$(fortesttypes) $(fortests) \
+	  echo "check-$$$$t.$(arch).$$$$type";done;done;\
 	  echo "check-constexpr-$(arch)")) \
 	)
 
