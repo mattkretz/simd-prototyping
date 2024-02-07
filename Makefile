@@ -1,72 +1,11 @@
-all: check
+default: info
 
-CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -fconcepts-diagnostics-depth=3 -Wno-attributes
-#-D_GLIBCXX_DEBUG_UB=1
+include Makefile.common
 
-icerun := $(shell which icerun)
-
-ifeq ($(icerun)$(shell which icecc),)
-# without icecream (icerun and icecc) set DIRECT=1
-DIRECT := 1
-else ifeq ($(ICECC),no)
-DIRECT := 1
-else ifeq ($(ICECC),disable)
-DIRECT := 1
-else ifneq ($(notdir $(realpath $(CXX))),icecc)
-# CXX isn't using icecream
-DIRECT := 1
-else ifneq ($(DIRECT),)
-ifneq ($(ICECC_CXX),)
-ifeq ($(notdir $(realpath $(CXX))),icecc)
-# with icecream, DIRECT, and ICECC_CXX set, and CXX resolving to icecc, compile
-# locally but allocate slots on the icecream scheduler
-CXX := $(icerun) $(ICECC_CXX)
-endif
-endif
-endif
-
-testarchs ::= athlon64 \
-	     nocona \
-	     core2 \
-	     westmere \
-	     ivybridge \
-	     bdver4 \
-	     skylake \
-	     znver4 \
-	     skylake-avx512
-
-tests ::= $(patsubst tests/%.cpp,%,$(wildcard tests/*.cpp))
-
-testtypes ::= signed-char \
-	     unsigned-char \
-	     signed-short \
-	     unsigned-short \
-	     signed-int \
-	     unsigned-int \
-	     signed-long \
-	     unsigned-long \
-	     signed-long-long \
-	     unsigned-long-long \
-	     float \
-	     double \
-	     std::float16_t \
-	     std::float32_t \
-	     std::float64_t \
-	     char \
-	     char8_t \
-	     wchar_t \
-	     char16_t \
-	     char32_t \
-	     std::byte
-
-testtypes ::= $(subst ::,--,$(testtypes))
-
-testwidths ::= $(shell seq 1 67)
-
-getwidth = $(subst .,,$(suffix $(1)))
-gettype = $(subst -, ,$(subst --,::,$(subst .,,$(basename $(notdir $(1))))))
-getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
-gettest = $(basename $(subst /,,$(dir $(1))))
+info: $(check_targets)
+	@echo "This library is header-only and doesn't need to be built."
+	@echo "However, you might want to run tests. For a complete list"
+	@echo "call 'make help'."
 
 fortests := for t in $(tests); do
 fortestarchs := for a in $(testarchs); do
@@ -84,47 +23,20 @@ debug:
 	@echo "arch=$(call getarch,shift_left.core2/signed-char.34)"
 	@echo "test=$(call gettest,shift_left.core2/signed-char.34)"
 	@echo "type=$(call gettype,shift_left.core2/std--float32_t.34)"
+	@$(MAKE) -f Makefile.more $@
 
-helptargets:=
+more_checks := check check10 check1 check-failed check-passed check-untested
 
-# argument: arch
-define pch_template
-obj/$(1).h: tests/unittest*.h tests/*.cpp
-	@echo "Generate $$@"
-	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u|sed 's,","../tests/,' > $$@
+.PHONY: $(more_checks)
+$(more_checks): $(check_targets)
+	@$(MAKE) -f Makefile.more --no-print-directory $@
 
-obj/$(1).depend: obj/$(1).h
-	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).h.gch" $$< > $$@
+# run-missing sets exe_template to "" so that binaries are not rebuild but still a dependency of the check/% targets
+.PHONY: check-run-missing
+check-run-missing: $(check_targets)
+	@$(MAKE) -f Makefile.more --no-print-directory exe_template= $@
 
-include obj/$(1).depend
-
-obj/$(1).h.gch: obj/$(1).h
-	@echo "Build pre-compiled header for $(1)"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@
-
-endef
-
-$(foreach arch,$(testarchs),\
-	$(eval $(call pch_template,$(arch))))
-
-# arguments: test, arch
-define exe_template
-obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest*.h
-	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
-	@mkdir -p $$(dir $$@)
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<
-ifeq ($(DIRECT),)
-	@echo " Link $$(@:obj/%.exe=check/%)"
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
-	@rm $$(@:.exe=.o)
-endif
-
-endef
-
-$(foreach arch,$(testarchs),\
-	$(foreach t,$(tests),\
-	$(eval $(call exe_template,$(t),$(arch)))))
+helptargets := $(more_checks) check-run-missing check-reduce check-simd_cat check-constexpr
 
 define simple_check_template
 check-$(1): $(2)
@@ -178,36 +90,12 @@ $(foreach t,$(tests),\
 	      echo "check/$(t).$(arch)/$(type).$$$$w";done)))) \
 	)
 
-constexpr_checks ::= $(foreach arch,$(testarchs),obj/constexpr.$(arch).s)
-
-.PHONY: check-constexpr
-check-constexpr: $(shell shuf -e -- $(constexpr_checks))
-
-check_targets := obj/check.targets
-
 $(check_targets): $(wildcard tests/*.cpp) Makefile
 	$(file >$@)
 	$(foreach t,$(tests),$(foreach w,$(testwidths),$(foreach y,$(testtypes),$(foreach a,$(testarchs),\
 		$(file >>$@,check/$t.$a/$y.$w)))))
 
-obj/Makefile.check: $(check_targets) Makefile
-	$(file >$@,.NOTINTERMEDIATE: $$(subst check,obj,$$(patsubst %,%.exe,$$(shell cat $(check_targets)))))
-	$(file >>$@,.PHONY: check)
-	$(file >>$@,check: $$(shell shuf $(check_targets)) check-constexpr check-simd_cat check-reduce)
-
-include obj/Makefile.check
-
-obj/codegen.depend: codegen/*.c++
-	@echo "Update codegen dependencies"
-	@mkdir -p obj
-	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.simd_cat.s codegen/simd_cat.c++ > $@
-	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.reduce.s codegen/reduce.c++ >> $@
-
-include obj/codegen.depend
-
-$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\')
-	@echo "Build constexpr tests for $*"
-	@$(CXX) $(CXXFLAGS) -march=$* -S -o $@ constexpr_tests.c++
+.NOTINTERMEDIATE: $(subst check,obj,$(patsubst %,%.exe,$(shell cat $(check_targets))))
 
 REPORTFLAGS=-fmem-report -ftime-report -Q
 
@@ -219,51 +107,6 @@ obj/%.report:
 		-c -o obj/$*.o tests/$(call gettest,$*).cpp
 	@echo "Build time reports for $* done"
 
-check/%: obj/%.exe
-	@mkdir -p $(dir $@)
-	@{ \
-		echo "================================================================";\
-		echo "  Run check/$*"; \
-		echo "================================================================";\
-		$(icerun) obj/$*.exe; \
-	} | tee $@
-	@tail -n1 $@ | grep -q '^Failed tests: 0$$'
-
-.PHONY: check-simd_cat
-check-simd_cat: obj/codegen.simd_cat.s
-	@echo "Testing for expected instructions in $<"
-	@grep -A3 '^f0(' $< | grep "vinserti128	ymm0, ymm0, xmm1, 1"
-	@grep -A3 '^f1(' $< | grep "vinsertf128	ymm0, ymm0, xmm1, 1"
-	@grep -A3 '^f2(' $< | grep "vmovlhps	xmm0, xmm0, xmm1"
-
-.PHONY: check-reduce
-check-reduce: obj/codegen.reduce.s
-	@echo "Testing for expected instructions in $<"
-	@grep -A1 '^f0(' $< | tail -n1 | grep --color=auto "vphaddd"
-	@grep -A2 '^f0(' $< | tail -n1 | grep --color=auto "vphaddd"
-	@grep -A3 '^f0(' $< | tail -n1 | grep --color=auto "vmovd	eax"
-	@grep -A4 '^f0(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f1(' $< | tail -n1 | grep --color=auto "vhaddps"
-	@grep -A2 '^f1(' $< | tail -n1 | grep --color=auto "vhaddps"
-	@grep -A3 '^f1(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f2(' $< | tail -n1 | grep --color=auto "vhaddpd"
-	@grep -A2 '^f2(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A2 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A3 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A4 '^f3(' $< | tail -n1 | grep --color=auto "vpextrw	eax"
-	@grep -A5 '^f3(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A2 '^f4(' $< | tail -n2 | grep --color=auto "vphaddw"
-	@grep -A3 '^f4(' $< | tail -n2 | grep --color=auto "vphaddw"
-	@grep -A4 '^f4(' $< | tail -n2 | grep --color=auto "vpextrw	eax"
-	@grep -A5 '^f4(' $< | tail -n2 | grep --color=auto "ret"
-
-obj/codegen.%.s: codegen/%.c++
-	@echo "Building $@"
-	@$(CXX) $(CXXFLAGS) -masm=intel -march=skylake -S -o $@ $<
-	@cat $@ | grep -v '^\s*\.' | c++filt > $@.tmp
-	@mv $@.tmp $@
-
 helptxt := obj/help.txt
 
 $(helptxt): Makefile $(check_targets)
@@ -274,15 +117,10 @@ $(helptxt): Makefile $(check_targets)
 .PHONY: help
 help: $(helptxt)
 	@echo "Define `DIRECT` to anything non-empty to compile and link in one step"
-	@echo "... check"
-	@echo "... check-reduce"
-	@echo "... check-simd_cat"
-	@echo "... check-constexpr"
 	@cat $(helptxt)
 
 .PHONY: clean
 clean:
-	rm -f obj/*.o obj/*.exe obj/*.s obj/*.depend $(check_targets) obj/Makefile.* $(helptxt)
-	rm -rf obj/*.*/
-	rm -rf check/*.*/
+	rm -rf obj
+	rm -rf check
 

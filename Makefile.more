@@ -1,0 +1,37 @@
+include Makefile.common
+
+shuffled_checks := $(shell shuf $(check_targets))
+
+untested := $(filter-out $(wildcard check/*.*/*.*),$(shuffled_checks))
+notrun := $(filter $(patsubst obj/%.exe,check/%,$(wildcard obj/*.*/*.exe)),$(shuffled_checks))
+
+.NOTINTERMEDIATE: $(subst check,obj,$(patsubst %,%.exe,$(shuffled_checks)))
+
+totaltests := $(shell echo $$(( $(words $(testarchs)) * $(words $(tests)) \
+	      * $(words $(testtypes)) * $(words $(testwidths)) )))
+
+total1  := $(shell echo $$(( ($(totaltests) + 50) / 100)))
+
+total10 := $(shell echo $$(( ($(totaltests) + 5) / 10)))
+
+debug:
+	@echo "#untested: $(words $(untested))"
+	@echo "#notrun: $(words $(notrun))"
+	@echo total1: $(total1)
+	@echo total10: $(total10)
+
+.PHONY: check check10 check1
+check: check-constexpr $(shuffled_checks) check-simd_cat check-reduce
+
+check1: check-constexpr $(wordlist 1,$(total1),$(shuffled_checks)) check-simd_cat check-reduce
+
+check10: check-constexpr $(wordlist 1,$(total10),$(shuffled_checks)) check-simd_cat check-reduce
+
+.PHONY: check-failed check-passed check-untested
+check-failed: $(shell grep -r 'Failed tests: [^0]' check/*.*/|cut -d: -f1|shuf)
+
+check-passed: $(shell grep -r 'Failed tests: 0' check/*.*/|cut -d: -f1|shuf)
+
+check-untested: $(untested)
+
+check-run-missing: $(notrun)
