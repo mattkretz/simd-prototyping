@@ -418,15 +418,7 @@ namespace std
       {
         if (__i >= size.value or __i < 0)
           __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
-        if constexpr (size.value == 1)
-          return _M_data;
-        else if constexpr (requires {abi_type::_S_abiarray_size;})
-          {
-            constexpr __detail::_SimdSizeType __n = size.value / abi_type::_S_abiarray_size;
-            return _M_data[__i / __n][__i % __n];
-          }
-        else
-          return _M_data[__i];
+        return _Impl::_S_get(_M_data, __i);
       }
 
       ///////////////////////

@@ -628,6 +628,15 @@ namespace std::__detail
       _S_less_equal(_Tp __x, _Tp __y)
       { return __x <= __y; }
 
+    template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_get(_Tp __v, _SimdSizeType __i)
+      {
+        if (__i != 0)
+          __invoke_ub("Subscript %d is out of range: must be 0", __i);
+        return __v;
+      }
+
     template <typename _Tp, typename _Up>
       _GLIBCXX_SIMD_INTRINSIC static constexpr void
       _S_set(_Tp& __v, _SimdSizeType __i, _Up&& __x)
@@ -721,6 +730,14 @@ namespace std::__detail
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
     _S_bit_xor(bool __x, bool __y)
     { return __x != __y; }
+
+    _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+    _S_get(bool __k, _SimdSizeType __i)
+    {
+      if (__i != 0)
+        __invoke_ub("Subscript %d is out of range: must be 0", __i);
+      return __k;
+    }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr void
     _S_set(bool& __k, _SimdSizeType __i, bool __x)

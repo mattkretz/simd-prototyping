@@ -424,17 +424,12 @@ namespace std::__detail
     class _SmartReference
     {
       friend _Accessor;
-      int _M_index;
+      _SimdSizeType _M_index;
       _Up& _M_obj;
 
       _GLIBCXX_SIMD_INTRINSIC constexpr _ValueType
       _M_read() const noexcept
-      {
-        if constexpr (is_arithmetic_v<_Up>)
-          return _M_obj;
-        else
-          return _M_obj[_M_index];
-      }
+      { return _Accessor::_S_get(_M_obj, _M_index); }
 
       template <typename _Tp>
         _GLIBCXX_SIMD_INTRINSIC constexpr void
@@ -443,7 +438,7 @@ namespace std::__detail
 
     public:
       _GLIBCXX_SIMD_INTRINSIC constexpr
-      _SmartReference(_Up& __o, int __i) noexcept
+      _SmartReference(_Up& __o, _SimdSizeType __i) noexcept
       : _M_index(__i), _M_obj(__o) {}
 
       using value_type = _ValueType;

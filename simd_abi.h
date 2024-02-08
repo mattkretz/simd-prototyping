@@ -514,6 +514,11 @@ namespace std
         { (_Impl0::_S_decrement(__x[_Is]), ...); }
 
         template <typename _TV>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr __value_type_of<_TV>
+          _S_get(const array<_TV, _Np>& __v, _SimdSizeType __i)
+          { return _Impl0::_S_get(__v[__i / _S_chunk_size], __i % _S_chunk_size); }
+
+        template <typename _TV>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
           _S_set(array<_TV, _Np>& __v, _SimdSizeType __i, auto&& __x)
           { _Impl0::_S_set(__v[__i / _S_chunk_size], __i % _S_chunk_size, __x); }
@@ -617,6 +622,16 @@ namespace std
           static constexpr _Tp
           _S_logical_or(const _Tp& __k0, const _Tp& __k1)
           { return {_Impl0::_S_logical_or(__k0[_Is], __k1[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+          _S_get(const _Tp& __k, _SimdSizeType __i)
+          { return _Impl0::_S_get(__k[__i / _S_chunk_size], __i % _S_chunk_size); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_set(_Tp& __k, _SimdSizeType __i, bool __x)
+          { return _Impl0::_S_set(__k[__i / _S_chunk_size], __i % _S_chunk_size, __x); }
 
         template <size_t _Bs>
           static constexpr basic_simd_mask<_Bs, _Abi0>
@@ -1344,9 +1359,14 @@ namespace std
         _GLIBCXX_SIMD_CMP_OPERATIONS(_S_isunordered)
 #undef _GLIBCXX_SIMD_CMP_OPERATIONS
 
+        template <typename _Tp, typename... _As>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_get(const _SimdTuple<_Tp, _As...>& __v, _SimdSizeType __i)
+          { return __v[__i]; }
+
         template <typename _Tp, typename... _As, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_set(_SimdTuple<_Tp, _As...>& __v, int __i, _Up&& __x) noexcept
+          _S_set(_SimdTuple<_Tp, _As...>& __v, _SimdSizeType __i, _Up&& __x)
           {
             if (not __builtin_is_constant_evaluated())
               {
@@ -1508,8 +1528,12 @@ namespace std
         _S_bit_xor(const _MaskMember& __x, const _MaskMember& __y) noexcept
         { return __x ^ __y; }
 
+        _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+        _S_get(const _MaskMember& __k, _SimdSizeType __i)
+        { return __k[__i]; }
+
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_set(_MaskMember& __k, _SimdSizeType __i, bool __x) noexcept
+        _S_set(_MaskMember& __k, _SimdSizeType __i, bool __x)
         { __k.set(__i, __x); }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr void

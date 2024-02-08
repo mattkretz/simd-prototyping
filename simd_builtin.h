@@ -832,10 +832,31 @@ namespace std::__detail
         _S_decrement(_TV& __x)
         { __x = __x - 1; }
 
+      // If called from simd_mask (or simd_mask::reference), then this returns a signed integer
+      // instead of bool. However, the implicit conversion to bool always yields the correct value.
+      // (reinterpretation of the bits, would not be correct, though.)
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr __value_type_of<_TV>
+        _S_get(_TV __v, _SimdSizeType __i)
+        { return __v[__i]; }
+
       template <__vec_builtin _TV, typename _Up>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_set(_TV& __v, int __i, _Up&& __x)
+        _S_set(_TV& __v, _SimdSizeType __i, _Up&& __x)
         { __v[__i] = static_cast<_Up&&>(__x); }
+
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr void
+        _S_set(_TV& __k, _SimdSizeType __i, bool __x)
+        {
+          using _Tp = __value_type_of<_TV>;
+          if (__builtin_is_constant_evaluated())
+            __k = _GLIBCXX_SIMD_INT_PACK(_S_size, __j, {
+                    return _TV{(__i == __j ? _Tp(-__x) : __k[__j])...};
+                  });
+          else
+            __k[__i] = -__x;
+        }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
@@ -1037,18 +1058,6 @@ namespace std::__detail
             return __vec_andnot(__x, reinterpret_cast<_TV>(_Abi::template _S_implicit_mask<_Tp>));
           else
             return __vec_not(__x);
-        }
-
-      template <__vec_builtin _TV>
-        static constexpr void
-        _S_set(_TV& __k, int __i, bool __x)
-        {
-          using _Tp = __value_type_of<_TV>;
-          if (__builtin_is_constant_evaluated())
-            __k = _GLIBCXX_SIMD_VEC_GEN(
-                    _TV, _S_size, __j, {(__i == __j ? _Tp(-__x) : __k[__j])...});
-          else
-            __k[__i] = -__x;
         }
 
       template <__vec_builtin _TV>

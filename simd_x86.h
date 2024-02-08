@@ -2898,6 +2898,26 @@ namespace std::__detail
             __assert_unreachable<_TV>();
         }
 
+      template <unsigned_integral _Kp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+        _S_get(_Kp __k, _SimdSizeType __i)
+        { return ((__k >> __i) & 1) == 1; }
+
+      using _Base::_S_get;
+
+      template <unsigned_integral _Kp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr void
+        _S_set(_Kp& __k, _SimdSizeType __i, bool __x)
+        {
+          const _Kp __bit = _Kp(1) << __i;
+          if (__x)
+            __k |= __bit;
+          else
+            __k &= ~__bit;
+        }
+
+      using _Base::_S_set;
+
       static constexpr bool _S_have_sse3 = _Flags._M_have_sse3;
 
       static constexpr bool _S_have_ssse3 = _Flags._M_have_ssse3;

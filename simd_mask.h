@@ -228,21 +228,7 @@ namespace std
       {
         if (__i >= size.value or __i < 0)
           __detail::__invoke_ub("Subscript %d is out of range [0, %d]", __i, size() - 1);
-        if constexpr (size.value == 1)
-          return _M_data;
-        else if constexpr (requires {abi_type::_S_abiarray_size;})
-          {
-            constexpr __detail::_SimdSizeType __n = size.value / abi_type::_S_abiarray_size;
-            const auto& __part = _M_data[__i / __n];
-            if constexpr (requires {__part[0];})
-              return static_cast<bool>(__part[__i % __n]);
-            else
-              return ((__part >> (__i % __n)) & 1) == 1;
-          }
-        else if constexpr (requires {_M_data[0];})
-          return static_cast<bool>(_M_data[__i]);
-        else
-          return ((_M_data >> __i) & 1) == 1;
+        return _Impl::_S_get(_M_data, __i);
       }
 
       // [simd.mask.unary]
