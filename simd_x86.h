@@ -424,7 +424,6 @@ namespace std::__detail
         _S_select_bitmask(const _Kp __k, const _TV __a, const _TV __b)
         {
           using _Tp = __value_type_of<_TV>;
-          static_assert(sizeof(_TV) >= 16);
           static_assert(sizeof(_Tp) <= 8);
           if (__builtin_is_constant_evaluated()
                 or (__builtin_constant_p(__k) and __builtin_constant_p(__a)
@@ -437,10 +436,11 @@ namespace std::__detail
                 return __r;
             }
 
-          else if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>) == 0)
+          if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>) == 0)
             return __b;
-          else if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>)
-                     == _Abi::template _S_implicit_mask<_Tp>)
+
+          if (__builtin_constant_p(__k) and (__k & _Abi::template _S_implicit_mask<_Tp>)
+                == _Abi::template _S_implicit_mask<_Tp>)
             return __a;
 
 #ifdef __clang__
@@ -464,6 +464,8 @@ namespace std::__detail
                 return __builtin_ia32_blendmpd_512_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_512_mask(__aa, __bb, __k));
+              else
+                __assert_unreachable<_TV>();
             }
           else if constexpr (sizeof(_TV) == 32)
             {
@@ -479,6 +481,8 @@ namespace std::__detail
                 return __builtin_ia32_blendmpd_256_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_256_mask(__aa, __bb, __k));
+              else
+                __assert_unreachable<_TV>();
             }
           else if constexpr (sizeof(_TV) == 16)
             {
@@ -494,7 +498,14 @@ namespace std::__detail
                 return __builtin_ia32_blendmpd_128_mask(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_128_mask(__aa, __bb, __k));
+              else
+                __assert_unreachable<_TV>();
             }
+          else if constexpr (sizeof(_TV) < 16)
+            return __vec_bitcast_trunc<_TV>(_S_select_bitmask(__k, __vec_zero_pad_to_16(__a),
+                                                              __vec_zero_pad_to_16(__b)));
+          else
+            __assert_unreachable<_TV>();
 #endif
         }
 
