@@ -643,6 +643,16 @@ namespace std::__detail
             _Base::_S_masked_assign(__k, __lhs, __rhs);
         }
 
+      template <unsigned_integral _Kp, size_t _Np, bool _Sanitized>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _Kp
+        _S_to_maskmember(_BitMask<_Np, _Sanitized> __x)
+        {
+          static_assert(is_same_v<_Kp, typename _Abi::_MaskInteger>);
+          return __x._M_to_bits();
+        }
+
+        using _Base::_S_to_maskmember;
+
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_multiplies(_TV __x, _TV __y)

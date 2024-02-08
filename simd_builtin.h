@@ -930,7 +930,7 @@ namespace std::__detail
             __lhs = __k ? __op(_SuperImpl{}, __lhs, __rhs) : __lhs;
         }
 
-      template <typename _TV, size_t _Np, bool _Sanitized>
+      template <__vec_builtin _TV, size_t _Np, bool _Sanitized>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_to_maskmember(_BitMask<_Np, _Sanitized> __x)
         {

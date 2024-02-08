@@ -597,6 +597,19 @@ namespace std
 
         using _Impl0 = typename _Abi0::_MaskImpl;
 
+        template <typename _Tp, bool _Sanitized>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_convert(_BitMask<_S_size, _Sanitized> __x)
+          {
+            return {_Impl0::template _S_convert<_Tp>(
+                      __x.template _M_extract<_S_chunk_size * _Is, _S_chunk_size>())...};
+          }
+
+        template <typename _Tp, size_t _Bs, typename _UAbi>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
+          { return _S_convert<_Tp>(__data(__x)); }
+
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
         _S_to_bits_recursive(auto&& __part0, auto&& __part1, auto&&... __rest)
         {
