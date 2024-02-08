@@ -624,6 +624,26 @@ namespace std
           { return {_Impl0::_S_logical_or(__k0[_Is], __k1[_Is])...}; }
 
         template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_not(const _Tp& __x)
+          { return {_Impl0::_S_bit_not(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_and(const _Tp& __x, const _Tp& __y)
+          { return {_Impl0::_S_bit_and(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_or(const _Tp& __x, const _Tp& __y)
+          { return {_Impl0::_S_bit_or(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_bit_xor(const _Tp& __x, const _Tp& __y)
+          { return {_Impl0::_S_bit_xor(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
           _S_get(const _Tp& __k, _SimdSizeType __i)
           { return _Impl0::_S_get(__k[__i / _S_chunk_size], __i % _S_chunk_size); }
