@@ -1521,12 +1521,12 @@ namespace std
         { __k.set(__i, __x); }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_masked_assign(const _MaskMember __k, _MaskMember& __lhs, const _MaskMember __rhs)
+        _S_masked_assign(const _MaskMember& __k, _MaskMember& __lhs, const _MaskMember& __rhs)
         { __lhs = (__lhs & ~__k) | (__rhs & __k); }
 
         // Optimization for the case where the RHS is a scalar.
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_masked_assign(const _MaskMember __k, _MaskMember& __lhs, const bool __rhs)
+        _S_masked_assign(const _MaskMember& __k, _MaskMember& __lhs, const bool __rhs)
         {
           if (__rhs)
             __lhs |= __k;
@@ -1536,32 +1536,32 @@ namespace std
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_all_of(basic_simd_mask<_Bs, _Abi> __k)
+          _S_all_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).all(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_any_of(basic_simd_mask<_Bs, _Abi> __k)
+          _S_any_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).any(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_none_of(basic_simd_mask<_Bs, _Abi> __k)
+          _S_none_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).none(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(basic_simd_mask<_Bs, _Abi> __k)
+          _S_popcount(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).count(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_first_set(basic_simd_mask<_Bs, _Abi> __k)
+          _S_find_first_set(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __detail::__lowest_bit(__data(__k).to_ullong()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_last_set(basic_simd_mask<_Bs, _Abi> __k)
+          _S_find_last_set(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __detail::__highest_bit(__data(__k).to_ullong()); }
       };
 

@@ -52,9 +52,10 @@ namespace std::__detail
 
       constexpr _BitMask(const _BitMask&) noexcept = default;
 
-      template <bool _RhsSanitized, typename = enable_if_t<_RhsSanitized == false
-                                                             && _Sanitized == true>>
-        constexpr _BitMask(const _BitMask<_Np, _RhsSanitized>& __rhs) noexcept
+      template <bool _RhsSanitized>
+        requires (_RhsSanitized == false and _Sanitized == true)
+        constexpr
+        _BitMask(const _BitMask<_Np, _RhsSanitized>& __rhs) noexcept
         : _BitMask(__rhs._M_sanitized()) {}
 
       // precondition: is sanitized

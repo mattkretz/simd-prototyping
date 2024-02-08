@@ -198,7 +198,8 @@ static_assert([] constexpr {
   static_assert(b[1] == 0);
   static_assert(b[2] == 1);
   static_assert(b[3] == 1);
-  return b[4] == 1;
+  static_assert(b[4] == 1);
+  return true;
 }());
 
 static_assert([] constexpr {

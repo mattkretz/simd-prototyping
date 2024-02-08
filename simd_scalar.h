@@ -667,7 +667,7 @@ namespace std::__detail
     template <typename, bool _Sanitized>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
       _S_convert(_BitMask<1, _Sanitized> __x)
-      { return __x[0]; }
+      { return __x[__ic<0>]; }
 
     template <typename, size_t _Bs, typename _UAbi>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool

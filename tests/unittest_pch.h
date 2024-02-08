@@ -228,12 +228,6 @@ template <template<typename> class... Tests>
   int
   register_tests()
   {
-    if (not check_cpu_support())
-      {
-        std::cerr << "Incompatible CPU.\n";
-        return 0;
-      }
-
     (instantiate_tests_for_value_type<Tests>(), ...);
     return 0;
   }
