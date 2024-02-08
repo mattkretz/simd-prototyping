@@ -10,7 +10,6 @@
 #include "simd_config.h"
 
 #include <functional>
-#include <optional>
 #include <stdfloat>
 #include <type_traits>
 
@@ -231,14 +230,6 @@ namespace std
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k);
-
-  template <size_t _Bs, typename _Abi>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::optional<__detail::_SimdSizeType>
-    reduce_min_index_opt(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
-
-  template <size_t _Bs, typename _Abi>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::optional<__detail::_SimdSizeType>
-    reduce_max_index_opt(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto

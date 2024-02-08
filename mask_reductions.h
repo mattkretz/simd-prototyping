@@ -234,26 +234,6 @@ namespace std
         return __detail::__highest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
     }
 
-  template <size_t _Bs, typename _Abi>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::optional<__detail::_SimdSizeType>
-    reduce_min_index_opt(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
-    {
-      if (any_of(__k))
-        return reduce_min_index(__k);
-      else
-        return {};
-    }
-
-  template <size_t _Bs, typename _Abi>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::optional<__detail::_SimdSizeType>
-    reduce_max_index_opt(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
-    {
-      if (any_of(__k))
-        return reduce_max_index(__k);
-      else
-        return {};
-    }
-
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
   all_of(same_as<bool> auto __x) noexcept
   { return __x; }
