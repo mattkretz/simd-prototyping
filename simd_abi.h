@@ -365,8 +365,7 @@ namespace std
 
         static constexpr _SimdSizeType _S_size = abi_type::_S_size;
 
-        template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
+        static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
 
         using _Impl0 = typename _Abi0::_SimdImpl;
 
@@ -382,14 +381,14 @@ namespace std
           _S_generator(_Fp&& __gen)
           {
             return {_Impl0::template _S_generator<_Tp>([&] [[__gnu__::__always_inline__]] (auto __i) {
-                      return __gen(__ic<__i + _Is * _S_chunk_size<_Tp>>);
+                      return __gen(__ic<__i + _Is * _S_chunk_size>);
                     })...};
           }
 
         template <__vectorizable _Tp, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_load(const _Up* __mem, _TypeTag<_Tp> __tag) noexcept
-          { return {_Impl0::_S_load(__mem + _Is * _S_chunk_size<_Tp>, __tag)...}; }
+          { return {_Impl0::_S_load(__mem + _Is * _S_chunk_size, __tag)...}; }
 
         template <typename _Tp, typename _Up>
           static constexpr inline _Tp
@@ -397,19 +396,19 @@ namespace std
                          const _Up* __mem) noexcept
           {
             _SimdMember<_Tp> __ret = __merge;
-            (_Impl0::_S_masked_load(__ret[_Is], __k[_Is], __mem + _Is * _S_chunk_size<_Tp>), ...);
+            (_Impl0::_S_masked_load(__ret[_Is], __k[_Is], __mem + _Is * _S_chunk_size), ...);
             return __ret;
           }
 
         template <__vectorizable _Tp, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
           _S_store(_SimdMember<_Tp> const& __v, _Up* __mem, _TypeTag<_Tp> __tag) noexcept
-          { (_Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size<_Tp>, __tag), ...); }
+          { (_Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size, __tag), ...); }
 
         template <typename _Tp, typename _Up>
           static constexpr inline void
           _S_masked_store(_Tp const& __v, _Up* __mem, const _MaskMember<_Tp> __k) noexcept
-          { (_Impl0::_S_masked_store(__v[_Is], __mem + _Is * _S_chunk_size<_Tp>, __k[_Is]), ...); }
+          { (_Impl0::_S_masked_store(__v[_Is], __mem + _Is * _S_chunk_size, __k[_Is]), ...); }
 
         template <typename _Tp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
@@ -514,14 +513,10 @@ namespace std
         _S_decrement(auto& __x)
         { (_Impl0::_S_decrement(__x[_Is]), ...); }
 
-        template <typename _Tp, typename _Up>
+        template <typename _TV>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_set(_SimdMember<_Tp>& __v, int __i, _Up&& __x) noexcept
-          {
-            ((__i >= _Is * _S_chunk_size<_Tp> and __i < (_Is + 1) * _S_chunk_size<_Tp>
-              ? _Impl0::_S_set(__v[_Is], __i - _Is * _S_chunk_size<_Tp>, static_cast<_Up&&>(__x))
-              : 0), ...);
-          }
+          _S_set(array<_TV, _Np>& __v, _SimdSizeType __i, auto&& __x)
+          { _Impl0::_S_set(__v[__i / _S_chunk_size], __i % _S_chunk_size, __x); }
 
         // There's a curious case of _SimdMember and _MaskMember mismatch for the AVX w/o AVX2 case:
         // The mask type can either be array<int8, 2> or array<int4, 4> depending on whether it
@@ -593,8 +588,7 @@ namespace std
         static constexpr _SimdSizeType _S_size = abi_type::_S_size;
 
         // equal to full_size because _AbiArray ensures not-partial _Abi0
-        template <__vectorizable _Tp>
-          static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
+        static constexpr _SimdSizeType _S_chunk_size = _Abi0::_S_size;
 
         using _Impl0 = typename _Abi0::_MaskImpl;
 
@@ -654,13 +648,12 @@ namespace std
             if (std::any_of(_S_submask(__masks, 0)))
               return std::reduce_min_index(_S_submask(__masks, 0));
 
-            using _Tp = __mask_integer_from<_Bs>;
             for (int __i = 1; __i < _Np - 1; ++__i)
               {
                 if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size<_Tp> + std::reduce_min_index(_S_submask(__masks, __i));
+                  return __i * _S_chunk_size + std::reduce_min_index(_S_submask(__masks, __i));
               }
-            return (_Np - 1) * _S_chunk_size<_Tp>
+            return (_Np - 1) * _S_chunk_size
                      + std::reduce_min_index(_S_submask(__masks, _Np - 1));
           }
 
@@ -668,15 +661,14 @@ namespace std
           static constexpr _SimdSizeType
           _S_find_last_set(basic_simd_mask<_Bs, abi_type> const& __masks)
           {
-            using _Tp = __mask_integer_from<_Bs>;
             if (std::any_of(_S_submask(__masks, _Np - 1)))
-              return (_Np - 1) * _S_chunk_size<_Tp>
+              return (_Np - 1) * _S_chunk_size
                        + std::reduce_max_index(_S_submask(__masks, _Np - 1));
 
             for (int __i = _Np - 2; __i > 0; --__i)
               {
                 if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size<_Tp> + std::reduce_max_index(_S_submask(__masks, __i));
+                  return __i * _S_chunk_size + std::reduce_max_index(_S_submask(__masks, __i));
               }
             return std::reduce_max_index(_S_submask(__masks, 0));
           }
@@ -687,13 +679,13 @@ namespace std
           {
             if constexpr (requires {_Impl0::template _S_mask_generator<_Tp>(__gen);})
               return {_Impl0::template _S_mask_generator<_Tp>([&](auto __i) {
-                        return __gen(__ic<_Is * _S_chunk_size<_Tp> + __i>);
+                        return __gen(__ic<_Is * _S_chunk_size + __i>);
                       })...};
             else
               return {[&]<size_t... _Js>(vir::constexpr_value<int> auto __i,
                                          std::index_sequence<_Js...>) {
-                return _MaskMember0<_Tp>{ -__gen(__ic<__i * _S_chunk_size<_Tp> + _Js>)... };
-              }(vir::cw<_Is>, std::make_index_sequence<_S_chunk_size<_Tp>>())...};
+                return _MaskMember0<_Tp>{ -__gen(__ic<__i * _S_chunk_size + _Js>)... };
+              }(vir::cw<_Is>, std::make_index_sequence<_S_chunk_size>())...};
           }
 
         template <typename _Tp>
