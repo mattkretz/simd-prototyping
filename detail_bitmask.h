@@ -45,9 +45,11 @@ namespace std::__detail
 
       constexpr _BitMask() noexcept = default;
 
-      constexpr _BitMask(unsigned long long __x) noexcept
-      : _M_bits{static_cast<_Tp>(__x)} {}
+      template <unsigned_integral _Up>
+        constexpr _BitMask(_Up __x) noexcept
+        : _M_bits{_Sanitized ? static_cast<_Tp>(_S_bitmask & __x) : static_cast<_Tp>(__x)} {}
 
+      constexpr
       _BitMask(bitset<_Np> __x) noexcept : _BitMask(__x.to_ullong()) {}
 
       constexpr _BitMask(const _BitMask&) noexcept = default;
@@ -136,7 +138,7 @@ namespace std::__detail
                         "not implemented for bitmasks larger than one ullong");
           if constexpr (_NewSize == 1)
             // must sanitize because the return _Tp is bool
-            return _SanitizedBitMask<1>(_M_bits[0] & (_Tp(1) << _DropLsb));
+            return _SanitizedBitMask<1>(_M_bits[0] >> _DropLsb);
           else
             return _BitMask<_NewSize,
                             ((_NewSize + _DropLsb == sizeof(_Tp) * __CHAR_BIT__
