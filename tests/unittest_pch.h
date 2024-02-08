@@ -67,18 +67,37 @@ struct additional_info
   }
 };
 
+struct log_novalue {};
+
 additional_info
 log_failure(auto const& x, auto const& y, std::source_location loc, std::string_view s)
 {
   ++failed_tests;
   std::cout << loc.file_name() << ':' << loc.line() << ':' << loc.column() << ": "
             << loc.function_name() << '\n' << std::boolalpha;
-  std::cout << s << x << "\n       to: " << y << std::endl;
+  std::cout << s << x;
+  if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
+    std::cout << "\n       to: " << y << std::endl;
+  std::cout << std::endl;
   return additional_info {true};
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
+
+[[gnu::always_inline]]
+additional_info
+verify(auto&& k, std::source_location loc = std::source_location::current())
+{
+  if (std::all_of(k))
+    {
+      ++passed_tests;
+      return {};
+    }
+  else
+    return log_failure(k, log_novalue(), loc, "not true: ");
+}
+
 [[gnu::always_inline]]
 additional_info
 verify_equal(auto&& x, auto&& y,
