@@ -13,6 +13,7 @@ DIRECT := 1
 else ifneq ($(notdir $(realpath $(CXX))),icecc)
 # CXX isn't using icecream
 DIRECT := 1
+icerun :=
 else ifneq ($(DIRECT),)
 ifneq ($(ICECC_CXX),)
 ifeq ($(notdir $(realpath $(CXX))),icecc)
