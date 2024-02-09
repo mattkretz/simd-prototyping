@@ -133,28 +133,33 @@ namespace std::__detail
     struct __x86_builtin_fp<_Tp>
     { using type = double; };
 
+  template <typename _TV>
+    using __x86_intrin_t = __vec_builtin_type_bytes<
+                             typename conditional_t<is_floating_point_v<__value_type_of<_TV>>,
+                                                    __x86_builtin_fp<__value_type_of<_TV>>,
+                                                    type_identity<long long>>::type,
+                             sizeof(_TV) <= 16 ? 16z : sizeof(_TV)>;
+
   /**
    * Return __x with suitable type for Intel intrinsics. If __x is smaller than a full XMM register,
    * then a zero-padded 16-Byte object will be returned.
    */
   template <__vec_builtin _TV>
-    _GLIBCXX_SIMD_INTRINSIC constexpr auto
+    _GLIBCXX_SIMD_INTRINSIC constexpr __x86_intrin_t<_TV>
     __to_x86_intrin(_TV __x)
     {
       static_assert(sizeof(_TV) <= 64);
-      using _Tp = __value_type_of<_TV>;
-      using _Rp = typename conditional_t<is_floating_point_v<_Tp>, __x86_builtin_fp<_Tp>,
-                                         type_identity<long long>>::type;
+      using _RV = __x86_intrin_t<_TV>;
       if constexpr (sizeof(_TV) < 16)
         {
           using _Up = __make_signed_int_t<_TV>;
           __vec_builtin_type_bytes<_Up, 16> __tmp = {__builtin_bit_cast(_Up, __x)};
-          return reinterpret_cast<__vec_builtin_type_bytes<_Rp, 16>>(__tmp);
+          return reinterpret_cast<_RV>(__tmp);
         }
-      else if constexpr (is_same_v<_Tp, _Rp>)
+      else if constexpr (is_same_v<_TV, _RV>)
         return __x;
       else
-        return reinterpret_cast<__vec_builtin_type_bytes<_Rp, sizeof(_TV)>>(__x);
+        return reinterpret_cast<_RV>(__x);
     }
 
   _GLIBCXX_SIMD_INTRINSIC int

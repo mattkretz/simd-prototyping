@@ -47,6 +47,10 @@ std::ostream& operator<<(std::ostream& s, std::basic_simd_mask<B, Abi> const& v)
   return s << '>';
 }
 
+template <std::__detail::__vec_builtin V>
+  std::ostream& operator<<(std::ostream& s, V v)
+  { return s << std::simd<std::__detail::__value_type_of<V>, std::__detail::__width_of<V>>(v); }
+
 static std::int64_t passed_tests = 0;
 static std::int64_t failed_tests = 0;
 

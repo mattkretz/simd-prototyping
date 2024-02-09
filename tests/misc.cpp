@@ -42,6 +42,16 @@ template <typename V>
           verify_not_equal(y, x);
           verify_equal(--y, x);
         }
+#ifdef __SSE__
+      if constexpr (sizeof(x) == 16 and std::is_same_v<T, float>)
+        verify_equal(_mm_and_ps(x, x), x);
+#endif
+#ifdef __SSE2__
+      if constexpr (sizeof(x) == 16 and std::is_integral_v<T>)
+        verify_equal(_mm_and_si128(x, x), x);
+      if constexpr (sizeof(x) == 16 and std::is_same_v<T, double>)
+        verify_equal(_mm_and_pd(x, x), x);
+#endif
     }
   };
 
@@ -61,8 +71,9 @@ template <typename V>
       verify_equal(std::reduce_min_index(x == x), 0);
       verify_equal(std::reduce_max_index(x == x), V::size - 1);
 
-      auto test = [](auto i) {
+      auto test = [](auto ii) {
         log_start();
+        constexpr int i = ii;
 
         {
           constexpr M k = std::iota_v<V> == T(i);

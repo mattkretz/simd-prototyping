@@ -94,7 +94,11 @@ namespace std
 
           template <typename _Arg>
             static constexpr bool _S_is_simd_ctor_arg
-              = std::is_same_v<_Arg, _SimdMember>;
+              = std::is_same_v<_Arg, _SimdMember>
+#if _GLIBCXX_SIMD_HAVE_SSE
+                  or std::is_same_v<_Arg, __detail::__x86_intrin_t<_SimdMember>>
+#endif
+                ;
 
           template <typename _Arg>
             static constexpr bool _S_is_mask_ctor_arg
@@ -104,13 +108,13 @@ namespace std
             requires _S_is_simd_ctor_arg<_To>
             _GLIBCXX_SIMD_INTRINSIC static constexpr _To
             _S_simd_conversion(_SimdMember __x)
-            { return __x; }
+            { return reinterpret_cast<_To>(__x); }
 
           template <typename _From>
             requires _S_is_simd_ctor_arg<_From>
             _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember
             _S_simd_construction(_From __x)
-            { return __x; }
+            { return reinterpret_cast<_SimdMember>(__x); }
 
           template <typename _To>
             requires _S_is_mask_ctor_arg<_To>

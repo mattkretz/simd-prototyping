@@ -593,7 +593,9 @@ namespace std::__detail
    */
   template <typename _Tp>
     concept __vec_builtin
-      = __vec_builtin_of<_Tp, remove_cvref_t<decltype(std::declval<const _Tp>()[0])>>;
+      = requires(const _Tp& __x) {
+        requires __vec_builtin_of<_Tp, remove_cvref_t<decltype(__x[0])>>;
+      };
 
   static_assert(not __vec_builtin<int>);
   static_assert(    __vec_builtin<__vec_builtin_type<int, 4>>);
