@@ -174,10 +174,17 @@ namespace std
       return -reduce(-__k);
     }
 
+  /**
+   * Precondition: any_of(__k) is true.
+   * on failure: ill-formed (constant expression) or returns unspecified value
+   */
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k)
     {
+      if (__builtin_is_constant_evaluated() and not any_of(__k))
+        __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+
       constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
         return 0;
@@ -185,10 +192,10 @@ namespace std
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
         {
           const int __r = [&] {
-            for (int __i = 0; __i < __size - 1; ++__i)
+            for (int __i = 0; __i < __size; ++__i)
               if (__k[__i])
                 return __i;
-            return __size - 1;
+            return -1;
           }();
           if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
             return __r;
@@ -204,10 +211,17 @@ namespace std
         return __detail::__lowest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
     }
 
+  /**
+   * Precondition: any_of(__k) is true.
+   * on failure: ill-formed (constant expression) or returns unspecified value
+   */
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k)
     {
+      if (__builtin_is_constant_evaluated() and not any_of(__k))
+        __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+
       constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
         return 0;
@@ -215,10 +229,10 @@ namespace std
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
         {
           const int __r = [&] {
-            for (int __i = __size - 1; __i > 0; --__i)
+            for (int __i = __size - 1; __i >= 0; --__i)
               if (__k[__i])
                 return __i;
-            return 0;
+            return -1;
           }();
           if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
             return __r;
@@ -252,10 +266,18 @@ namespace std
 
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
   reduce_min_index(same_as<bool> auto __x) noexcept
-  { return !__x; }
+  {
+    if (__builtin_is_constant_evaluated() and !__x)
+      __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+    return 0;
+  }
 
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
   reduce_max_index(same_as<bool> auto __x) noexcept
-  { return -!__x; }
+  {
+    if (__builtin_is_constant_evaluated() and !__x)
+      __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+    return 0;
+  }
 }
 #endif  // PROTOTYPE_MASK_REDUCTIONS_H_
