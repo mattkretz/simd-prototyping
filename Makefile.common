@@ -112,11 +112,16 @@ check-constexpr: $(shell shuf -e -- $(constexpr_checks))
 
 check_targets := obj/check.targets
 
-obj/codegen.depend: codegen/*.c++
+codegen_files ::= $(wildcard codegen/*.c++)
+codegen_names ::= $(patsubst codegen/%.c++,%,$(codegen_files))
+codegen_targets ::= $(patsubst %,check-codegen-%,$(codegen_names))
+
+obj/codegen.depend: $(codegen_files)
 	@echo "Update codegen dependencies"
 	@mkdir -p obj
-	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.simd_cat.s codegen/simd_cat.c++ > $@
-	@$(CXX) $(CXXFLAGS) -MM -MT obj/codegen.reduce.s codegen/reduce.c++ >> $@
+	$(file >$@)
+	$(foreach c,$(codegen_names),\
+	  $(shell $(CXX) $(CXXFLAGS) -MM -MT obj/codegen.$c.s codegen/$c.c++ >> $@))
 
 include obj/codegen.depend
 
@@ -134,34 +139,9 @@ check/%: obj/%.exe
 	} | tee $@
 	@tail -n1 $@ | grep -qv '^Failed tests: [^0]'
 
-.PHONY: check-simd_cat
-check-simd_cat: obj/codegen.simd_cat.s
+check-codegen-%: obj/codegen.%.s codegen/check.sh
 	@echo "Testing for expected instructions in $<"
-	@grep -A3 '^f0(' $< | grep "vinserti128	ymm0, ymm0, xmm1, 1"
-	@grep -A3 '^f1(' $< | grep "vinsertf128	ymm0, ymm0, xmm1, 1"
-	@grep -A3 '^f2(' $< | grep "vmovlhps	xmm0, xmm0, xmm1"
-
-.PHONY: check-reduce
-check-reduce: obj/codegen.reduce.s
-	@echo "Testing for expected instructions in $<"
-	@grep -A1 '^f0(' $< | tail -n1 | grep --color=auto "vphaddd"
-	@grep -A2 '^f0(' $< | tail -n1 | grep --color=auto "vphaddd"
-	@grep -A3 '^f0(' $< | tail -n1 | grep --color=auto "vmovd	eax"
-	@grep -A4 '^f0(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f1(' $< | tail -n1 | grep --color=auto "vhaddps"
-	@grep -A2 '^f1(' $< | tail -n1 | grep --color=auto "vhaddps"
-	@grep -A3 '^f1(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f2(' $< | tail -n1 | grep --color=auto "vhaddpd"
-	@grep -A2 '^f2(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A1 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A2 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A3 '^f3(' $< | tail -n1 | grep --color=auto "vphaddw"
-	@grep -A4 '^f3(' $< | tail -n1 | grep --color=auto "vpextrw	eax"
-	@grep -A5 '^f3(' $< | tail -n1 | grep --color=auto "ret"
-	@grep -A2 '^f4(' $< | tail -n2 | grep --color=auto "vphaddw"
-	@grep -A3 '^f4(' $< | tail -n2 | grep --color=auto "vphaddw"
-	@grep -A4 '^f4(' $< | tail -n2 | grep --color=auto "vpextrw	eax"
-	@grep -A5 '^f4(' $< | tail -n2 | grep --color=auto "ret"
+	@codegen/check.sh "codegen/$*.c++" "$<"
 
 obj/codegen.%.s: codegen/%.c++
 	@echo "Building $@"

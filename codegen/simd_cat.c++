@@ -1,3 +1,20 @@
+/* codegen
+^f0(
+.
+.
+vinserti128	ymm0, ymm0, xmm1, 1
+
+^f1(
+.
+.
+vinsertf128	ymm0, ymm0, xmm1, 1
+
+^f2(
+.
+.
+vmovlhps	xmm0, xmm0, xmm1
+*/
+
 #include "../simd_split.h"
 
 void g(auto);

@@ -21,11 +21,11 @@ debug:
 	@echo total10: $(total10)
 
 .PHONY: check check10 check1
-check: check-constexpr $(shuffled_checks) check-simd_cat check-reduce
+check: check-constexpr $(shuffled_checks) $(codegen_targets)
 
-check1: check-constexpr $(wordlist 1,$(total1),$(shuffled_checks)) check-simd_cat check-reduce
+check1: check-constexpr $(wordlist 1,$(total1),$(shuffled_checks)) $(codegen_targets)
 
-check10: check-constexpr $(wordlist 1,$(total10),$(shuffled_checks)) check-simd_cat check-reduce
+check10: check-constexpr $(wordlist 1,$(total10),$(shuffled_checks)) $(codegen_targets)
 
 .PHONY: check-failed check-passed check-untested
 check-failed: $(shell grep -r 'Failed tests: [^0]' check/*.*/|cut -d: -f1|shuf)

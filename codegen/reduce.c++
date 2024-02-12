@@ -1,3 +1,74 @@
+/* codegen
+
+^f0(
+vphaddd
+vphaddd
+vmovd	eax
+ret
+
+^f1(
+vhaddps
+vhaddps
+ret
+
+^f2(
+vhaddpd
+ret
+
+^f3(
+vmovdqa	xmm1, xmm0
+vpsrldq	xmm0, xmm0, 8
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 238
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 229
+vpaddw	xmm0, xmm0, xmm1
+vpextrw	eax, xmm0, 0
+ret
+
+^f4(
+vmovq	xmm1, xmm0
+vpshuflw	xmm0, xmm1, 238
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 229
+vpaddw	xmm0, xmm0, xmm1
+vpextrw	eax, xmm0, 0
+ret
+
+^f5(
+vmovdqa	xmm1, xmm0
+vpsraw	xmm0, xmm0, 8
+vpaddw	xmm0, xmm0, xmm1
+vpsrldq	xmm1, xmm0, 8
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 238
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 229
+vpaddw	xmm0, xmm0, xmm1
+vpextrw	eax, xmm0, 0
+ret
+
+^f6(
+vmovdqa	xmm1, xmm0
+vpsraw	xmm0, xmm0, 8
+vpaddw	xmm0, xmm0, xmm1
+vpsrldq	xmm1, xmm0, 8
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 238
+vpaddw	xmm0, xmm0, xmm1
+vpshuflw	xmm1, xmm0, 229
+vpaddw	xmm0, xmm0, xmm1
+vpextrw	eax, xmm0, 0
+ret
+
+^f7(
+vmovdqa	xmm1, xmm0
+vpsrldq	xmm0, xmm0, 8
+vpaddq	xmm0, xmm1, xmm0
+vmovq	rax, xmm0
+ret
+*/
+
 #include "../simd_reductions.h"
 
 auto

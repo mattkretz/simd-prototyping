@@ -36,7 +36,7 @@ $(more_checks): $(check_targets)
 check-run-missing: $(check_targets)
 	@$(MAKE) -f Makefile.more --no-print-directory exe_template= $@
 
-helptargets := $(more_checks) check-run-missing check-reduce check-simd_cat check-constexpr
+helptargets := $(more_checks) check-run-missing $(codegen_targets) check-constexpr
 
 define simple_check_template
 check-$(1): $(2)
