@@ -17,6 +17,15 @@
 namespace std::__detail
 {
   template <typename _Tp>
+    _GLIBCXX_SIMD_INTRINSIC constexpr bool
+    __is_power2_minus_1(_Tp __x)
+    {
+      using _Ip = __make_signed_int_t<_Tp>;
+      _Ip __y = __builtin_bit_cast(_Ip, __x);
+      return __y == -1 or std::__has_single_bit(__x + 1);
+    }
+
+  template <typename _Tp>
     struct __assert_unreachable
     { static_assert(!is_same_v<_Tp, _Tp>, "this should be unreachable"); };
 

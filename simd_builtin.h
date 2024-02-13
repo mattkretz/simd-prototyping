@@ -902,6 +902,10 @@ namespace std::__detail
             return;
           else if (_S_is_constprop_all_of(__k))
             __lhs = __rhs;
+          else if (_S_is_constprop_single_value(__rhs))
+            _SuperImpl::_S_masked_assign(__k, __lhs, __rhs[0]);
+          else if (_S_is_constprop_all_equal(__lhs, 0))
+            __lhs = __vec_and(reinterpret_cast<_TV>(__k), __rhs);
           else
             __lhs = __k ? __rhs : __lhs;
         }
@@ -911,15 +915,35 @@ namespace std::__detail
         _S_masked_assign(_MaskMember<_TV> __k, _TV& __lhs,
                          __type_identity_t<__value_type_of<_TV>> __rhs)
         {
-          constexpr _SimdSizeType _Np = _S_size;
-          if (_S_is_constprop_none_of(__k))
+          if (_S_is_constprop_none_of(__k) or _S_is_constprop_all_equal(__lhs, __rhs))
             return;
           else if (_S_is_constprop_all_of(__k))
-            __lhs = __vec_broadcast<_Np>(__rhs);
+            __lhs = __vec_broadcast<_S_size>(__rhs);
           else if (__builtin_constant_p(__rhs) and __rhs == 0)
             __lhs = __vec_andnot(reinterpret_cast<_TV>(__k), __lhs);
+          else if (_S_is_constprop_all_equal(__lhs, 0))
+            {
+              if (sizeof(__lhs) >= 8 and __builtin_constant_p(__rhs) and __is_power2_minus_1(__rhs))
+                {
+                  using _Up = __make_unsigned_int_t<__value_type_of<_TV>>;
+                  auto __ku = __vec_bitcast<_Up>(__k);
+                  const int __zeros = std::__countl_zero(__builtin_bit_cast(_Up, __rhs));
+                  __lhs = reinterpret_cast<_TV>(_SuperImpl::_S_bit_shift_right(__ku, __zeros));
+                }
+              else if constexpr (sizeof(_TV) < 8)
+                {
+                  using _Up = __make_unsigned_int_t<_TV>;
+                  _Up __tmp = __builtin_bit_cast(_Up, __k)
+                                & _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                    return ((_Up(__rhs) << (_Is * __CHAR_BIT__)) | ...);
+                                  });
+                  __lhs = __builtin_bit_cast(_TV, __tmp);
+                }
+              else
+                __lhs = __vec_and(reinterpret_cast<_TV>(__k), __vec_broadcast<_S_size>(__rhs));
+            }
           else
-            __lhs = __k ? __vec_broadcast<_Np>(__rhs) : __lhs;
+            __lhs = __k ? __vec_broadcast<_S_size>(__rhs) : __lhs;
         }
 
       template <typename _Op, __vec_builtin _TV>
@@ -932,6 +956,23 @@ namespace std::__detail
             __lhs = __op(_SuperImpl{}, __lhs, __rhs);
           else
             __lhs = __k ? __op(_SuperImpl{}, __lhs, __rhs) : __lhs;
+        }
+
+      // mask blending
+      template <__vec_builtin _TV>
+        requires std::signed_integral<__value_type_of<_TV>>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr void
+        _S_masked_assign(_TV __k, _TV& __lhs, bool __rhs)
+        {
+          if (__builtin_constant_p(__rhs))
+            {
+              if (__rhs == false)
+                __lhs = __vec_andnot(__k, __lhs);
+              else
+                __lhs = __vec_or(__k, __lhs);
+            }
+          else
+            __lhs = __k ? (__rhs ? -1 : 0) : __lhs;
         }
 
       template <__vec_builtin _TV, size_t _Np, bool _Sanitized>
@@ -989,6 +1030,35 @@ namespace std::__detail
               }
           return _GLIBCXX_SIMD_VEC_GEN(_MaskMember<_Tp>, _S_size, __i,
                                        {(__mem[__i] ? ~_I() : _I())...});
+        }
+
+      _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+      _S_is_constprop_single_value(__vec_builtin auto __v)
+      {
+        const bool __single_value = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                      return ((__v[_Is] == __v[0]) and ...);
+                                    });
+        return __builtin_constant_p(__single_value) and __single_value;
+      }
+
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+        _S_is_constprop_all_equal(_TV __v, __value_type_of<_TV> __value)
+        {
+          const bool __all_equal = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                     return ((__v[_Is] == __value) and ...);
+                                   });
+          return __builtin_constant_p(__all_equal) and __all_equal;
+        }
+
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr bool
+        _S_is_constprop_all_equal(_TV __v, _TV __w)
+        {
+          const bool __all_equal = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                     return ((__v[_Is] == __w[_Is]) and ...);
+                                   });
+          return __builtin_constant_p(__all_equal) and __all_equal;
         }
 
       template <typename _Tp, size_t _Np, bool _Sanitized>
@@ -1062,27 +1132,6 @@ namespace std::__detail
             return __vec_andnot(__x, reinterpret_cast<_TV>(_Abi::template _S_implicit_mask<_Tp>));
           else
             return __vec_not(__x);
-        }
-
-      template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_masked_assign(_TV __k, _TV& __lhs, _TV __rhs)
-        { __lhs = __k ? __rhs : __lhs; }
-
-      template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_masked_assign(_TV __k, _TV& __lhs, bool __rhs)
-        {
-          static_assert(is_integral_v<__value_type_of<_TV>> and is_signed_v<__value_type_of<_TV>>);
-          if (__builtin_constant_p(__rhs))
-            {
-              if (__rhs == false)
-                __lhs = __vec_andnot(__k, __lhs);
-              else
-                __lhs = __vec_or(__k, __lhs);
-              return;
-            }
-          __lhs = __k ? (__rhs ? -1 : 0) : __lhs;
         }
 
       template <size_t _Bs>

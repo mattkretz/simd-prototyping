@@ -273,22 +273,9 @@ namespace std
         operator basic_simd<_Up, _UAbi>() const noexcept
         {
           using _Rp = basic_simd<_Up, _UAbi>;
-          if constexpr (sizeof(basic_simd_mask) == sizeof(_Rp) && sizeof(_Up) == _Bytes)
-            {
-              using _Unsigned = simd<__detail::__make_unsigned_int_t<_Up>, _Rp::size()>;
-              const auto __bits = std::bit_cast<_Unsigned>(__data(*this));
-              if constexpr (std::integral<_Up>)
-                return std::bit_cast<_Rp>(__bits >> (sizeof(_Up) * __CHAR_BIT__ - 1));
-              else
-                return std::bit_cast<_Rp>(__bits & std::bit_cast<_Unsigned>(
-                                                     _Rp::_Impl::_S_broadcast(_Up(1))));
-            }
-          else
-            {
-              _Rp __r {};
-              _Rp::_Impl::_S_masked_assign(__data(*this), __data(__r), 1);
-              return __r;
-            }
+          _Rp __r {};
+          _Rp::_Impl::_S_masked_assign(__data(*this), __data(__r), 1);
+          return __r;
         }
 
       // [simd.mask.binary]
@@ -395,9 +382,10 @@ namespace std
         simd<__detail::__nopromot_common_type_t<_T0, _T1>, size.value>
         simd_select_impl(const basic_simd_mask& __k, const _T0& __t, const _T1& __f) noexcept
         {
-          using _Rp = simd<__detail::__nopromot_common_type_t<_T0, _T1>, size()>;
-          _Rp __ret = __f;
-          _Rp::_Impl::_S_masked_assign(__data(__k), __data(__ret), __data(_Rp(__t)));
+          using _Rp = __detail::__nopromot_common_type_t<_T0, _T1>;
+          using _RV = simd<_Rp, size.value>;
+          _RV __ret = __f;
+          _RV::_Impl::_S_masked_assign(__data(__k), __data(__ret), _Rp(__t));
           return __ret;
         }
 

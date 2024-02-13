@@ -553,10 +553,23 @@ namespace std
             _Impl0::_S_masked_assign(__vec_extract_part<1, 2>(__k), __lhs[1], __rhs[1]);
           }
 
-        template <typename _Tp>
+        template <typename _KV, typename _TV>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_masked_assign(const auto& __k, _Tp& __lhs, _ValueTypeOf<_Tp> __rhs)
+          _S_masked_assign(const array<_KV, _Np>& __k, array<_TV, _Np>& __lhs, __value_type_of<_TV> __rhs)
           { (_Impl0::_S_masked_assign(__k[_Is], __lhs[_Is], __rhs), ...); }
+
+        template <__vec_builtin _KV, typename _TV>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_masked_assign(const array<_KV, _Np / 2>& __k, array<_TV, _Np>& __lhs, __value_type_of<_TV> __rhs)
+          {
+            (_Impl0::_S_masked_assign(__vec_extract_part<_Is % 2, 2>(__k[_Is / 2]),
+                                      __lhs[_Is], __rhs), ...);
+          }
+
+        template <__vec_builtin _KV, typename _TV>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_masked_assign(const _KV __k, array<_TV, _Np>& __lhs, __value_type_of<_TV> __rhs)
+          { (_Impl0::_S_masked_assign(__vec_extract_part<_Is, _Np>(__k), __lhs[_Is], __rhs), ...); }
 
         template <typename _Tp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
@@ -769,6 +782,16 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
           _S_make_mask(_BitMask<_Np, _Sanitized> __bits)
           { return _MaskImpl::template _S_convert<_Tp>(_S_submask(__bits)._M_sanitized()); }
+
+        template <__vec_builtin _KV>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
+          _S_make_mask(_KV __k)
+          {
+            if constexpr (_S_size == 1)
+              return __k[__offset] != 0;
+            else
+              return __vec_extract_part<__offset, __width_of<_KV>, _S_size>(__k);
+          }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr unsigned long long
         _S_mask_to_shifted_ullong(_MaskMember __k)
@@ -1416,7 +1439,7 @@ namespace std
 
         template <typename _Tp, typename... _As>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_masked_assign(const _MaskMember __bits, _SimdTuple<_Tp, _As...>& __lhs,
+          _S_masked_assign(const auto __bits, _SimdTuple<_Tp, _As...>& __lhs,
                            const __type_identity_t<_SimdTuple<_Tp, _As...>>& __rhs)
           {
             __lhs._M_forall(__rhs, [&] [[__gnu__::__always_inline__]]
@@ -1429,7 +1452,7 @@ namespace std
         // simd first.
         template <typename _Tp, typename... _As>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_masked_assign(const _MaskMember __bits, _SimdTuple<_Tp, _As...>& __lhs,
+          _S_masked_assign(const auto __bits, _SimdTuple<_Tp, _As...>& __lhs,
                            const __type_identity_t<_Tp> __rhs)
           {
             __lhs._M_forall([&] [[__gnu__::__always_inline__]]

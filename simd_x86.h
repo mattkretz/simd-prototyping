@@ -638,8 +638,47 @@ namespace std::__detail
         _S_masked_assign(_MaskMember<_TV> __k, _TV& __lhs,
                          __type_identity_t<__value_type_of<_TV>> __rhs)
         {
+          using _Tp = __value_type_of<_TV>;
           if constexpr (_S_use_bitmasks)
             __lhs = _S_select_bitmask(__k, __vec_broadcast<_S_size>(__rhs), __lhs);
+          else if (_Base::_S_is_constprop_none_of(__k))
+            return;
+          else if (_Base::_S_is_constprop_all_of(__k))
+            __lhs = __vec_broadcast<_S_size>(__rhs);
+          else if constexpr (sizeof(_Tp) == 1 and is_integral_v<_Tp>
+                               and sizeof(_TV) >= 8 and sizeof(_TV) <= 32)
+            {
+              // x86 has no byte-sized SIMD shift, so use `psignb` when available, otherwise use a
+              // single `and`, instead of calling the _Base impl which shifts.
+              if (_Base::_S_is_constprop_all_equal(__lhs, 0))
+                {
+                  if constexpr ((_Flags._M_have_ssse3 and sizeof(_TV) <= 16)
+                                  or (_Flags._M_have_avx2 and sizeof(_TV) == 32))
+                    {
+                      if (__builtin_constant_p(__rhs) and __rhs == 1)
+                        {
+                          // like simd_mask::operator+ / mask conversion to _SimdType
+                          const auto __ki = __vec_bitcast<__x86_builtin_int_t<_Tp>>(__k);
+                          if constexpr (sizeof(_TV) == 32)
+                            __lhs = reinterpret_cast<_TV>(__builtin_ia32_psignb256(__ki, __ki));
+                          else
+                            {
+                              auto __k16 = __vec_zero_pad_to_16(__ki);
+                              __lhs = __vec_bitcast_trunc<_TV>(
+                                        __builtin_ia32_psignb128(__k16, __k16));
+                            }
+                        }
+                      else
+                        __lhs = __vec_and(reinterpret_cast<_TV>(__k),
+                                          __vec_broadcast<_S_size>(__rhs));
+                    }
+                  else
+                    __lhs = __vec_and(reinterpret_cast<_TV>(__k),
+                                      __vec_broadcast<_S_size>(__rhs));
+                }
+              else
+                _Base::_S_masked_assign(__k, __lhs, __rhs);
+            }
           else
             _Base::_S_masked_assign(__k, __lhs, __rhs);
         }

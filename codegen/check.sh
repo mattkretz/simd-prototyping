@@ -15,7 +15,7 @@ cat "$srcfile" | while read line; do
         ;;
 
       *'*/')
-        exit 0
+        parse=false
         ;;
 
       '^'*)
@@ -28,10 +28,11 @@ cat "$srcfile" | while read line; do
         if ! echo "$asm" | grep --color=auto "$line"; then
           echo "Failure on '$regex' in line $n: $asm."
           echo "Expected '$line'."
-          exit 1
+          exit 2
         fi
         n=$((n+1))
         ;;
     esac
   fi
 done
+[ $? = 1 ]

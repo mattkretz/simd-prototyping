@@ -648,7 +648,7 @@ namespace std::__detail
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr void
-      _S_masked_assign(bool __k, _Tp& __lhs, _Tp __rhs)
+      _S_masked_assign(bool __k, _Tp& __lhs, __type_identity_t<_Tp> __rhs)
       { if (__k) __lhs = __rhs; }
   };
 
