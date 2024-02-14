@@ -12,6 +12,26 @@ fortestarchs := for a in $(testarchs); do
 fortesttypes := for type in $(testtypes); do
 fortestwidths := for w in $(testwidths); do
 
+define ccjson
+  { "directory": "$(PWD)",
+    "arguments": ["$(CXX)", $(CXXFLAGS:%="%",) "-march=$1", "-include", "obj/$1.h", "-S", "$2"],
+    "file": "$2" }
+endef
+
+obj/compile_commands.json: Makefile Makefile.common
+	@mkdir -p obj
+	$(file >$@,[)
+	$(file >>$@,$(call ccjson,$(firstword $(testarchs)),constexpr_tests.c++)$(foreach arch,$(wordlist 2,$(words $(testarchs)),$(testarchs)),,$(call ccjson,$(arch),constexpr_tests.c++)))
+	$(file >>$@,])
+
+.PHONY: metrics
+metrics:
+	@sloccount *.h tests/*.h Makefile*
+
+.PHONY: tidy
+tidy: obj/compile_commands.json
+	@clang-tidy -p obj constexpr_tests.c++
+
 .PHONY: debug
 debug:
 	@echo "compiler: $(compiler)"

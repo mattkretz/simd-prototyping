@@ -2096,7 +2096,7 @@ namespace std::__detail
         requires floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_ldexp(_TV __x, typename _Abi::template _Rebind<
-                            __make_dependent_t<int, _TV>>::_SimdMember<int> __exp)
+                            __make_dependent_t<int, _TV>>::template _SimdMember<int> __exp)
         {
           using _ExpAbi = typename _Abi::template _Rebind<int>;
           using _Tp = __value_type_of<_TV>;

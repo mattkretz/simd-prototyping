@@ -193,10 +193,10 @@ namespace std
                                    }(make_index_sequence<_Np>()));
 
       template <typename _Tp>
-        using _SimdMember = std::array<typename _Abi0::_SimdMember<_Tp>, _Np>;
+        using _SimdMember = std::array<typename _Abi0::template _SimdMember<_Tp>, _Np>;
 
       template <typename _Tp>
-        using _MaskMember = std::array<typename _Abi0::_MaskMember<_Tp>, _Np>;
+        using _MaskMember = std::array<typename _Abi0::template _MaskMember<_Tp>, _Np>;
 
       template <typename _Tp>
         struct __traits
@@ -213,9 +213,9 @@ namespace std
 
           using _MaskImpl = _AbiArray::_MaskImpl;
 
-          using _SimdMember = std::array<typename _Abi0::_SimdMember<_Tp>, _Np>;
+          using _SimdMember = std::array<typename _Abi0::template _SimdMember<_Tp>, _Np>;
 
-          using _MaskMember = std::array<typename _Abi0::_MaskMember<_Tp>, _Np>;
+          using _MaskMember = std::array<typename _Abi0::template _MaskMember<_Tp>, _Np>;
 
           static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
@@ -347,18 +347,18 @@ namespace std
           using _TypeTag = _Tp*;
 
         template <__vectorizable _Tp>
-          using _SimdMember = typename abi_type::_SimdMember<_Tp>;
+          using _SimdMember = typename abi_type::template _SimdMember<_Tp>;
 
         template <typename _Tp> // std::array of __vec_builtin
           using _ValueTypeOf = __value_type_of<typename _Tp::value_type>;
 
         template <typename _Tp>
           struct _MaskMemberImpl
-          { using type = typename abi_type::_MaskMember<_ValueTypeOf<_Tp>>; };
+          { using type = typename abi_type::template _MaskMember<_ValueTypeOf<_Tp>>; };
 
         template <__vectorizable _Tp>
           struct _MaskMemberImpl<_Tp>
-          { using type = typename abi_type::_MaskMember<_Tp>; };
+          { using type = typename abi_type::template _MaskMember<_Tp>; };
 
         template <typename _Tp>
           using _MaskMember = typename _MaskMemberImpl<_Tp>::type;
@@ -595,13 +595,13 @@ namespace std
           using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
 
         template <__vectorizable _Tp>
-          using _MaskMember0 = typename _Abi0::_MaskMember<_Tp>;
+          using _MaskMember0 = typename _Abi0::template _MaskMember<_Tp>;
 
         template <__vectorizable _Tp>
           using _MaskMember = std::array<_MaskMember0<_Tp>, _Np>;
 
         template <__vectorizable _Tp>
-          using _SimdMember = typename abi_type::_SimdMember<_Tp>;
+          using _SimdMember = typename abi_type::template _SimdMember<_Tp>;
 
         static constexpr _SimdSizeType _S_size = abi_type::_S_size;
 
@@ -820,14 +820,14 @@ namespace std
       struct _SimdTupleData
       {
         static_assert(sizeof...(_As) != 0);
-        typename _A0::_SimdMember<_Tp> _M_x;
+        typename _A0::template _SimdMember<_Tp> _M_x;
         _SimdTuple<_Tp, _As...> _M_tail;
       };
 
     template <typename _Tp, __valid_abi_tag<_Tp> _A0>
       struct _SimdTupleData<_Tp, _A0>
       {
-        typename _A0::_SimdMember<_Tp> _M_x;
+        typename _A0::template _SimdMember<_Tp> _M_x;
         static constexpr _SimdTuple<_Tp> _M_tail = {};
       };
 

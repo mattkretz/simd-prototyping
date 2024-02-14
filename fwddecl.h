@@ -96,19 +96,26 @@ namespace std
     template <> struct __is_vectorizable<std::float64_t> : bool_constant<true> {};
 #endif
 
+    template <typename _Tp, typename>
+      struct __make_dependent
+      { using type = _Tp; };
+
+    template <typename _Tp, typename _Up>
+      using __make_dependent_t = typename __make_dependent<_Tp, _Up>::type;
+
     template <int _Bs, typename _Tp>
       consteval auto
       __native_abi_impl_recursive()
       {
         constexpr int _Width = _Bs / sizeof(_Tp);
-        if constexpr (_Avx512Abi<_Width>::template _S_is_valid_v<_Tp>)
+        if constexpr (_Avx512Abi<_Width>::template _IsValid<_Tp>::value)
           return _Avx512Abi<_Width>();
-        else if constexpr (_VecAbi<_Width>::template _S_is_valid_v<_Tp>)
+        else if constexpr (_VecAbi<_Width>::template _IsValid<_Tp>::value)
           return _VecAbi<_Width>();
         else if constexpr (_Bs > sizeof(_Tp))
           return __native_abi_impl_recursive<_Bs / 2, _Tp>();
         else
-          return _ScalarAbi();
+          return __make_dependent_t<_ScalarAbi, _Tp>();
       }
 
     struct _InvalidAbi
@@ -122,10 +129,7 @@ namespace std
           {
             // __one is used to make _VecAbi a dependent type
             constexpr int __one = sizeof(_Tp) / sizeof(_Tp);
-            if constexpr (sizeof(_Tp) > 8)
-              return _ScalarAbi();
-            else
-              return __native_abi_impl_recursive<__one * 256, _Tp>();
+            return __native_abi_impl_recursive<__one * 256, _Tp>();
           }
         else
           return _InvalidAbi();

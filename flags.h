@@ -3,6 +3,9 @@
  *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
+#ifndef PROTOTYPE_FLAGS_H_
+#define PROTOTYPE_FLAGS_H_
+
 #include "simd_config.h"
 
 #include <bit>
@@ -236,3 +239,5 @@ namespace std
     inline constexpr simd_flags<__detail::_Prefetch<_L1, _L2>> simd_flag_prefetch;
 
 } // namespace std
+
+#endif  // PROTOTYPE_FLAGS_H_

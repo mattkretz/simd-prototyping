@@ -6,7 +6,10 @@
 #ifndef PROTOTYPE_X86_DETAIL_H_
 #define PROTOTYPE_X86_DETAIL_H_
 
-#include "detail.h"
+#include "simd_meta.h"
+#include "vec_detail.h"
+
+#include <cstdint>
 
 #if _GLIBCXX_SIMD_HAVE_SSE
 
@@ -118,10 +121,12 @@ namespace std::__detail
   template <__vectorizable _Tp>
     using __x86_builtin_fp_t = typename __x86_builtin_fp<_Tp>::type;
 
+#ifdef __STDCPP_FLOAT16_T__
   template <__vectorizable _Tp>
     requires(sizeof(_Tp) == 2)
     struct __x86_builtin_fp<_Tp>
     { using type = std::float16_t; };
+#endif
 
   template <__vectorizable _Tp>
     requires(sizeof(_Tp) == 4)
