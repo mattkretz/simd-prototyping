@@ -14,6 +14,7 @@ fortestwidths := for w in $(testwidths); do
 
 .PHONY: debug
 debug:
+	@echo "compiler: $(compiler)"
 	@echo "$(testarchs)"
 	@echo "$(tests)"
 	@echo "$(testwidths)"

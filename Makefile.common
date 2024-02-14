@@ -1,4 +1,17 @@
-CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -fconcepts-diagnostics-depth=3 -Wno-attributes
+CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
+
+ifneq ($(shell $(CXX) --version|grep -i clang),)
+compiler:=clang
+else ifneq ($(shell $(CXX) --version|grep 'g++'),)
+compiler:=gcc
+else
+compiler:=unknown
+endif
+
+ifeq ($(compiler),gcc)
+CXXFLAGS+=-fconcepts-diagnostics-depth=3
+endif
+
 #-D_GLIBCXX_DEBUG_UB=1
 
 icerun := $(shell which icerun)
