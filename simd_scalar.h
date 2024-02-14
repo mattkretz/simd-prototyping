@@ -59,9 +59,6 @@ namespace std
     template <typename _Tp>
       using _IsValid = __detail::__is_vectorizable<_Tp>;
 
-    template <typename _Tp>
-      static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
-
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
     _S_masked(bool __x)
     { return __x; }
@@ -82,10 +79,9 @@ namespace std
       {};
 
     template <typename _Tp>
-      requires _S_is_valid_v<_Tp>
+      requires _IsValid<_Tp>::value
       struct __traits<_Tp>
       {
-	using _IsValid = true_type;
 
 	using _SimdImpl = __detail::_SimdImplScalar;
 

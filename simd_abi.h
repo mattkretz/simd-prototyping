@@ -36,7 +36,7 @@ namespace std
       {
         template <typename _Tp, int _Np>
           static constexpr bool _S_A0_is_valid
-            = _A0<_Np>::template _S_is_valid_v<_Tp> and _A0<_Np>::_S_size == _Np;
+            = _A0<_Np>::template _IsValid<_Tp>::value and _A0<_Np>::_S_size == _Np;
 
         template <typename _Tp, int _Np>
           static constexpr bool _S_has_valid_abi
@@ -56,7 +56,7 @@ namespace std
             if constexpr (_Next <= 1) // break recursion
               return _A0<_Np>();
             else if constexpr (_NextAbi::_S_is_partial == false
-                                 and _NextAbi::template _S_is_valid_v<_Tp>)
+                                 and _NextAbi::template _IsValid<_Tp>::value)
               return _NextAbi();
             else
               return _S_find_next_valid_abi<_Tp, _Next>();
@@ -84,7 +84,8 @@ namespace std
                 else
                   {
                     using _Bp = decltype(_S_find_next_valid_abi<_Tp, _Np>());
-                    if constexpr (_Bp::template _S_is_valid_v<_Tp> and _Bp::_S_size <= _Np)
+                    if constexpr (_Bp::template _IsValid<_Tp>::value
+                                    and _Bp::_S_size <= _Np)
                       return _Bp{};
                     else
                       return _AbiList<_Rest...>::template _S_determine_best_abi<_Tp, _Np>();
@@ -179,9 +180,6 @@ namespace std
         : conjunction<_IsValidAbiTag, __detail::__is_vectorizable<_Tp>, _IsValidSizeFor<_Tp>>
         {};
 
-      template <typename _Tp>
-        static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
-
       using _SimdImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
                                    -> __detail::_SimdImplArray<_Abi0, _Is...> {
                                      return {};
@@ -204,10 +202,9 @@ namespace std
         {};
 
       template <typename _Tp>
-        requires _S_is_valid_v<_Tp>
+        requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
-          using _IsValid = true_type;
 
           using _SimdImpl = _AbiArray::_SimdImpl;
 
@@ -259,9 +256,6 @@ namespace std
         : conjunction<_IsValidAbiTag, __detail::__is_vectorizable<_Tp>, _IsValidSizeFor<_Tp>>
         {};
 
-      template <typename _Tp>
-        static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
-
       _GLIBCXX_SIMD_INTRINSIC static constexpr __detail::_SanitizedBitMask<_Np>
       _S_masked(__detail::_BitMask<_Np> __x)
       { return __x._M_sanitized(); }
@@ -288,10 +282,9 @@ namespace std
         {};
 
       template <typename _Tp>
-        requires _S_is_valid_v<_Tp>
+        requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
-          using _IsValid = true_type;
 
           using _SimdImpl = __detail::_SimdImplAbiCombine<_Np, _Tag>;
 
@@ -1654,7 +1647,7 @@ namespace std
     template <__vectorizable _Tp, _SimdSizeType _Np>
       requires (not _AllNativeAbis::template _S_has_valid_abi<_Tp, _Np>
                   and _Np % _NativeAbi<_Tp>::_S_size != 0
-                  and _AbiCombine<_Np, _NativeAbi<_Tp>>::template _S_is_valid_v<_Tp>)
+                  and _AbiCombine<_Np, _NativeAbi<_Tp>>::template _IsValid<_Tp>::value)
       struct _DeduceAbi<_Tp, _Np>
       { using type = _AbiCombine<_Np, _NativeAbi<_Tp>>; };
 

@@ -180,7 +180,6 @@ namespace std
         ~_Unusable() = delete;
       };
 
-      using _IsValid = false_type;
 
       static constexpr int _S_size = 0;
       static constexpr int _S_full_size = 0;

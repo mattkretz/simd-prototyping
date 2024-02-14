@@ -29,9 +29,6 @@ namespace std
       template <typename>
         using _IsValid = false_type;
 
-      template <typename>
-        static constexpr bool _S_is_valid_v = false;
-
       static constexpr __detail::_SimdSizeType _S_size = 0;
 
       static constexpr __detail::_SimdSizeType _S_full_size = 0;
@@ -63,10 +60,9 @@ namespace std
         {};
 
       template <typename _Tp>
-        requires (_VecAbi<_Width>::template _S_is_valid_v<_Tp>)
+        requires (_VecAbi<_Width>::template _IsValid<_Tp>::value)
         struct __traits<_Tp>
         {
-          using _IsValid = true_type;
 
           using _Impl = __detail::_ImplBuiltin<_Avx512Abi>;
 
@@ -130,7 +126,7 @@ namespace std
 
       template <__detail::__vectorizable _Up>
         using _Rebind = std::conditional_t<
-                          _Avx512Abi<_S_size>::template _S_is_valid_v<_Up>,
+                          _Avx512Abi<_S_size>::template _IsValid<_Up>::value,
                           _Avx512Abi<_S_size>, __detail::__deduce_t<_Up, _S_size>>;
 
       template <typename _Tp>

@@ -56,9 +56,6 @@ namespace std
         {};
 
       template <typename _Tp>
-        static constexpr bool _S_is_valid_v = _IsValid<_Tp>::value;
-
-      template <typename _Tp>
         using _MaskValueType = __detail::__make_signed_int_t<_Tp>;
 
       template <typename _Tp>
@@ -67,10 +64,9 @@ namespace std
         {};
 
       template <typename _Tp>
-        requires _S_is_valid_v<_Tp>
+        requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
-          using _IsValid = true_type;
 
           using _Impl = __detail::_ImplBuiltin<_VecAbi>;
 
@@ -141,7 +137,7 @@ namespace std
 
       template <__detail::__vectorizable _Up>
         using _Rebind = std::conditional_t<
-                          _VecAbi<_S_size>::template _S_is_valid_v<_Up>,
+                          _VecAbi<_S_size>::template _IsValid<_Up>::value,
                           _VecAbi<_S_size>, __detail::__deduce_t<_Up, _S_size>>;
 
       template <typename _Tp>
