@@ -180,6 +180,8 @@ namespace std
         ~_Unusable() = delete;
       };
 
+      template <typename>
+        static constexpr bool _S_explicit_mask_conversion = true;
 
       static constexpr int _S_size = 0;
       static constexpr int _S_full_size = 0;

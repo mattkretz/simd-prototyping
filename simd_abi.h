@@ -15,9 +15,6 @@
 
 namespace std
 {
-  template <typename _Abi0, __detail::_SimdSizeType _Np>
-    struct _AbiArray;
-
   namespace __detail
   {
     template <int _Bytes>
@@ -205,6 +202,10 @@ namespace std
         requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
+          // conversions to _AbiArray should be explicit unless _FromAbi is _AbiCombine
+          template <typename _FromAbi>
+            static constexpr bool _S_explicit_mask_conversion
+              = not is_same_v<_FromAbi, _AbiCombine<_S_size, __detail::_NativeAbi<_Tp>>>;
 
           using _SimdImpl = _AbiArray::_SimdImpl;
 
@@ -285,6 +286,9 @@ namespace std
         requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
+          // conversions to _AbiCombine should always be explicit
+          template <typename _FromAbi>
+            static constexpr bool _S_explicit_mask_conversion = true;
 
           using _SimdImpl = __detail::_SimdImplAbiCombine<_Np, _Tag>;
 

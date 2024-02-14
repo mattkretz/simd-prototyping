@@ -82,6 +82,9 @@ namespace std
       requires _IsValid<_Tp>::value
       struct __traits<_Tp>
       {
+        // conversions to _ScalarAbi should always be implicit
+        template <typename _FromAbi>
+          static constexpr bool _S_explicit_mask_conversion = false;
 
 	using _SimdImpl = __detail::_SimdImplScalar;
 

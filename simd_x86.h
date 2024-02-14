@@ -63,6 +63,9 @@ namespace std
         requires (_VecAbi<_Width>::template _IsValid<_Tp>::value)
         struct __traits<_Tp>
         {
+          // conversions to _Avx512Abi should always be implicit
+          template <typename _FromAbi>
+            static constexpr bool _S_explicit_mask_conversion = false;
 
           using _Impl = __detail::_ImplBuiltin<_Avx512Abi>;
 

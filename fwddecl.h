@@ -147,6 +147,12 @@ namespace std
       using __deduce_t = typename _DeduceAbi<_Tp, _Np>::type;
   }
 
+  template <typename _Abi0, __detail::_SimdSizeType _Np>
+    struct _AbiArray;
+
+  template <__detail::_SimdSizeType _Np, typename _Tag>
+    struct _AbiCombine;
+
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     class basic_simd;
 

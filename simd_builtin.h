@@ -40,14 +40,14 @@ namespace std
       : bool_constant<(_Width > 1)>
       {};
 
-      template <typename _Tp>
+      template <typename _Tp, auto _Flags = __detail::__build_flags()>
         struct _IsValidSizeFor
-        : bool_constant<(_Width >= 2
-                           and sizeof(_Vp<_Tp>) == alignof(_Vp<_Tp>)
-#if defined __AVX__ and not defined __AVX2__
-                           and (sizeof(_Vp<_Tp>) <= 16 or is_floating_point_v<_Tp>)
+        : bool_constant<_Width >= 2 and sizeof(_Vp<_Tp>) == alignof(_Vp<_Tp>)
+#ifdef _GLIBCXX_SIMD_HAVE_SSE
+                          and (not _Flags._M_have_avx or _Flags._M_have_avx2
+                                 or sizeof(_Vp<_Tp>) <= 16 or is_floating_point_v<_Tp>)
 #endif
-                        )>
+                       >
         {};
 
       template <typename _Tp>
@@ -67,6 +67,9 @@ namespace std
         requires _IsValid<_Tp>::value
         struct __traits<_Tp>
         {
+          // conversions to _VecAbi should be implicit unless _FromAbi is derived from _VecAbi
+          template <typename _FromAbi>
+            static constexpr bool _S_explicit_mask_conversion = is_base_of_v<_VecAbi, _FromAbi>;
 
           using _Impl = __detail::_ImplBuiltin<_VecAbi>;
 
