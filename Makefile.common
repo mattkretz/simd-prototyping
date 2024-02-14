@@ -138,9 +138,9 @@ obj/codegen.depend: $(codegen_files)
 
 include obj/codegen.depend
 
-$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\')
+$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\') obj/%.h.gch
 	@echo "Build constexpr tests for $*"
-	@$(CXX) $(CXXFLAGS) -march=$* -S -o $@ constexpr_tests.c++
+	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.h -S -o $@ constexpr_tests.c++
 
 check/%: obj/%.exe
 	@mkdir -p $(dir $@)
