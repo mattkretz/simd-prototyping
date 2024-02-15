@@ -1026,15 +1026,15 @@ namespace std::__detail
         _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
         { return _SuperImpl::template _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
-      template <__vec_builtin _TV, typename _Tp = __value_type_of<_TV>,
-                _SimdSizeType _Np = _S_size>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_Np>
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_S_size>
         _S_to_bits(_TV __x)
         {
-          static_assert(_Np <= __CHAR_BIT__ * sizeof(unsigned long long));
-          return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
-                   return ((static_cast<unsigned long long>(-__vec_get(__x, _Is)) << _Is) | ...);
-                 });
+          static_assert(_S_size <= __CHAR_BIT__ * sizeof(unsigned long long));
+          return _SanitizedBitMask<_S_size>::__create_unchecked(
+                   _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                     return ((static_cast<unsigned long long>(-__vec_get(__x, _Is)) << _Is) | ...);
+                   }));
         }
 
       template <typename _Tp>
@@ -1164,7 +1164,7 @@ namespace std::__detail
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
         _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
-        { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_to_bits()); }
+        { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
     };
 
   template <__vectorizable _From, int _FromBytes, __vectorizable _To, int _ToBytes>

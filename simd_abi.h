@@ -795,7 +795,10 @@ namespace std
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr unsigned long long
         _S_mask_to_shifted_ullong(_MaskMember __k)
-        { return _MaskImpl::_S_to_bits(__k).to_ullong() << _S_offset; }
+        {
+          unsigned long long __bits = _MaskImpl::_S_to_bits(__k)._M_sanitized()._M_to_bits();
+          return __bits << _S_offset;
+        }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr basic_simd<_Tp, _A0>
         _S_to_simd(const _Traits::_SimdMember& __x0)
@@ -1487,7 +1490,7 @@ namespace std
           }
 
         template <bool _Sanitized>
-          _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_Np>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _BitMask<_Np, _Sanitized>
           _S_to_bits(_BitMask<_Np, _Sanitized> __x)
           { return __x; }
 
@@ -1527,7 +1530,7 @@ namespace std
         static constexpr _MaskMember
         _S_masked_load(_MaskMember __merge, _MaskMember __mask, const bool* __mem) noexcept
         {
-          _S_bit_iteration(__mask.to_ullong(),
+          _S_bit_iteration(__mask,
               [&] [[__gnu__::__always_inline__]] (auto __i) {
               __merge.set(__i, __mem[__i]);
               });
@@ -1614,12 +1617,12 @@ namespace std
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
           _S_find_first_set(const basic_simd_mask<_Bs, _Abi> & __k)
-          { return __detail::__lowest_bit(__data(__k).to_ullong()); }
+          { return __detail::__lowest_bit(__data(__k)._M_to_bits()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
           _S_find_last_set(const basic_simd_mask<_Bs, _Abi> & __k)
-          { return __detail::__highest_bit(__data(__k).to_ullong()); }
+          { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
       };
 
     // try all native ABIs (including scalar) first

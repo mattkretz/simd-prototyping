@@ -670,7 +670,7 @@ namespace std::__detail
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<1>
     _S_to_bits(bool __x)
-    { return __x; }
+    { return _SanitizedBitMask<1>::__create_unchecked(__x); }
 
     template <same_as<bool>, bool _Sanitized>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool

@@ -245,7 +245,8 @@ namespace std
         return _Abi::_MaskImpl::_S_find_last_set(__k);
 
       else
-        return __detail::__highest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
+        return __detail::__highest_bit(
+                 _Abi::_MaskImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits());
     }
 
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool

@@ -40,16 +40,12 @@ namespace std::__detail
    */
   inline constexpr struct _PrivateInit {} __private_init = {};
 
-  template <typename _Tp, typename _Fp>
-    static void
+  template <integral _Tp, typename _Fp>
+    _GLIBCXX_SIMD_INTRINSIC static void
     _S_bit_iteration(_Tp __mask, _Fp&& __f)
     {
       static_assert(sizeof(0ULL) >= sizeof(_Tp));
-      conditional_t<sizeof(_Tp) <= sizeof(0u), unsigned, unsigned long long> __k;
-      if constexpr (is_convertible_v<_Tp, decltype(__k)>)
-        __k = __mask;
-      else
-        __k = __mask.to_ullong();
+      conditional_t<sizeof(_Tp) <= sizeof(0u), unsigned, unsigned long long> __k = __mask;
       while(__k)
         {
           __f(std::__countr_zero(__k));
@@ -57,6 +53,10 @@ namespace std::__detail
         }
     }
 
+  template <size_t _Np, bool _Sanitized, typename _Fp>
+    _GLIBCXX_SIMD_INTRINSIC static void
+    _S_bit_iteration(_BitMask<_Np, _Sanitized> __mask, _Fp&& __f)
+    { _S_bit_iteration(__mask._M_sanitized()._M_bits(), __f); }
 
 #ifdef math_errhandling
   // Determine if math functions must raise floating-point exceptions.

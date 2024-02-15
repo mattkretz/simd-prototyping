@@ -13,15 +13,6 @@ namespace std::__detail
   __div_roundup(size_t __a, size_t __b)
   { return (__a + __b - 1) / __b; }
 
-  template <size_t _Np, bool _Sanitized = false>
-    struct _BitMask;
-
-/*  template <size_t _Np, bool _Sanitized>
-    struct __is_bitmask<_BitMask<_Np, _Sanitized>, void> : true_type {};*/
-
-  template <size_t _Np>
-    using _SanitizedBitMask = _BitMask<_Np, true>;
-
   template <size_t _Np, bool _Sanitized>
     struct _BitMask
     {
@@ -52,8 +43,16 @@ namespace std::__detail
         constexpr _BitMask(_Up __x) noexcept
         : _M_bits{_Sanitized ? static_cast<_Tp>(_S_bitmask & __x) : static_cast<_Tp>(__x)} {}
 
+      template <integral _Up>
+        requires (_Sanitized)
+        _GLIBCXX_SIMD_ALWAYS_INLINE static constexpr _BitMask
+        __create_unchecked(_Up __x)
+        { return {{static_cast<_Tp>(__x)}}; }
+
       constexpr
-      _BitMask(bitset<_Np> __x) noexcept : _BitMask(__x.to_ullong()) {}
+      _BitMask(bitset<_Np> __x) noexcept
+      : _M_bits(static_cast<_Tp>(__x.to_ullong()))
+      {}
 
       constexpr _BitMask(const _BitMask&) noexcept = default;
 
@@ -63,25 +62,16 @@ namespace std::__detail
         _BitMask(const _BitMask<_Np, _RhsSanitized>& __rhs) noexcept
         : _BitMask(__rhs._M_sanitized()) {}
 
-      // precondition: is sanitized
       constexpr _Tp
       _M_to_bits() const noexcept
       {
+        static_assert(_Sanitized);
         static_assert(_S_array_size == 1);
         return _M_bits[0];
       }
 
-      // precondition: is sanitized
-      constexpr unsigned long long
-      to_ullong() const noexcept
-      {
-        static_assert(_S_array_size == 1);
-        return _M_bits[0];
-      }
-
-      // precondition: is sanitized
-      constexpr unsigned long
-      to_ulong() const noexcept
+      constexpr _Tp
+      _M_to_unsanitized_bits() const noexcept
       {
         static_assert(_S_array_size == 1);
         return _M_bits[0];
@@ -100,7 +90,7 @@ namespace std::__detail
         if constexpr (_Sanitized)
           return *this;
         else if constexpr (_Np == 1)
-          return _SanitizedBitMask<_Np>(_M_bits[0]);
+          return _SanitizedBitMask<1>::__create_unchecked(_M_bits[0]);
         else
           {
             _SanitizedBitMask<_Np> __r = {};
@@ -140,8 +130,7 @@ namespace std::__detail
           static_assert(_DropLsb + _NewSize <= sizeof(0ULL) * __CHAR_BIT__,
                         "not implemented for bitmasks larger than one ullong");
           if constexpr (_NewSize == 1)
-            // must sanitize because the return _Tp is bool
-            return _SanitizedBitMask<1>(_M_bits[0] >> _DropLsb);
+            return _SanitizedBitMask<1>::__create_unchecked(_M_bits[0] >> _DropLsb);
           else
             return _BitMask<_NewSize,
                             ((_NewSize + _DropLsb == sizeof(_Tp) * __CHAR_BIT__
@@ -369,6 +358,10 @@ namespace std::__detail
           }
       }
     };
+
+  template <integral _Tp>
+    _BitMask(_Tp)
+    -> _BitMask<__CHAR_BIT__ * sizeof(_Tp)>;
 }
 
 #endif  // PROTOTYPE_DETAIL_BITMASK_H_

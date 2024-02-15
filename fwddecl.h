@@ -25,6 +25,12 @@ namespace std
 
   namespace __detail
   {
+    template <size_t _Np, bool _Sanitized = false>
+      struct _BitMask;
+
+    template <size_t _Np>
+      using _SanitizedBitMask = _BitMask<_Np, true>;
+
     template <size_t _Bytes>
       struct __make_unsigned_int;
 
