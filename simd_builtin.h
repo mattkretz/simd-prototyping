@@ -107,13 +107,13 @@ namespace std
             requires _S_is_simd_ctor_arg<_To>
             _GLIBCXX_SIMD_INTRINSIC static constexpr _To
             _S_simd_conversion(_SimdMember __x)
-            { return reinterpret_cast<_To>(__x); }
+            { return __builtin_bit_cast(_To, __x); }
 
           template <typename _From>
             requires _S_is_simd_ctor_arg<_From>
             _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember
             _S_simd_construction(_From __x)
-            { return reinterpret_cast<_SimdMember>(__x); }
+            { return __builtin_bit_cast(_SimdMember, __x); }
 
           template <typename _To>
             requires _S_is_mask_ctor_arg<_To>
@@ -165,7 +165,7 @@ namespace std
           if constexpr (not _S_is_partial)
             return __x;
           else
-            return reinterpret_cast<_TV>(reinterpret_cast<_MaskMember<_Tp>>(__x)
+            return __builtin_bit_cast(_TV, __builtin_bit_cast(_MaskMember<_Tp>, __x)
                                            & _S_implicit_mask<_Tp>);
         }
 
@@ -179,7 +179,7 @@ namespace std
           else
             {
               constexpr auto __implicit_mask
-                = reinterpret_cast<_TV>(_S_implicit_mask<_Tp>);
+                = __builtin_bit_cast(_TV, _S_implicit_mask<_Tp>);
               if constexpr (is_floating_point_v<_Tp>)
                 {
                   constexpr auto __one
@@ -322,7 +322,7 @@ namespace std::__detail
           if constexpr (is_floating_point_v<_Tp>)
             {
               using _UV = __vec_builtin_type<__make_unsigned_int_t<_Tp>, _S_full_size>;
-              return reinterpret_cast<_TV>(~reinterpret_cast<_UV>(__x));
+              return __builtin_bit_cast(_TV, ~__builtin_bit_cast(_UV, __x));
             }
           else
             return ~__x;
@@ -538,8 +538,8 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           using _Ip = __make_signed_int_t<_Tp>;
           using _IV = __vec_builtin_type<_Ip, _S_full_size>;
-          const auto __xn = reinterpret_cast<_IV>(__x);
-          const auto __yn = reinterpret_cast<_IV>(__y);
+          const auto __xn = __builtin_bit_cast(_IV, __x);
+          const auto __yn = __builtin_bit_cast(_IV, __y);
           const auto __xp = __xn < 0 ? -(__xn & __finite_max_v<_Ip>) : __xn;
           const auto __yp = __yn < 0 ? -(__yn & __finite_max_v<_Ip>) : __yn;
           return __vec_andnot(_SuperImpl::_S_isunordered(__x, __y), __xp > __yp);
@@ -552,8 +552,8 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           using _Ip = __make_signed_int_t<_Tp>;
           using _IV = __vec_builtin_type<_Ip, _S_full_size>;
-          const auto __xn = reinterpret_cast<_IV>(__x);
-          const auto __yn = reinterpret_cast<_IV>(__y);
+          const auto __xn = __builtin_bit_cast(_IV, __x);
+          const auto __yn = __builtin_bit_cast(_IV, __y);
           const auto __xp = __xn < 0 ? -(__xn & __finite_max_v<_Ip>) : __xn;
           const auto __yp = __yn < 0 ? -(__yn & __finite_max_v<_Ip>) : __yn;
           return __vec_andnot(_SuperImpl::_S_isunordered(__x, __y), __xp >= __yp);
@@ -566,8 +566,8 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           using _Ip = __make_signed_int_t<_Tp>;
           using _IV = __vec_builtin_type<_Ip, _S_full_size>;
-          const auto __xn = reinterpret_cast<_IV>(__x);
-          const auto __yn = reinterpret_cast<_IV>(__y);
+          const auto __xn = __builtin_bit_cast(_IV, __x);
+          const auto __yn = __builtin_bit_cast(_IV, __y);
           const auto __xp = __xn < 0 ? -(__xn & __finite_max_v<_Ip>) : __xn;
           const auto __yp = __yn < 0 ? -(__yn & __finite_max_v<_Ip>) : __yn;
           return __vec_andnot(_SuperImpl::_S_isunordered(__x, __y), __xp < __yp);
@@ -580,8 +580,8 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           using _Ip = __make_signed_int_t<_Tp>;
           using _IV = __vec_builtin_type<_Ip, _S_full_size>;
-          const auto __xn = reinterpret_cast<_IV>(__x);
-          const auto __yn = reinterpret_cast<_IV>(__y);
+          const auto __xn = __builtin_bit_cast(_IV, __x);
+          const auto __yn = __builtin_bit_cast(_IV, __y);
           const auto __xp = __xn < 0 ? -(__xn & __finite_max_v<_Ip>) : __xn;
           const auto __yp = __yn < 0 ? -(__yn & __finite_max_v<_Ip>) : __yn;
           return __vec_andnot(_SuperImpl::_S_isunordered(__x, __y), __xp <= __yp);
@@ -670,8 +670,8 @@ namespace std::__detail
         {
           using _Tp = __value_type_of<_TV>;
           const _TV __y = _SuperImpl::_S_trunc(__x);
-          const _TV __negative_input = reinterpret_cast<_TV>(__x < _Tp(0));
-          const _TV __mask = __vec_andnot(reinterpret_cast<_TV>(__y == __x), __negative_input);
+          const _TV __negative_input = __builtin_bit_cast(_TV, __x < _Tp(0));
+          const _TV __mask = __vec_andnot(__builtin_bit_cast(_TV, __y == __x), __negative_input);
           return __vec_or(__vec_andnot(__mask, __y), __vec_and(__mask, __y - _Tp(1)));
         }
 
@@ -681,8 +681,8 @@ namespace std::__detail
         {
           using _Tp = __value_type_of<_TV>;
           const auto __y = _SuperImpl::_S_trunc(__x);
-          const auto __negative_input = reinterpret_cast<_TV>(__x < _Tp(0));
-          const auto __inv_mask = __vec_or(reinterpret_cast<_TV>(__y == __x), __negative_input);
+          const auto __negative_input = __builtin_bit_cast(_TV, __x < _Tp(0));
+          const auto __inv_mask = __vec_or(__builtin_bit_cast(_TV, __y == __x), __negative_input);
           return __vec_or(__vec_and(__inv_mask, __y), __vec_andnot(__inv_mask, __y + _Tp(1)));
         }
 
@@ -697,9 +697,9 @@ namespace std::__detail
 #else
           using _Tp = __value_type_of<_TV>;
           using _IV = __vec_builtin_type<__make_signed_int_t<_Tp>, _S_full_size>;
-          const auto __absn = reinterpret_cast<_IV>(_SuperImpl::_S_abs(__x));
-          const auto __infn = reinterpret_cast<_IV>(
-                                __vec_broadcast<_S_size>(__infinity_v<_Tp>));
+          const auto __absn = __builtin_bit_cast(_IV, _SuperImpl::_S_abs(__x));
+          const auto __infn = __builtin_bit_cast(
+                                _IV, __vec_broadcast<_S_size>(__infinity_v<_Tp>));
           return __infn < __absn;
 #endif
         }
@@ -714,9 +714,9 @@ namespace std::__detail
           // if all exponent bits are set, __x is either inf or NaN
           using _Tp = __value_type_of<_TV>;
           using _IV = __vec_builtin_type<__make_signed_int_t<_Tp>, _S_full_size>;
-          const auto __absn = reinterpret_cast<_IV>(_SuperImpl::_S_abs(__x));
+          const auto __absn = __builtin_bit_cast(_IV, _SuperImpl::_S_abs(__x));
           constexpr _IV __maxn
-            = reinterpret_cast<_IV>(__vec_broadcast<_S_size>(__finite_max_v<_Tp>));
+            = __builtin_bit_cast(_IV, __vec_broadcast<_S_size>(__finite_max_v<_Tp>));
           return _SuperImpl::_S_less_equal(__absn, __maxn);
 #endif
         }
@@ -732,7 +732,7 @@ namespace std::__detail
         {
           using _Tp = __value_type_of<_TV>;
           using _IV = __vec_builtin_type<__make_signed_int_t<_Tp>, _S_full_size>;
-          return reinterpret_cast<_IV>(__x) < 0;
+          return __builtin_bit_cast(_IV, __x) < 0;
           // Arithmetic right shift (SRA) would also work (instead of compare), but
           // 64-bit SRA isn't available on x86 before AVX512. And in general,
           // compares are more likely to be efficient than SRA.
@@ -767,14 +767,14 @@ namespace std::__detail
         {
           using _Tp = __value_type_of<_TV>;
           using _IV = __vec_builtin_type<__make_signed_int_t<_Tp>, _S_full_size>;
-          const auto __absn = reinterpret_cast<_IV>(_SuperImpl::_S_abs(__x));
-          const auto __minn = reinterpret_cast<_IV>(
-                                __vec_broadcast<_S_size>(__norm_min_v<_Tp>));
+          const auto __absn = __builtin_bit_cast(_IV, _SuperImpl::_S_abs(__x));
+          const auto __minn = __builtin_bit_cast(
+                                _IV, __vec_broadcast<_S_size>(__norm_min_v<_Tp>));
 #if __FINITE_MATH_ONLY__
           return __absn >= __minn;
 #else
           const auto __maxn
-            = reinterpret_cast<_IV>(__vec_broadcast<_S_size>(__finite_max_v<_Tp>));
+            = __builtin_bit_cast(_IV, __vec_broadcast<_S_size>(__finite_max_v<_Tp>));
           return __minn <= __absn and __absn <= __maxn;
 #endif
         }
@@ -787,15 +787,14 @@ namespace std::__detail
           using _RAbi = typename _Abi::template _Rebind<int>;
           using _RV = typename _RAbi::template _SimdMember<int>;
           using _Tp = __value_type_of<_TV>;
-          constexpr int _Np = _S_size;
           using _Ip = __make_signed_int_t<_Tp>;
           using _IV = __vec_builtin_type<_Ip, _S_full_size>;
-          const auto __xn = reinterpret_cast<_IV>(_SuperImpl::_S_abs(__x));
+          const auto __xn = __builtin_bit_cast(_IV, _SuperImpl::_S_abs(__x));
           constexpr size_t _NI = sizeof(__xn) / sizeof(_Ip);
-          constexpr auto __minn = reinterpret_cast<_IV>(__vec_broadcast<_NI>(__norm_min_v<_Tp>));
+          constexpr auto __minn = __builtin_bit_cast(_IV, __vec_broadcast<_NI>(__norm_min_v<_Tp>));
           constexpr auto __fp_normal = __vec_broadcast<_NI, _Ip>(FP_NORMAL);
 #if !__FINITE_MATH_ONLY__
-          constexpr auto __infn = reinterpret_cast<_IV>(__vec_broadcast<_NI>(__infinity_v<_Tp>));
+          constexpr auto __infn = __builtin_bit_cast(_IV, __vec_broadcast<_NI>(__infinity_v<_Tp>));
           constexpr auto __fp_nan = __vec_broadcast<_NI, _Ip>(FP_NAN);
           constexpr auto __fp_infinite = __vec_broadcast<_NI, _Ip>(FP_INFINITE);
 #endif
@@ -904,7 +903,7 @@ namespace std::__detail
           else if (_S_is_constprop_single_value(__rhs))
             _SuperImpl::_S_masked_assign(__k, __lhs, __rhs[0]);
           else if (_S_is_constprop_all_equal(__lhs, 0))
-            __lhs = __vec_and(reinterpret_cast<_TV>(__k), __rhs);
+            __lhs = __vec_and(__builtin_bit_cast(_TV, __k), __rhs);
           else
             __lhs = __k ? __rhs : __lhs;
         }
@@ -919,7 +918,7 @@ namespace std::__detail
           else if (_S_is_constprop_all_of(__k))
             __lhs = __vec_broadcast<_S_size>(__rhs);
           else if (__builtin_constant_p(__rhs) and __rhs == 0)
-            __lhs = __vec_andnot(reinterpret_cast<_TV>(__k), __lhs);
+            __lhs = __vec_andnot(__builtin_bit_cast(_TV, __k), __lhs);
           else if (_S_is_constprop_all_equal(__lhs, 0))
             {
               if (sizeof(__lhs) >= 8 and __builtin_constant_p(__rhs) and __is_power2_minus_1(__rhs))
@@ -927,7 +926,7 @@ namespace std::__detail
                   using _Up = __make_unsigned_int_t<__value_type_of<_TV>>;
                   auto __ku = __vec_bitcast<_Up>(__k);
                   const int __zeros = std::__countl_zero(__builtin_bit_cast(_Up, __rhs));
-                  __lhs = reinterpret_cast<_TV>(_SuperImpl::_S_bit_shift_right(__ku, __zeros));
+                  __lhs = __builtin_bit_cast(_TV, _SuperImpl::_S_bit_shift_right(__ku, __zeros));
                 }
               else if constexpr (sizeof(_TV) < 8)
                 {
@@ -939,7 +938,7 @@ namespace std::__detail
                   __lhs = __builtin_bit_cast(_TV, __tmp);
                 }
               else
-                __lhs = __vec_and(reinterpret_cast<_TV>(__k), __vec_broadcast<_S_size>(__rhs));
+                __lhs = __vec_and(__builtin_bit_cast(_TV, __k), __vec_broadcast<_S_size>(__rhs));
             }
           else
             __lhs = __k ? __vec_broadcast<_S_size>(__rhs) : __lhs;
@@ -993,7 +992,7 @@ namespace std::__detail
           static_assert(is_same_v<_RV, _MaskMember<_Rp>>);
           static_assert(__width_of<_RV> == __width_of<_TV>);
           if constexpr (sizeof(_Rp) == sizeof(_Tp) && sizeof(_TV) == sizeof(_RV))
-            return reinterpret_cast<_RV>(__x);
+            return __builtin_bit_cast(_RV, __x);
           else
             return __builtin_convertvector(__x, _RV);
         }
@@ -1128,7 +1127,7 @@ namespace std::__detail
         {
           using _Tp = __value_type_of<_TV>;
           if constexpr (_Abi::_S_is_partial)
-            return __vec_andnot(__x, reinterpret_cast<_TV>(_Abi::template _S_implicit_mask<_Tp>));
+            return __vec_andnot(__x, __builtin_bit_cast(_TV, _Abi::template _S_implicit_mask<_Tp>));
           else
             return __vec_not(__x);
         }

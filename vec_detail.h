@@ -178,7 +178,7 @@ namespace std::__detail
    */
   template <__vec_builtin _V>
     static inline constexpr _V _S_allbits
-      = reinterpret_cast<_V>(~__vec_builtin_type_bytes<char, sizeof(_V)>());
+      = __builtin_bit_cast(_V, ~__vec_builtin_type_bytes<char, sizeof(_V)>());
 
   /**
    * An object of given type where only the sign bits are 1.
@@ -448,7 +448,8 @@ namespace std::__detail
       if constexpr (is_floating_point_v<_Tp>)
         {
           using _UV = __vec_builtin_type<__make_unsigned_int_t<_Tp>, __width_of<_TV>>;
-          return reinterpret_cast<_TV>(reinterpret_cast<_UV>(__a) ^ reinterpret_cast<_UV>(__b));
+          return __builtin_bit_cast(
+                   _TV, __builtin_bit_cast(_UV, __a) ^ __builtin_bit_cast(_UV, __b));
         }
       else
         return __a ^ __b;
@@ -462,7 +463,8 @@ namespace std::__detail
       if constexpr (is_floating_point_v<_Tp>)
         {
           using _UV = __vec_builtin_type<__make_unsigned_int_t<_Tp>, __width_of<_TV>>;
-          return reinterpret_cast<_TV>(reinterpret_cast<_UV>(__a) | reinterpret_cast<_UV>(__b));
+          return __builtin_bit_cast(
+                   _TV, __builtin_bit_cast(_UV, __a) | __builtin_bit_cast(_UV, __b));
         }
       else
         return __a | __b;
@@ -476,7 +478,8 @@ namespace std::__detail
       if constexpr (is_floating_point_v<_Tp>)
         {
           using _UV = __vec_builtin_type<__make_unsigned_int_t<_Tp>, __width_of<_TV>>;
-          return reinterpret_cast<_TV>(reinterpret_cast<_UV>(__a) & reinterpret_cast<_UV>(__b));
+          return __builtin_bit_cast(
+                   _TV, __builtin_bit_cast(_UV, __a) & __builtin_bit_cast(_UV, __b));
         }
       else
         return __a & __b;
@@ -490,7 +493,8 @@ namespace std::__detail
     {
       using _Tp = __value_type_of<_TV>;
       using _UV = __vec_builtin_type<__make_unsigned_int_t<_Tp>, __width_of<_TV>>;
-      return reinterpret_cast<_TV>(~reinterpret_cast<_UV>(__a) & reinterpret_cast<_UV>(__b));
+      return __builtin_bit_cast(
+               _TV, ~__builtin_bit_cast(_UV, __a) & __builtin_bit_cast(_UV, __b));
     }
 
   template <__vec_builtin _TV>
@@ -499,7 +503,7 @@ namespace std::__detail
     {
       using _UV = __vec_builtin_type<unsigned, sizeof(_TV)>;
       if constexpr (is_floating_point_v<__value_type_of<_TV>>)
-        return reinterpret_cast<_TV>(~reinterpret_cast<_UV>(__a));
+        return __builtin_bit_cast(_TV, ~__builtin_bit_cast(_UV, __a));
       else
         return ~__a;
     }
@@ -514,9 +518,9 @@ namespace std::__detail
     __vec_bitcast(_TV __x)
     {
       if constexpr (_Np == 0)
-        return reinterpret_cast<__vec_builtin_type_bytes<_Up, sizeof(__x)>>(__x);
+        return __builtin_bit_cast(__vec_builtin_type_bytes<_Up, sizeof(__x)>, __x);
       else
-        return reinterpret_cast<__vec_builtin_type<_Up, _Np>>(__x);
+        return __builtin_bit_cast(__vec_builtin_type<_Up, _Np>, __x);
     }
 
   /**
@@ -528,17 +532,17 @@ namespace std::__detail
     {
       static_assert(sizeof(_UV) <= sizeof(_TV));
       if constexpr (sizeof(_UV) == sizeof(_TV))
-        return reinterpret_cast<_UV>(__x);
+        return __builtin_bit_cast(_UV, __x);
       else if constexpr (sizeof(_UV) <= 8)
         {
           using _Ip = __make_signed_int_t<_UV>;
-          return reinterpret_cast<_UV>(
-                   reinterpret_cast<__vec_builtin_type_bytes<_Ip, sizeof(__x)>>(__x)[0]);
+          return __builtin_bit_cast(
+                   _UV, __builtin_bit_cast(__vec_builtin_type_bytes<_Ip, sizeof(__x)>, __x)[0]);
         }
       else
         {
           const auto __y
-            = reinterpret_cast<__vec_builtin_type_bytes<__value_type_of<_UV>, sizeof(__x)>>(__x);
+            = __builtin_bit_cast(__vec_builtin_type_bytes<__value_type_of<_UV>, sizeof(__x)>, __x);
           return _GLIBCXX_SIMD_INT_PACK(__width_of<_UV>, _Is, {
                    return __builtin_shufflevector(__y, __y, _Is...);
                  });
@@ -567,7 +571,7 @@ namespace std::__detail
         {
           using _Up = __make_signed_int_t<_TV>;
           __vec_builtin_type_bytes<_Up, 16> __tmp = {__builtin_bit_cast(_Up, __x)};
-          return reinterpret_cast<__vec_builtin_type_bytes<__value_type_of<_TV>, 16>>(__tmp);
+          return __builtin_bit_cast(__vec_builtin_type_bytes<__value_type_of<_TV>, 16>, __tmp);
         }
     }
 }
