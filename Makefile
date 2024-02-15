@@ -111,7 +111,7 @@ $(foreach t,$(tests),\
 	      echo "check/$(t).$(arch)/$(type).$$$$w";done)))) \
 	)
 
-$(check_targets): $(wildcard tests/*.cpp) Makefile
+$(check_targets): $(wildcard tests/*.cpp) Makefile Makefile.common
 	$(file >$@)
 	$(foreach t,$(tests),$(foreach w,$(testwidths),$(foreach y,$(testtypes),$(foreach a,$(testarchs),\
 		$(file >>$@,check/$t.$a/$y.$w)))))
