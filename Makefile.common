@@ -10,6 +10,8 @@ endif
 
 ifeq ($(compiler),gcc)
 CXXFLAGS+=-fconcepts-diagnostics-depth=3
+else ifeq ($(compiler),clang)
+CXXFLAGS+=-Wno-unknown-pragmas
 endif
 
 #-D_GLIBCXX_DEBUG_UB=1
@@ -81,17 +83,17 @@ getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
 define pch_template
-obj/$(1).h: tests/unittest*.h tests/*.cpp
+obj/$(1).hpp: tests/unittest*.h tests/*.cpp
 	@echo "Generate $$@"
 	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u|sed 's,","../tests/,' > $$@
 
-obj/$(1).depend: obj/$(1).h
+obj/$(1).depend: obj/$(1).hpp
 	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).h.gch" $$< > $$@
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).hpp.gch" $$< > $$@
 
 include obj/$(1).depend
 
-obj/$(1).h.gch: obj/$(1).h
+obj/$(1).hpp.gch: obj/$(1).hpp
 	@echo "Build pre-compiled header for $(1)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@
 
@@ -102,10 +104,10 @@ $(foreach arch,$(testarchs),\
 
 # arguments: test, arch
 define exe_template
-obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).h.gch tests/unittest*.h
+obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
 	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
 	@mkdir -p $$(dir $$@)
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).h $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<
 ifeq ($(DIRECT),)
 	@echo " Link $$(@:obj/%.exe=check/%)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
@@ -138,9 +140,9 @@ obj/codegen.depend: $(codegen_files)
 
 include obj/codegen.depend
 
-$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\') obj/%.h.gch
+$(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\') obj/%.hpp.gch
 	@echo "Build constexpr tests for $*"
-	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.h -S -o $@ constexpr_tests.c++
+	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.hpp -S -o $@ constexpr_tests.c++
 
 check/%: obj/%.exe
 	@mkdir -p $(dir $@)

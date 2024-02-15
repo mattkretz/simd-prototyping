@@ -14,7 +14,7 @@ fortestwidths := for w in $(testwidths); do
 
 define ccjson
   { "directory": "$(PWD)",
-    "arguments": ["$(CXX)", $(CXXFLAGS:%="%",) "-march=$1", "-include", "obj/$1.h", "-S", "$2"],
+    "arguments": ["$(CXX)", $(CXXFLAGS:%="%",) "-march=$1", "-include", "obj/$1.hpp", "-S", "$2"],
     "file": "$2" }
 endef
 
