@@ -123,7 +123,7 @@ namespace std
 
       constexpr friend bool operator==(__simd_iterator __a, __simd_iterator __b) = default;
 
-      constexpr friend bool operator==(__simd_iterator __a, __simd_iterator_sentinel __b)
+      constexpr friend bool operator==(__simd_iterator __a, __simd_iterator_sentinel)
       { return __a._M_offset == difference_type(_Vp::size.value); }
     };
 
@@ -229,7 +229,7 @@ namespace std
 
       constexpr friend bool operator==(__simd_mask_iterator __a, __simd_mask_iterator __b) = default;
 
-      constexpr friend bool operator==(__simd_mask_iterator __a, __simd_iterator_sentinel __b)
+      constexpr friend bool operator==(__simd_mask_iterator __a, __simd_iterator_sentinel)
       { return __a._M_offset == difference_type(_Vp::size.value); }
     };
 }

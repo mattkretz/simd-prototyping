@@ -172,7 +172,7 @@ check_cpu_support()
 #ifdef __BMI2__
     if (not __builtin_cpu_supports("bmi2")) return false;
 #endif
-#ifdef __LZCNT__
+#if defined __LZCNT__ and not defined __clang__
     if (not __builtin_cpu_supports("lzcnt")) return false;
 #endif
 #ifdef __F16C__

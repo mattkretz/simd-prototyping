@@ -106,7 +106,7 @@ namespace std
   template <typename _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           plus<> __binary_op)
+           plus<>)
     { return reduce(simd_select(__k, __x, _Tp())); }
 
   template <typename _Tp, typename _Abi>

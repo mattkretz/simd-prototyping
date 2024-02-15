@@ -169,8 +169,8 @@ static_assert(
   all_of(std::simd_mask<float, 4>([](int i) { return i < 2; })
            == std::simd_mask<float, 4>(std::array{true, true, false, false}.begin())));
 
-static_assert(
-  all_of(std::simd<int, 4>([](int i) { return i << 10; }) >> 10 == std::iota_v<std::simd<int, 4>>));
+static_assert(all_of((std::simd<int, 4>([](int i) { return i << 10; }) >> 10)
+                == std::iota_v<std::simd<int, 4>>));
 
 static_assert([] constexpr {
   constexpr std::simd_mask<float, 7> a([](int i) -> bool { return i < 3; });

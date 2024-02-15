@@ -61,7 +61,7 @@ namespace std
     {
       _GLIBCXX_SIMD_ALWAYS_INLINE
       static constexpr auto
-      __adjust_pointer(auto __ptr, std::size_t __simd_alignment)
+      __adjust_pointer(auto __ptr, std::size_t)
       { return __ptr; }
     };
 

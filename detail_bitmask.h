@@ -41,7 +41,10 @@ namespace std::__detail
       static constexpr int _S_unused_bits
         = _Np == 1 ? 0 : _S_array_size * sizeof(_Tp) * __CHAR_BIT__ - _Np;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wbool-operation"
       static constexpr _Tp _S_bitmask = +_Tp(~_Tp()) >> _S_unused_bits;
+#pragma GCC diagnostic pop
 
       constexpr _BitMask() noexcept = default;
 
