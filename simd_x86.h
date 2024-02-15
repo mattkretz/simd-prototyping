@@ -445,46 +445,7 @@ namespace std::__detail
             return __a;
 
 #ifdef __clang__
-          return [&] {
-            if constexpr (sizeof(_Tp) == 1 && _Flags._M_have_avx512bw)
-              {
-                if constexpr (_S_size <= 16 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2b128(__k);
-                else if constexpr (_S_size <= 32 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2b256(__k);
-                else
-                  return __builtin_ia32_cvtmask2b512(__k);
-              }
-            else if constexpr (sizeof(_Tp) == 2 && _Flags._M_have_avx512bw)
-              {
-                if constexpr (_S_size <= 8 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2w128(__k);
-                else if constexpr (_S_size <= 16 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2w256(__k);
-                else
-                  return __builtin_ia32_cvtmask2w512(__k);
-              }
-            else if constexpr (sizeof(_Tp) == 4 && _Flags._M_have_avx512dq)
-              {
-                if constexpr (_S_size <= 4 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2d128(__k);
-                else if constexpr (_S_size <= 8 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2d256(__k);
-                else
-                  return __builtin_ia32_cvtmask2d512(__k);
-              }
-            else if constexpr (sizeof(_Tp) == 8 && _Flags._M_have_avx512dq)
-              {
-                if constexpr (_S_size <= 2 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2q128(__k);
-                else if constexpr (_S_size <= 4 && _Flags._M_have_avx512vl)
-                  return __builtin_ia32_cvtmask2q256(__k);
-                else
-                  return __builtin_ia32_cvtmask2q512(__k);
-              }
-            else
-              __assert_unreachable<_Tp>();
-          }() ? __a : __b;
+          return _S_convert_mask<__mask_vec_from<_TV>>(_BitMask<_S_size>(__k)) ? __a : __b;
 #else
           using _IntT = __x86_builtin_int_t<_Tp>;
           using _IntV = __vec_builtin_type_bytes<_IntT, sizeof(__b)>;
@@ -724,13 +685,70 @@ namespace std::__detail
 
       template <unsigned_integral _Kp, size_t _Np, bool _Sanitized>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Kp
-        _S_to_maskmember(_BitMask<_Np, _Sanitized> __x)
+        _S_convert_mask(_BitMask<_Np, _Sanitized> __x)
         {
           static_assert(is_same_v<_Kp, typename _Abi::_MaskInteger>);
           return __x._M_to_bits();
         }
 
-        using _Base::_S_to_maskmember;
+      template <__vec_builtin _TV, size_t _Np, bool _Sanitized>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
+        _S_convert_mask(_BitMask<_Np, _Sanitized> __x)
+        {
+          using _Tp = __value_type_of<_TV>;
+          static_assert(is_same_v<_Tp, __mask_integer_from<sizeof(_Tp)>>);
+          const _MaskInteger __k = __x._M_to_bits();
+          constexpr bool __bwvl = _Flags._M_have_avx512bw and _Flags._M_have_avx512vl;
+          constexpr bool __dqvl = _Flags._M_have_avx512dq and _Flags._M_have_avx512vl;
+
+          if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
+            {
+              const _TV __r = _Base::template _S_convert_mask<_TV>(__x);
+              if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
+                return __r;
+            }
+
+          if constexpr (__vec_builtin_sizeof<_TV, 1, 64> and _Flags._M_have_avx512bw)
+            return __builtin_ia32_cvtmask2b512(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 1, 32> and __bwvl)
+            return __builtin_ia32_cvtmask2b256(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 1> and __bwvl)
+            return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2b128(__k));
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw)
+            return __builtin_ia32_cvtmask2w512(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and __bwvl)
+            return __builtin_ia32_cvtmask2w256(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 2> and __bwvl)
+            return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2w128(__k));
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq)
+            return __builtin_ia32_cvtmask2d512(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and __dqvl)
+            return __builtin_ia32_cvtmask2d256(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and __dqvl)
+            return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2d128(__k));
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq)
+            return __builtin_ia32_cvtmask2q512(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and __dqvl)
+            return __builtin_ia32_cvtmask2q256(__k);
+
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and __dqvl)
+            return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2q128(__k));
+
+          else
+            return _Base::template _S_convert_mask<_TV>(__x);
+        }
+
+      using _Base::_S_convert_mask;
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV

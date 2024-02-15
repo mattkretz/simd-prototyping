@@ -980,17 +980,17 @@ namespace std::__detail
 
       template <__vec_builtin _TV, size_t _Np, bool _Sanitized>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
-        _S_to_maskmember(_BitMask<_Np, _Sanitized> __x)
+        _S_convert_mask(_BitMask<_Np, _Sanitized> __x)
         {
           using _Tp = __value_type_of<_TV>;
-          static_assert(is_same_v<_TV, _MaskMember<_Tp>>);
+          static_assert(is_same_v<_Tp, __mask_integer_from<sizeof(_Tp)>>);
           return _GLIBCXX_SIMD_VEC_GEN(_TV, _S_size, _Is,
                                        {((_Is < _Np and __x[_Is]) ? _Tp(-1) : _Tp())...});
         }
 
       template <__vec_builtin _RV, __vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _RV
-        _S_to_maskmember(_TV __x)
+        _S_convert_mask(_TV __x)
         {
           using _Rp = __value_type_of<_RV>;
           using _Tp = __value_type_of<_TV>;
@@ -999,8 +999,32 @@ namespace std::__detail
           if constexpr (sizeof(_Rp) == sizeof(_Tp) && sizeof(_TV) == sizeof(_RV))
             return __builtin_bit_cast(_RV, __x);
           else
+            // TODO: __builtin_convertvector doesn't know that only -1 and 0 are valid inputs
             return __builtin_convertvector(__x, _RV);
         }
+
+      template <__vec_builtin _RV, __vec_builtin _TV, size_t _TN>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _RV
+        _S_convert_mask(array<_TV, _TN> __x)
+        {
+          using _Rp = __value_type_of<_RV>;
+          using _Tp = __value_type_of<_TV>;
+          static_assert(is_same_v<_RV, _MaskMember<_Rp>>);
+          static_assert(__width_of<_RV> == _TN * __width_of<_TV>);
+          const auto __k = _GLIBCXX_SIMD_INT_PACK(_TN, _Is, {
+                        return __vec_concat(__x[_Is]...);
+                      });
+          if constexpr (sizeof(_Rp) == sizeof(_Tp))
+            return __builtin_bit_cast(_RV, __k);
+          else
+            // TODO: __builtin_convertvector doesn't know that only -1 and 0 are valid inputs
+            return __builtin_convertvector(__k, _RV);
+        }
+
+      template <typename _Tp, size_t _Bs, typename _UAbi>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr auto
+        _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
+        { return _SuperImpl::template _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
       template <__vec_builtin _TV, typename _Tp = __value_type_of<_TV>,
                 _SimdSizeType _Np = _S_size>
@@ -1064,21 +1088,6 @@ namespace std::__detail
           return __builtin_constant_p(__all_equal) and __all_equal;
         }
 
-      template <typename _Tp, size_t _Np, bool _Sanitized>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr auto
-        _S_convert(_BitMask<_Np, _Sanitized> __x)
-        { return _SuperImpl::template _S_to_maskmember<_MaskMember<_Tp>>(__x); }
-
-      template <typename _Tp, __vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr auto
-        _S_convert(_TV __x)
-        { return _SuperImpl::template _S_to_maskmember<_MaskMember<_Tp>>(__x); }
-
-      template <typename _Tp, size_t _Bs, typename _UAbi>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr auto
-        _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
-        { return _S_convert(__data(__x)); }
-
       template <__vec_builtin _TV>
         static inline _TV
         _S_masked_load(_TV __merge, _TV __mask, const bool* __mem)
@@ -1110,11 +1119,6 @@ namespace std::__detail
                                              __mem[__i] = __v[__i];
                                            });
         }
-
-      template <size_t _Np, typename _Tp, bool _Sanitized>
-        _GLIBCXX_SIMD_INTRINSIC static _MaskMember<_Tp>
-        _S_from_bitmask(_BitMask<_Np, _Sanitized> __bits, _TypeTag<_Tp>)
-        { return _SuperImpl::template _S_to_maskmember<_MaskMember<_Tp>>(__bits); }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV

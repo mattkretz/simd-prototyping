@@ -672,20 +672,15 @@ namespace std::__detail
     _S_to_bits(bool __x)
     { return __x; }
 
-    template <typename, bool _Sanitized>
+    template <same_as<bool>, bool _Sanitized>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_convert(_BitMask<1, _Sanitized> __x)
+      _S_convert_mask(_BitMask<1, _Sanitized> __x)
       { return __x[__ic<0>]; }
 
     template <typename, size_t _Bs, typename _UAbi>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
       _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
       { return __x[0]; }
-
-    template <typename _Tp>
-      _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_from_bitmask(_SanitizedBitMask<1> __bits, _TypeTag<_Tp>) noexcept
-      { return __bits[0]; }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
     _S_masked_load(bool __merge, bool __mask, const bool* __mem) noexcept

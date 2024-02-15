@@ -608,17 +608,17 @@ namespace std
         using _Impl0 = typename _Abi0::_MaskImpl;
 
         template <typename _Tp, bool _Sanitized>
-          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
-          _S_convert(_BitMask<_S_size, _Sanitized> __x)
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_convert_mask(_BitMask<_S_size, _Sanitized> __x)
           {
-            return {_Impl0::template _S_convert<_Tp>(
+            return {_Impl0::template _S_convert_mask<typename _Tp::value_type>(
                       __x.template _M_extract<_S_chunk_size * _Is, _S_chunk_size>())...};
           }
 
         template <typename _Tp, size_t _Bs, typename _UAbi>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
           _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
-          { return _S_convert<_Tp>(__data(__x)); }
+          { return _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
         _S_to_bits_recursive(auto&& __part0, auto&& __part1, auto&&... __rest)
@@ -778,7 +778,10 @@ namespace std
         template <size_t _Np, bool _Sanitized>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
           _S_make_mask(_BitMask<_Np, _Sanitized> __bits)
-          { return _MaskImpl::template _S_convert<_Tp>(_S_submask(__bits)._M_sanitized()); }
+          {
+            return _MaskImpl::template _S_convert_mask<_MaskMember>(
+                     _S_submask(__bits)._M_sanitized());
+          }
 
         template <__vec_builtin _KV>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
@@ -1492,11 +1495,6 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
           _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
           { return _UAbi::_MaskImpl::_S_to_bits(__data(__x)).template _M_extract<0, _Np>(); }
-
-        template <typename _Tp>
-          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
-          _S_from_bitmask(_MaskMember __bits, _TypeTag<_Tp>) noexcept
-          { return __bits; }
 
         //template <typename>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
