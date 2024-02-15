@@ -224,12 +224,11 @@ namespace std::__detail
 
       static constexpr bool _S_use_bitmasks = is_same_v<_Abi, _Avx512Abi<_S_size>>;
 
-      template <typename _Tp>
-        using _BitMaskType = typename __detail::__make_unsigned_int<
-                               std::max(8, _S_full_size) / __CHAR_BIT__>::type;
+      using _MaskInteger = typename __detail::__make_unsigned_int<
+                             std::min(8, std::max(8, _S_full_size) / __CHAR_BIT__)>::type;
 
       template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _BitMaskType<__value_type_of<_TV>>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskInteger
         _S_to_bitmask(_TV __k)
         { return _S_to_bits(__k)._M_to_bits(); }
 
