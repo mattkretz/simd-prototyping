@@ -128,7 +128,7 @@ namespace std::__detail
     template <typename _Tp, typename _Fp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_generator(_Fp&& __gen)
-      { return __gen(vir::cw<0>); }
+      { return __gen(__ic<0>); }
 
     template <typename _Tp, typename _Up>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
