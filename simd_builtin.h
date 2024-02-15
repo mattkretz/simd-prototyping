@@ -853,25 +853,17 @@ namespace std::__detail
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr __value_type_of<_TV>
         _S_get(_TV __v, _SimdSizeType __i)
-        { return __v[__i]; }
+        { return __vec_get(__v, __i); }
 
-      template <__vec_builtin _TV, typename _Up>
+      template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_set(_TV& __v, _SimdSizeType __i, _Up&& __x)
-        { __v[__i] = static_cast<_Up&&>(__x); }
+        _S_set(_TV& __v, _SimdSizeType __i, __value_type_of<_TV> __x)
+        { __vec_set(__v, __i, __x); }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
         _S_set(_TV& __k, _SimdSizeType __i, bool __x)
-        {
-          using _Tp = __value_type_of<_TV>;
-          if (__builtin_is_constant_evaluated())
-            __k = _GLIBCXX_SIMD_INT_PACK(_S_size, __j, {
-                    return _TV{(__i == __j ? _Tp(-__x) : __k[__j])...};
-                  });
-          else
-            __k[__i] = -__x;
-        }
+        { __vec_set(__k, __i, -__x); }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
@@ -1017,8 +1009,8 @@ namespace std::__detail
         {
           static_assert(_Np <= __CHAR_BIT__ * sizeof(unsigned long long));
           return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
-            return ((static_cast<unsigned long long>(-__x[_Is]) << _Is) | ...);
-          });
+                   return ((static_cast<unsigned long long>(-__vec_get(__x, _Is)) << _Is) | ...);
+                 });
         }
 
       template <typename _Tp>
@@ -1047,7 +1039,7 @@ namespace std::__detail
       _S_is_constprop_single_value(__vec_builtin auto __v)
       {
         const bool __single_value = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                      return ((__v[_Is] == __v[0]) and ...);
+                                      return ((__vec_get(__v, _Is) == __vec_get(__v, 0)) and ...);
                                     });
         return __builtin_constant_p(__single_value) and __single_value;
       }
@@ -1057,7 +1049,7 @@ namespace std::__detail
         _S_is_constprop_all_equal(_TV __v, __value_type_of<_TV> __value)
         {
           const bool __all_equal = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                     return ((__v[_Is] == __value) and ...);
+                                     return ((__vec_get(__v, _Is) == __value) and ...);
                                    });
           return __builtin_constant_p(__all_equal) and __all_equal;
         }
@@ -1067,7 +1059,7 @@ namespace std::__detail
         _S_is_constprop_all_equal(_TV __v, _TV __w)
         {
           const bool __all_equal = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                     return ((__v[_Is] == __w[_Is]) and ...);
+                                     return ((__vec_get(__v, _Is) == __vec_get(__w, _Is)) and ...);
                                    });
           return __builtin_constant_p(__all_equal) and __all_equal;
         }

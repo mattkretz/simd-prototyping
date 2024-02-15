@@ -27,24 +27,17 @@ namespace std::__detail
     struct _SimdConverter<_From, _FromAbi, _To, _ToAbi>
     {
       using _Impl = typename _ToAbi::_SimdImpl;
+      using _FromImpl = typename _FromAbi::_SimdImpl;
 
       _GLIBCXX_SIMD_INTRINSIC constexpr auto
       operator()(typename _FromAbi::template _SimdMember<_From> const& __x)
       {
-        constexpr auto _NFrom = _FromAbi::template _S_size<_From>;
-        constexpr auto _NTo = _ToAbi::template _S_size<_To>;
+        constexpr auto _NFrom = _FromAbi::_S_size;
+        constexpr auto _NTo = _ToAbi::_S_size;
         static_assert(_NFrom >= _NTo);
-        if constexpr (requires {_FromAbi::_S_abiarray_size;})
-          {
-            constexpr _SimdSizeType __n = _NFrom / _FromAbi::_S_abiarray_size;
-            return _Impl::template _S_generator<_To>([&] [[__gnu__::__always_inline__]] (auto __i) {
-                     return __x[__i / __n][__i % __n];
-                   });
-          }
-        else
-          return _Impl::template _S_generator<_To>([&] [[__gnu__::__always_inline__]] (auto __i) {
-                   return __x[__i];
-                 });
+        return _Impl::template _S_generator<_To>([&] [[__gnu__::__always_inline__]] (auto __i) {
+                 return _FromImpl::_S_get(__x, __i);
+               });
       }
     };
 }

@@ -108,7 +108,6 @@ namespace std
       __cat_recursive(const _T0& __x0, const _T1& __x1, const _Ts&... __xs) noexcept
       {
         using _Tp = typename _T0::value_type;
-        constexpr int __x0_size = sizeof(__x0) / sizeof(_Tp);
         constexpr int __size = _T0::size.value + _T1::size.value;
         const std::resize_simd_t<__size, _T0>
           __x01(__private_init,
@@ -117,21 +116,19 @@ namespace std
                     (_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
                                           _SimdIndexSequence<_Ks...>) {
 #ifdef __clang__
-                  if constexpr (sizeof(__x0) != sizeof(__x1))
-                    {
-                      constexpr int __simd_bytes = std::__bit_ceil(__size) * sizeof(_Tp);
-                      using _Rp [[__gnu__::__vector_size__(__simd_bytes)]] = _Tp;
-                      return _Rp {
-                        __as_simd_builtin(__x0)[_Is]...,
-                        __as_simd_builtin(__x1)[_Js]...,
-                        ((void)_Ks, 0)...
-                      };
-                    }
-                  else
+                  constexpr int __simd_bytes = std::__bit_ceil(__size) * sizeof(_Tp);
+                  using _Rp [[__gnu__::__vector_size__(__simd_bytes)]] = _Tp;
+                  return _Rp {
+                    __vec_get(__as_simd_builtin(__x0), _Is)...,
+                    __vec_get(__as_simd_builtin(__x1), _Js)...,
+                    ((void)_Ks, 0)...
+                  };
+#else
+                  constexpr int __x0_size = sizeof(__x0) / sizeof(_Tp);
+                  return __builtin_shufflevector(__as_simd_builtin(__x0), __as_simd_builtin(__x1),
+                                                 _Is..., __x0_size + _Js...,
+                                                 ((void)_Ks, -1)...);
 #endif
-                    return __builtin_shufflevector(__as_simd_builtin(__x0), __as_simd_builtin(__x1),
-                                                   _Is..., __x0_size + _Js...,
-                                                   ((void)_Ks, -1)...);
                 }(_MakeSimdIndexSequence<_T0::size.value>(),
                   _MakeSimdIndexSequence<_T1::size.value>(),
                   _MakeSimdIndexSequence<std::__bit_ceil(__size) - __size>()));

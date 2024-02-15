@@ -6,6 +6,7 @@
 #ifndef PROTOTYPE_VEC_DETAIL_H_
 #define PROTOTYPE_VEC_DETAIL_H_
 
+#include "simd_config.h"
 #include "simd_meta.h"
 #include "constexpr_wrapper.h"
 
@@ -38,7 +39,7 @@ namespace std::__detail
             _SimdSizeType _Width = sizeof(_Tp) / sizeof(_ValueType)>
     concept __vec_builtin_of
       = not __arithmetic<_Tp> and __vectorizable<_ValueType>
-          and _Width > 1 and sizeof(_Tp) / sizeof(_ValueType) == _Width
+          and _Width >= 1 and sizeof(_Tp) / sizeof(_ValueType) == _Width
           and same_as<__vec_builtin_type_bytes<_ValueType, sizeof(_Tp)>, _Tp>
           and requires(_Tp& __v, _ValueType __x) { __v[0] = __x; };
 
@@ -195,6 +196,45 @@ namespace std::__detail
     static inline constexpr _V _S_absmask = __andnot(_S_signmask<_V>, _S_allbits<_V>);
 
   /**
+   * Helper function to work around Clang not allowing v[i] in constant expressions.
+   */
+  template <__vec_builtin _TV>
+    _GLIBCXX_SIMD_INTRINSIC constexpr __value_type_of<_TV>
+    __vec_get(_TV __v, int __i)
+    {
+#ifdef __clang__
+      if (__builtin_is_constant_evaluated())
+        return __builtin_bit_cast(array<__value_type_of<_TV>, __width_of<_TV>>, __v)[__i];
+      else
+#endif
+        return __v[__i];
+    }
+
+  /**
+   * Helper function to work around Clang and GCC not allowing assignment to v[i] in constant
+   * expressions.
+   */
+  template <__vec_builtin _TV>
+    _GLIBCXX_SIMD_INTRINSIC constexpr void
+    __vec_set(_TV& __v, int __i, __value_type_of<_TV> __x)
+    {
+      if (__builtin_is_constant_evaluated())
+        {
+#ifdef __clang__
+          auto __arr = __builtin_bit_cast(array<__value_type_of<_TV>, __width_of<_TV>>, __v);
+          __arr[__i] = __x;
+          __v = __builtin_bit_cast(_TV, __arr);
+#else
+          __v = _GLIBCXX_SIMD_INT_PACK(__width_of<_TV>, __j, {
+                  return _TV{(__i == __j ? __x : __v[__j])...};
+                });
+#endif
+        }
+      else
+        __v[__i] = __x;
+    }
+
+  /**
    * Returns a permutation of the given vector builtin. _Indices work like for
    * __builtin_shufflevector, except that -1 signifies a 0.
    */
@@ -222,9 +262,16 @@ namespace std::__detail
       constexpr int __return_size = _Combine * __values_per_part;
       static_assert((_Index + _Combine) * __values_per_part * sizeof(_Tp) <= sizeof(__x),
                     "out of bounds __vec_extract_part");
+#ifdef __clang__
+      using _RV = __vec_builtin_type<_Tp, __return_size>;
+      return _GLIBCXX_SIMD_INT_PACK(__return_size, _Ind, {
+               return _RV{__vec_get(__x, __values_to_skip + _Ind)...};
+             });
+#else
       return _GLIBCXX_SIMD_INT_PACK(__return_size, _Ind, {
                return __builtin_shufflevector(__x, __x, (__values_to_skip + _Ind)...);
              });
+#endif
     }
 
   template <int _Index, int _Total, int _Combine = 1, integral _Tp,
@@ -297,9 +344,17 @@ namespace std::__detail
     _GLIBCXX_SIMD_INTRINSIC constexpr auto
     __vec_concat(_Tp __a, _Tp __b)
     {
+#ifdef __clang__
+      constexpr int _N0 = __width_of<_Tp>;
+      using _RV = __vec_builtin_type<__value_type_of<_Tp>, _N0 * 2>;
+      return _GLIBCXX_SIMD_INT_PACK(_N0 * 2, _Is, {
+               return _RV{__vec_get(_Is < _N0 ? __a : __b, _Is % _N0)...};
+      });
+#else
       return _GLIBCXX_SIMD_INT_PACK(__width_of<_Tp> * 2, _Is, {
                return __builtin_shufflevector(__a, __b, _Is...);
              });
+#endif
     }
 
   template <int _Offset, __vec_builtin _Tp>

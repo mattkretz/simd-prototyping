@@ -785,7 +785,7 @@ namespace std
           _S_make_mask(_KV __k)
           {
             if constexpr (_S_size == 1)
-              return __k[__offset] != 0;
+              return __vec_get(__k, __offset) != 0;
             else
               return __vec_extract_part<__offset, __width_of<_KV>, _S_size>(__k);
           }
@@ -877,17 +877,7 @@ namespace std
               return __r;
             }
           else if (__i < _S_size)
-            {
-              if constexpr (_S_size == 1)
-                return _M_x;
-              else if constexpr (requires {_A0::_S_abiarray_size;})
-                {
-                  constexpr __detail::_SimdSizeType __n = _S_size / _A0::_S_abiarray_size;
-                  return _M_x[__i / __n][__i % __n];
-                }
-              else
-                return _M_x[__i];
-            }
+            return _Simpl0::_S_get(_M_x, __i);
           else if constexpr (_S_recurse)
             return _M_tail[__i - _S_size];
           else

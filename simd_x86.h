@@ -8,6 +8,7 @@
 
 #include "simd_converter.h"
 #include "simd_builtin.h"
+#include "x86_detail.h"
 
 #include <x86intrin.h>
 
@@ -430,9 +431,10 @@ namespace std::__detail
                       and __builtin_constant_p(__b)))
             {
               const _TV __r = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                return _TV{(((__k >> _Is) & 1) == 1 ? __a[_Is] : __b[_Is])...};
+                                return _TV{(((__k >> _Is) & 1) == 1 ? __vec_get(__a, _Is)
+                                                                    : __vec_get(__b, _Is))...};
                               });
-              if (__builtin_constant_p(__r))
+              if (__builtin_is_constant_evaluated() or __builtin_constant_p(__r))
                 return __r;
             }
 
@@ -444,7 +446,46 @@ namespace std::__detail
             return __a;
 
 #ifdef __clang__
-          return __movm<_S_full_size, _Tp>(__k) ? __a : __b;
+          return [&] {
+            if constexpr (sizeof(_Tp) == 1 && _Flags._M_have_avx512bw)
+              {
+                if constexpr (_S_size <= 16 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2b128(__k);
+                else if constexpr (_S_size <= 32 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2b256(__k);
+                else
+                  return __builtin_ia32_cvtmask2b512(__k);
+              }
+            else if constexpr (sizeof(_Tp) == 2 && _Flags._M_have_avx512bw)
+              {
+                if constexpr (_S_size <= 8 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2w128(__k);
+                else if constexpr (_S_size <= 16 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2w256(__k);
+                else
+                  return __builtin_ia32_cvtmask2w512(__k);
+              }
+            else if constexpr (sizeof(_Tp) == 4 && _Flags._M_have_avx512dq)
+              {
+                if constexpr (_S_size <= 4 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2d128(__k);
+                else if constexpr (_S_size <= 8 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2d256(__k);
+                else
+                  return __builtin_ia32_cvtmask2d512(__k);
+              }
+            else if constexpr (sizeof(_Tp) == 8 && _Flags._M_have_avx512dq)
+              {
+                if constexpr (_S_size <= 2 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2q128(__k);
+                else if constexpr (_S_size <= 4 && _Flags._M_have_avx512vl)
+                  return __builtin_ia32_cvtmask2q256(__k);
+                else
+                  return __builtin_ia32_cvtmask2q512(__k);
+              }
+            else
+              __assert_unreachable<_Tp>();
+          }() ? __a : __b;
 #else
           using _IntT = __x86_builtin_int_t<_Tp>;
           using _IntV = __vec_builtin_type_bytes<_IntT, sizeof(__b)>;
@@ -924,7 +965,7 @@ namespace std::__detail
       // Even, with C++17 there's little room for optimizations because the standard requires all
       // shifts to happen on promoted integrals (i.e. int). Thus, short and char shifts must assume
       // shifts affect bits of neighboring values.
-#ifndef _GLIBCXX_SIMD_NO_SHIFT_OPT
+#if not defined _GLIBCXX_SIMD_NO_SHIFT_OPT and not defined __clang__
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_bit_shift_left(_TV __x, int __y)
@@ -1688,7 +1729,7 @@ namespace std::__detail
           else
             return __x >> __y;
         }
-#endif // _GLIBCXX_SIMD_NO_SHIFT_OPT
+#endif // _GLIBCXX_SIMD_NO_SHIFT_OPT / __clang__
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
@@ -1702,7 +1743,8 @@ namespace std::__detail
                 {
                   const _MaskMember<_TV> __k
                     = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                        return ((__x[_Is] == __y[_Is] ? (1ULL << _Is) : 0) | ...);
+                        return ((__vec_get(__x, _Is) == __vec_get(__y, _Is)
+                                   ? (1ULL << _Is) : 0) | ...);
                       });
                   if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
                     return __k;
@@ -1854,9 +1896,10 @@ namespace std::__detail
                 {
                   const _MaskMember<_TV> __k
                     = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                        return ((__x[_Is] < __y[_Is] ? (1ULL << _Is) : 0) | ...);
+                        return ((__vec_get(__x, _Is) < __vec_get(__y, _Is)
+                                   ? (1ULL << _Is) : 0) | ...);
                       });
-                  if (__builtin_constant_p(__k))
+                  if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
                     return __k;
                 }
 
@@ -1959,7 +2002,8 @@ namespace std::__detail
                 {
                   const _MaskMember<_Tp> __k
                     = _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                        return ((__x[_Is] <= __y[_Is] ? (1ULL << _Is) : 0) | ...);
+                        return ((__vec_get(__x, _Is) <= __vec_get(__y, _Is)
+                                   ? (1ULL << _Is) : 0) | ...);
                       });
                   if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
                     return __k;
@@ -2399,7 +2443,6 @@ namespace std::__detail
             }
           else if constexpr (_Flags._M_have_avx512f)
             {
-              constexpr int _Np = _S_full_size;
               const auto __a = __x * __infinity_v<_Tp>; // NaN if __x == 0
               const auto __b = __x * _Tp();             // NaN if __x == inf
               if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 4, 16>)
@@ -2982,6 +3025,7 @@ namespace std::__detail
 
       static constexpr bool _S_have_ssse3 = _Flags._M_have_ssse3;
 
+#ifndef __clang__
       template <typename _Tp>
         requires(std::__has_single_bit(_S_size) and _S_size >= 2
                    and _S_size * sizeof(_Tp) <= 16
@@ -3060,6 +3104,7 @@ namespace std::__detail
           else
             __assert_unreachable<_Tp>();
         }
+#endif // __clang__
 
       template <unsigned_integral _Kp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<_S_size>
