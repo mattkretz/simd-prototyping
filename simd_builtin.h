@@ -42,7 +42,20 @@ namespace std
 
       template <typename _Tp, auto _Flags = __detail::__build_flags()>
         struct _IsValidSizeFor
-        : bool_constant<_Width >= 2 and sizeof(_Vp<_Tp>) == alignof(_Vp<_Tp>)
+        : bool_constant<_Width >= 2
+#if not defined __clang__
+                          and sizeof(_Vp<_Tp>) == alignof(_Vp<_Tp>)
+#else // __clang__
+        // Clang unconditionally overaligns vector builtins to their sizeof, so the preceding
+        // condition is always true.
+#ifdef _GLIBCXX_SIMD_HAVE_SSE
+                          and (sizeof(_Vp<_Tp>) <= 16
+                                 or (_Flags._M_have_avx and sizeof(_Vp<_Tp>) <= 32)
+                                 or (_Flags._M_have_avx512f and sizeof(_Vp<_Tp>) <= 64))
+#else
+                          and sizeof(_Vp<_Tp>) <= 16
+#endif
+#endif // __clang__
 #ifdef _GLIBCXX_SIMD_HAVE_SSE
                           and (not _Flags._M_have_avx or _Flags._M_have_avx2
                                  or sizeof(_Vp<_Tp>) <= 16 or is_floating_point_v<_Tp>)
