@@ -752,6 +752,7 @@ namespace std::__detail
 
       using _Base::_S_convert_mask;
 
+#ifndef __clang__
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_multiplies(_TV __x, _TV __y)
@@ -829,6 +830,7 @@ namespace std::__detail
           else
             return _Base::_S_multiplies(__x, __y);
         }
+#endif
 
       // integer division not optimized (PR90993)
 #ifndef __clang__
