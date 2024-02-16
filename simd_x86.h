@@ -224,6 +224,8 @@ namespace std::__detail
 
       static constexpr _SimdSizeType _S_full_size = _Abi::_S_full_size;
 
+      static constexpr bool _S_is_partial = _Abi::_S_is_partial;
+
       static constexpr bool _S_use_bitmasks = is_same_v<_Abi, _Avx512Abi<_S_size>>;
 
       using _MaskInteger = typename __detail::__make_unsigned_int<
@@ -3334,10 +3336,77 @@ namespace std::__detail
               else if constexpr (__k.size == 2 && _Bs != 2)
                 return __bits - (__bits >> 1);
 
+              else if constexpr (__k.size == 2 && _Bs == 2)
+                {
+                  const int __unmasked_bits = __movmsk(__data(__k));
+                  return (__unmasked_bits & 1) + (__unmasked_bits >> 3);
+                }
+
               else if constexpr (__k.size <= 4 and _Bs == 8)
                 {
                   auto __x = -(__vec_lo128(__kk) + __vec_hi128(__kk));
                   return __x[0] + __x[1];
+                }
+
+              else if constexpr (_Bs == 1 and _S_size <= 16)
+                {
+                  constexpr auto __one_mask
+                    = _Abi::_S_masked(__vec_broadcast<_S_size, __mask_integer_from<_Bs>>(1));
+                  auto __ones = __data(__k) & __one_mask;
+                  int __i32;
+                  if constexpr (_S_size > 8)
+                    {
+                      auto __i64 = reinterpret_cast<__v2int64>(__ones);
+                      __i64[0] += __i64[1];
+                      __i32 = (__i64[0] >> 32) + __i64[0];
+                    }
+                  else if constexpr (_S_size > 4)
+                    {
+                      auto __i64 = __builtin_bit_cast(int64_t, __ones);
+                      __i32 = (__i64 >> 32) + __i64;
+                    }
+                  else
+                    {
+                      static_assert(_S_size > 2);
+                      __i32 = __builtin_bit_cast(int, __ones);
+                    }
+                  __i32 += __i32 >> 16;
+                  __i32 += __i32 >> 8;
+                  return __i32 & 0xff;
+                }
+
+              else if constexpr (_Bs == 2 and _S_size <= 8)
+                {
+                  constexpr auto __one_mask
+                    = _Abi::_S_masked(__vec_broadcast<_S_size, __mask_integer_from<_Bs>>(1));
+                  auto __ones = _S_is_partial ? (__data(__k) & __one_mask) : __data(+__k);
+                  int __i32;
+                  if constexpr (_S_size > 4)
+                    {
+                      auto __i64 = reinterpret_cast<__v2int64>(__ones);
+                      __i64[0] += __i64[1];
+                      __i32 = (__i64[0] >> 32) + __i64[0];
+                    }
+                  else
+                    {
+                      static_assert(_S_size > 2);
+                      auto __i64 = __builtin_bit_cast(int64_t, __ones);
+                      __i32 = (__i64 >> 32) + __i64;
+                    }
+                  __i32 += __i32 >> 16;
+                  return __i32 & 0xffff;
+                }
+
+              else if constexpr (_Bs == 4 and _S_size <= 4)
+                {
+                  constexpr auto __one_mask
+                    = _Abi::_S_masked(__vec_broadcast<_S_size, __mask_integer_from<_Bs>>(1));
+                  auto __ones = _S_is_partial ? (__data(__k) & __one_mask) : __data(+__k);
+                  static_assert(_S_size > 2);
+                  auto __i64 = reinterpret_cast<__v2int64>(__ones);
+                  __i64[0] += __i64[1];
+                  int __i32 = (__i64[0] >> 32) + __i64[0];
+                  return __i32;
                 }
 
               else if constexpr (_Flags._M_have_sse2)
