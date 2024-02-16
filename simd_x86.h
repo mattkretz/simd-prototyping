@@ -3255,7 +3255,7 @@ namespace std::__detail
               else
                 {
                   constexpr int __valid_bits = (1 << (_Bs == 2 ? __k.size * 2 : __k.size)) - 1;
-                  return (__detail::__movmsk(__data(__k)) & __valid_bits) == __valid_bits;
+                  return (__movmsk(__data(__k)) & __valid_bits) == __valid_bits;
                 }
             }
         }
@@ -3280,7 +3280,7 @@ namespace std::__detail
               else
                 {
                   constexpr int __valid_bits = (1 << (_Bs == 2 ? __k.size * 2 : __k.size)) - 1;
-                  return (__detail::__movmsk(__data(__k)) & __valid_bits) != 0;
+                  return (__movmsk(__data(__k)) & __valid_bits) != 0;
                 }
             }
         }
@@ -3305,7 +3305,7 @@ namespace std::__detail
               else
                 {
                   constexpr int __valid_bits = (1 << (_Bs == 2 ? __k.size * 2 : __k.size)) - 1;
-                  return (__detail::__movmsk(__data(__k)) & __valid_bits) == 0;
+                  return (__movmsk(__data(__k)) & __valid_bits) == 0;
                 }
             }
         }
@@ -3324,7 +3324,7 @@ namespace std::__detail
             }
           else
             {
-              const int __bits = __detail::__movmsk(__kk);
+              const int __bits = __movmsk(__kk);
               if constexpr (_Flags._M_have_popcnt)
                 {
                   const int __count = __builtin_popcount(__bits);
