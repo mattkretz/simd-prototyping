@@ -3073,14 +3073,14 @@ namespace std::__detail
                 {
                   static_assert(_Np <= 16);
                   auto __z = reinterpret_cast<__v8int16>(__xi);
-                  __z = (__z << 8) + __z;
-                  if constexpr (_Np > 2)
+                  __z = (__z >> 8) + __z;
+                  if constexpr (_Np > 8)
                     __z = __builtin_ia32_phaddw128(__z, __z);
                   if constexpr (_Np > 4)
                     __z = __builtin_ia32_phaddw128(__z, __z);
-                  if constexpr (_Np > 8)
+                  if constexpr (_Np > 2)
                     __z = __builtin_ia32_phaddw128(__z, __z);
-                  return __z[0] >> 8;
+                  return static_cast<_Tp>(__z[0]);
                 }
 
               else if constexpr (sizeof(_Tp) == 2)
