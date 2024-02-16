@@ -3074,31 +3074,57 @@ namespace std::__detail
                   static_assert(_Np <= 16);
                   auto __z = reinterpret_cast<__v8int16>(__xi);
                   __z = (__z >> 8) + __z;
+#if _GLIBCXX_SIMD_IA32_USE_HORIZONTAL_ADD
                   if constexpr (_Np > 8)
                     __z = __builtin_ia32_phaddw128(__z, __z);
                   if constexpr (_Np > 4)
                     __z = __builtin_ia32_phaddw128(__z, __z);
                   if constexpr (_Np > 2)
                     __z = __builtin_ia32_phaddw128(__z, __z);
+#else
+                  if constexpr (_Np > 8)
+                    __z += reinterpret_cast<__v8int16>(
+                             __builtin_ia32_psrldqi128(__to_x86_intrin(__z), 64));
+                  if constexpr (_Np > 4)
+                    __z += __builtin_ia32_pshuflw(__z, 0b11'10'11'10);
+                  if constexpr (_Np > 2)
+                    __z += __builtin_ia32_pshuflw(__z, 0b11'10'01'01);
+#endif
                   return static_cast<_Tp>(__z[0]);
                 }
 
               else if constexpr (sizeof(_Tp) == 2)
                 {
                   static_assert(_Np <= 8);
+#if _GLIBCXX_SIMD_IA32_USE_HORIZONTAL_ADD
                   if constexpr (_Np > 4)
                     __y = __builtin_ia32_phaddw128(__y, __y);
                   if constexpr (_Np > 2)
                     __y = __builtin_ia32_phaddw128(__y, __y);
                   return __builtin_ia32_phaddw128(__y, __y)[0];
+#else
+                  if constexpr (_Np > 4)
+                    __y += reinterpret_cast<_IV>(
+                             __builtin_ia32_psrldqi128(__to_x86_intrin(__y), 64));
+                  if constexpr (_Np > 2)
+                    __y += __builtin_ia32_pshuflw(__y, 0b11'10'11'10);
+                  return (__y + __builtin_ia32_pshuflw(__y, 0b11'10'01'01))[0];
+#endif
                 }
 
               else if constexpr (sizeof(_Tp) == 4)
                 {
                   static_assert(_Np <= 4);
+#if _GLIBCXX_SIMD_IA32_USE_HORIZONTAL_ADD
                   if constexpr (_Np > 2)
                     __y = __builtin_ia32_phaddd128(__y, __y);
                   return __builtin_ia32_phaddd128(__y, __y)[0];
+#else
+                  if constexpr (_Np > 2)
+                    __y += reinterpret_cast<_IV>(
+                             __builtin_ia32_psrldqi128(__to_x86_intrin(__y), 64));
+                  return (__y + __builtin_ia32_pshufd(__y, 0b11'10'01'01))[0];
+#endif
                 }
 
               else if constexpr (sizeof(_Tp) == 8)
@@ -3112,18 +3138,31 @@ namespace std::__detail
             }
           else if constexpr (is_floating_point_v<_Tp>)
             {
-              auto __y = __vec_zero_pad_to_16(__data(__x));
+              auto __xi = __vec_zero_pad_to_16(__data(__x));
+              using _FV = __vec_builtin_type_bytes<__x86_builtin_fp_t<_Tp>, sizeof(__xi)>;
+              auto __y = reinterpret_cast<_FV>(__xi);
 
               if constexpr (sizeof(_Tp) == 4)
                 {
                   static_assert(_Np <= 4);
+#if _GLIBCXX_SIMD_IA32_USE_HORIZONTAL_ADD
                   if constexpr (_Np > 2)
                     __y = __builtin_ia32_haddps(__y, __y);
                   return __builtin_ia32_haddps(__y, __y)[0];
+#else
+                  if constexpr (_Np > 2)
+                    __y += __builtin_ia32_movhlps(__y, __y);
+                  return __builtin_ia32_addss(__y, __builtin_ia32_shufps(
+                                                     __y, __y, 0b11'10'01'01))[0];
+#endif
                 }
 
               else if constexpr (_Np == 2 and sizeof(_Tp) == 8)
+#if _GLIBCXX_SIMD_IA32_USE_HORIZONTAL_ADD
                 return __builtin_ia32_haddpd(__y, __y)[0];
+#else
+                return __builtin_ia32_addsd(__y, __builtin_ia32_shufpd(__y, __y, 0b01'01))[0];
+#endif
 
               else
                 __assert_unreachable<_Tp>();
