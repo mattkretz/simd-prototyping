@@ -247,7 +247,7 @@ namespace std
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _SimdType
       operator-() const noexcept
       {
-        if constexpr (sizeof(_M_data) == sizeof(_SimdType))
+        if constexpr (__detail::__vec_builtin<_MemberType> and sizeof(_M_data) == sizeof(_SimdType))
           return std::bit_cast<_SimdType>(_M_data);
         else
           {
