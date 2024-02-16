@@ -180,7 +180,7 @@ namespace std::__detail
   {
 #if defined  __x86_64__ and defined __BMI2__
     return __builtin_ia32_pext_di(__builtin_bit_cast(unsigned long long, __x),
-                                  0x80808080'80808080ULL);
+                                  0x80000000'80000000ULL);
 #else
     using _Float2 [[gnu::vector_size(8)]] = float;
     const _Float2 __tmp = __builtin_bit_cast(_Float2, __x);
