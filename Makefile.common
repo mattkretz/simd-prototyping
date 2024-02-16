@@ -147,7 +147,7 @@ $(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d
 	@echo "Build constexpr tests for $*"
 	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.hpp -S -o $@ constexpr_tests.c++
 
-check/%: obj/%.exe
+check/%: obj/%.exe always-remake
 	@mkdir -p $(dir $@)
 	@{ \
 		echo "================================================================";\
@@ -156,6 +156,9 @@ check/%: obj/%.exe
 		$(icerun) obj/$*.exe; \
 	} | tee $@
 	@tail -n1 $@ | grep -qv '^Failed tests: [^0]'
+
+.PHONY: always-remake
+always-remake: ;
 
 check-codegen-%: obj/codegen.%.s codegen/check.sh
 	@echo "Testing for expected instructions in $<"
