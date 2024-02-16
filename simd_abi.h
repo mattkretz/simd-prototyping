@@ -1091,10 +1091,10 @@ namespace std
                   {
                     auto __x12 = std::simd_split<_X2>(__x1);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
-                    return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)>, _Is, {
-                      return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)>, _Js, {
-                        return _S_reduce(__binary_op, __x2, std::get<_Is>(__x02)...,
-                                         std::get<_Js>(__x12)..., __tail...);
+                    return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
+                      return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {
+                        return _S_reduce(__binary_op, __x2, std::get<_Is + 1>(__x02)...,
+                                         std::get<_Js + 1>(__x12)..., __tail...);
                       });
                     });
                   }
@@ -1118,10 +1118,10 @@ namespace std
                   {
                     auto __x02 = std::simd_split<_X2>(__x0);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
-                    return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)>, _Is, {
-                      return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)>, _Js, {
-                        return _S_reduce(__binary_op, __x2, std::get<_Is>(__x02)...,
-                                         std::get<_Js>(__x12)..., __tail...);
+                    return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
+                      return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {
+                        return _S_reduce(__binary_op, __x2, std::get<_Is + 1>(__x02)...,
+                                         std::get<_Js + 1>(__x12)..., __tail...);
                       });
                     });
                   }
