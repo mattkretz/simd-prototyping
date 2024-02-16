@@ -790,22 +790,26 @@ namespace std::__detail
                 }
               else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1 and is_signed_v<_Tp>)
                 {
-                  auto __x16 = __builtin_ia32_pmovsxbw128(__vec_zero_pad_to_16(__x));
-                  auto __y16 = __builtin_ia32_pmovsxbw128(__vec_zero_pad_to_16(__y));
+                  auto __x16 = __builtin_ia32_pmovsxbw128(reinterpret_cast<__v16char>(
+                                                            __vec_zero_pad_to_16(__x)));
+                  auto __y16 = __builtin_ia32_pmovsxbw128(reinterpret_cast<__v16char>(
+                                                            __vec_zero_pad_to_16(__y)));
                   static_assert(same_as<decltype(__x16), __vec_builtin_type<short, 8>>);
                   return __vec_convert<_TV>(__x16 * __y16);
                 }
               else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1 and is_unsigned_v<_Tp>)
                 {
-                  auto __x16 = __builtin_ia32_pmovzxbw128(__vec_zero_pad_to_16(__x));
-                  auto __y16 = __builtin_ia32_pmovzxbw128(__vec_zero_pad_to_16(__y));
+                  auto __x16 = __builtin_ia32_pmovzxbw128(reinterpret_cast<__v16char>(
+                                                            __vec_zero_pad_to_16(__x)));
+                  auto __y16 = __builtin_ia32_pmovzxbw128(reinterpret_cast<__v16char>(
+                                                            __vec_zero_pad_to_16(__y)));
                   static_assert(same_as<decltype(__x16), __vec_builtin_type<short, 8>>);
                   return __vec_convert<_TV>(__x16 * __y16);
                 }
               else
                 {
                   // codegen of `x*y` is suboptimal (as of GCC 13.1)
-                  constexpr int _Np = sizeof(_TV) >= 16 ? _S_full_size / 2 : 8;
+                  constexpr int _Np = _S_full_size / 2;
                   using _ShortW = __vec_builtin_type<short, _Np>;
                   const _ShortW __even = __vec_bitcast<short, _Np>(__x)
                                            * __vec_bitcast<short, _Np>(__y);
