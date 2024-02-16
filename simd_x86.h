@@ -141,19 +141,21 @@ namespace std
 
       static constexpr bool _S_mask_is_partial = _S_size < 8 or not std::__has_single_bit(_S_size);
 
+      // The template argument exists because _VecAbi::_S_implicit_mask needs it. And _ImplBuiltin
+      // below needs to work generically for _VecAbi and _Avx512Abi.
       template <__detail::__vectorizable>
         static constexpr _MaskInteger _S_implicit_mask
           = _S_mask_is_partial ? _MaskInteger((1ULL << _S_size) - 1) : ~_MaskInteger();
 
-      template <__detail::__vectorizable _ValueType, integral _Up>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _Up
-        _S_masked(_Up __x)
-        {
-          if constexpr (_S_mask_is_partial)
-            return __x & _S_implicit_mask<_ValueType>;
-          else
-            return __x;
-        }
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskInteger
+      _S_masked(_MaskInteger __x)
+      {
+        if constexpr (_S_mask_is_partial)
+          // _S_mask_is_partial implies _S_size < 64
+          return __x & _MaskInteger((1ULL << _S_size) - 1);
+        else
+          return __x;
+      }
 
       using _VecAbi<_Width>::_S_masked;
 
@@ -3282,7 +3284,7 @@ namespace std::__detail
         _S_none_of(const basic_simd_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
-            return _Abi::template _S_masked<__mask_integer_from<_Bs>>(__data(__k)) == 0;
+            return _Abi::_S_masked(__data(__k)) == 0;
 
           else
             {
@@ -3306,7 +3308,7 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static int
         _S_popcount(basic_simd_mask<_Bs, _Abi> __k)
         {
-          const auto __kk = _Abi::template _S_masked<__mask_integer_from<_Bs>>(__data(__k));
+          const auto __kk = _Abi::_S_masked(__data(__k));
           if constexpr (_S_use_bitmasks)
             {
               if constexpr (__k.size > 32)
@@ -3361,7 +3363,7 @@ namespace std::__detail
         _S_find_last_set(basic_simd_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
-            return __highest_bit(_Abi::template _S_masked<__mask_integer_from<_Bs>>(__data(__k)));
+            return __highest_bit(_Abi::_S_masked(__data(__k)));
           else
             {
               uint32_t __bits = __movmsk(__data(__k));

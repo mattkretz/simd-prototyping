@@ -170,11 +170,11 @@ namespace std
                              }(make_integer_sequence<int, _S_full_size>())
                              : ~_MaskMember<_Tp>();
 
-      template <__detail::__vectorizable _Tp, __detail::__vec_builtin _TV>
+      template <__detail::__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_masked(_TV __x)
         {
-          static_assert(is_same_v<_Tp, __detail::__value_type_of<_TV>>);
+          using _Tp = __detail::__value_type_of<_TV>;
           if constexpr (not _S_is_partial)
             return __x;
           else
