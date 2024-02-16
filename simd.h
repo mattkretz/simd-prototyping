@@ -253,6 +253,46 @@ namespace std
       requires requires(value_type __a, value_type __b) { __a / __b; }
       { return __lhs = __lhs / __x; }
 
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator%=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a % __b; }
+      { return __lhs = __lhs % __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator&=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a & __b; }
+      { return __lhs = __lhs & __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator|=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a | __b; }
+      { return __lhs = __lhs | __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator^=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a ^ __b; }
+      { return __lhs = __lhs ^ __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator<<=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a << __b; }
+      { return __lhs = __lhs << __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator>>=(basic_simd& __lhs, const basic_simd& __x)
+      requires requires(value_type __a, value_type __b) { __a >> __b; }
+      { return __lhs = __lhs >> __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator<<=(basic_simd& __lhs, int __x)
+      requires requires(value_type __a, int __b) { __a << __b; }
+      { return __lhs = __lhs << __x; }
+
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator>>=(basic_simd& __lhs, int __x)
+      requires requires(value_type __a, int __b) { __a >> __b; }
+      { return __lhs = __lhs >> __x; }
+
       // binary operators [basic_simd.binary]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
       operator+(const basic_simd& __x, const basic_simd& __y)
