@@ -92,6 +92,7 @@ static_assert(alignof(std::simd_mask<long long, 4>) == 16);
 static_assert(alignof(std::simd_mask<double, 4>) == 32);
 static_assert(alignof(std::simd_mask<long long, 8>) == 16);
 static_assert(alignof(std::simd_mask<double, 8>) == 32);
+static_assert(std::same_as<decltype(+std::simd_mask<float, 8>()), std::simd<int, 8>>);
 #endif
 
 template <auto X>
@@ -192,6 +193,8 @@ static_assert([] constexpr {
 }());
 
 static_assert([] constexpr {
+  // Corner case on AVX w/o AVX2 systems. <float, 5> is an AVX register;
+  // <int, 5> is deduced as SSE + scalar.
   constexpr std::simd_mask<float, 5> a([](int i) -> bool { return i >= 2; });
   constexpr std::basic_simd b = a;
   static_assert(b[0] == 0);
@@ -199,6 +202,26 @@ static_assert([] constexpr {
   static_assert(b[2] == 1);
   static_assert(b[3] == 1);
   static_assert(b[4] == 1);
+  static_assert(all_of((b == 1) == a));
+  constexpr std::simd_mask<float, 8> a8([](int i) -> bool { return i <= 4; });
+  constexpr std::basic_simd b8 = a8;
+  static_assert(b8[0] == 1);
+  static_assert(b8[1] == 1);
+  static_assert(b8[2] == 1);
+  static_assert(b8[3] == 1);
+  static_assert(b8[4] == 1);
+  static_assert(b8[5] == 0);
+  static_assert(b8[6] == 0);
+  static_assert(b8[7] == 0);
+  static_assert(all_of((b8 == 1) == a8));
+  constexpr std::simd_mask<float, 15> a15([](int i) -> bool { return i <= 4; });
+  constexpr std::basic_simd b15 = a15;
+  static_assert(b15[0] == 1);
+  static_assert(b15[4] == 1);
+  static_assert(b15[5] == 0);
+  static_assert(b15[8] == 0);
+  static_assert(b15[14] == 0);
+  static_assert(all_of((b15 == 1) == a15));
   return true;
 }());
 
