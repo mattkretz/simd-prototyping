@@ -700,6 +700,11 @@ namespace std
           { return (std::none_of(_S_submask(__masks, _Is)) and ...); }
 
         template <size_t _Bs>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
+          _S_popcount(const basic_simd_mask<_Bs, abi_type> & __k)
+          { return (std::reduce_count(_S_submask(__k, _Is)) + ...); }
+
+        template <size_t _Bs>
           static constexpr _SimdSizeType
           _S_find_first_set(basic_simd_mask<_Bs, abi_type> const& __masks)
           {

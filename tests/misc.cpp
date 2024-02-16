@@ -130,7 +130,8 @@ template <typename V>
           verify_equal(std::reduce_count(k), 1);
           verify_equal(-std::reduce(-k), 1)(k, -k);
           verify_equal(std::reduce_count(not k), V::size - 1)(not k);
-          verify_equal(-std::reduce(-not k), V::size - 1)(-not k);
+          if constexpr (V::size - 1 <= std::numeric_limits<T>::max())
+            verify_equal(-std::reduce(-not k), V::size - 1)(-not k);
           verify(any_of(k));
           verify(bool(any_of(k & k0) ^ (i != 0)));
 
