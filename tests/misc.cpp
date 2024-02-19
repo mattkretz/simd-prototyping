@@ -164,6 +164,19 @@ template <typename V>
       V x(it);
       verify_equal(x, V());
 
+      V x2(it, std::simd_flag_aligned);
+      verify_equal(x2, V());
+
+      V x3(it, std::simd_flag_overaligned<256>);
+      verify_equal(x3, V());
+
+      V x4(it + 1);
+      verify_equal(x4, V());
+
+      std::array<int, V::size * 2> ints = {};
+      V x5(ints.begin(), std::simd_flag_convert);
+      verify_equal(x5, V());
+
       if constexpr (requires {T() + T(1);})
         {
           std::iota(mem.begin(), mem.end(), T());
@@ -172,6 +185,9 @@ template <typename V>
 
           x.copy_from(it + 1);
           verify_equal(x, std::iota_v<V> + T(1));
+
+          x.copy_from(it, std::simd_flag_aligned);
+          verify_equal(x, std::iota_v<V>);
         }
     }
   };

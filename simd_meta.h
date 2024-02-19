@@ -7,6 +7,7 @@
 #define PROTOTYPE_SIMD_META_H_
 
 #include "fwddecl.h"
+#include "flags.h"
 
 namespace std::__detail
 {
@@ -90,6 +91,12 @@ namespace std::__detail
   template <typename _From, typename _To>
     concept __higher_rank_than
       = __higher_floating_point_rank_than<_From, _To> || __higher_integer_rank_than<_From, _To>;
+
+  template <typename _From, typename _To, typename... _Flags>
+    concept __loadstore_convertible_to
+      = __vectorizable<_From> and __vectorizable<_To>
+          and (__value_preserving_convertible_to<_From, _To>
+                 or (std::convertible_to<_From, _To> and (std::same_as<_Flags, _Convert> or ...)));
 
   template <auto _Value>
     using _Ic = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;

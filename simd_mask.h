@@ -140,35 +140,33 @@ namespace std
         {}
 
       // load ctor
-      // TODO: update flags parameter
-      template <typename _It, typename _Flags = element_aligned_tag>
-        requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
+      template <typename _It, typename... _Flags>
+        requires std::same_as<std::iter_value_t<_It>, bool> and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_simd_mask(_It __first, _Flags __f = {})
+        basic_simd_mask(_It __first, simd_flags<_Flags...> __f = {})
         { copy_from(__first, __f); }
 
       // masked load ctor
-      // TODO: update flags parameter
-      template <typename _It, typename _Flags = element_aligned_tag>
+      template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
                    and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_simd_mask(_It __first, const basic_simd_mask& __k, _Flags = {})
+        basic_simd_mask(_It __first, const basic_simd_mask& __k, simd_flags<_Flags...> __f = {})
         : _M_data {}
         {
-          const auto* __ptr = _Flags::template _S_apply<basic_simd_mask>(std::addressof(*__first));
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd_mask>(
+                                std::addressof(*__first));
           _M_data = _Impl::_S_masked_load(_M_data, __k._M_data, __ptr);
         }
 
       // loads [simd.mask.copy]
-      template <typename _It, typename _Flags = element_aligned_tag>
-        requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
+      template <typename _It, typename... _Flags>
+        requires std::same_as<std::iter_value_t<_It>, bool> and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, _Flags = {})
+        copy_from(_It __first, simd_flags<_Flags...> __f = {})
         {
-          const auto* __ptr = _Flags::template _S_apply<basic_simd_mask>(std::addressof(*__first));
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd_mask>(
+                                std::addressof(*__first));
           if (__builtin_is_constant_evaluated())
             {
               _M_data = [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
@@ -185,36 +183,38 @@ namespace std
             _M_data = _Impl::template _S_load<_Tp>(__ptr);
         }
 
-      template <typename _It, typename _Flags = element_aligned_tag>
-        requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
+      template <typename _It, typename... _Flags>
+        requires std::same_as<std::iter_value_t<_It>, bool> and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, const basic_simd_mask& __k, _Flags = {})
+        copy_from(_It __first, const basic_simd_mask& __k, simd_flags<_Flags...> __f = {})
         {
-          const auto* __ptr = _Flags::template _S_apply<basic_simd_mask>(std::addressof(*__first));
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd_mask>(
+                                std::addressof(*__first));
           _M_data = _Impl::_S_masked_load(_M_data, __k._M_data, __ptr);
         }
 
       // stores [simd.mask.copy]
-      template <typename _It, typename _Flags>
+      template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
                    and std::contiguous_iterator<_It>
                    and std::indirectly_writable<_It, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_It __first, _Flags) const
+        copy_to(_It __first, simd_flags<_Flags...> __f = {}) const
         {
-          const auto* __ptr = _Flags::template _S_apply<basic_simd_mask>(std::addressof(*__first));
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd_mask>(
+                                std::addressof(*__first));
           _Impl::_S_store(_M_data, __ptr);
         }
 
-      template <typename _It, typename _Flags>
+      template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
                    and std::contiguous_iterator<_It>
                    and std::indirectly_writable<_It, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_It __first, const basic_simd_mask& __k, _Flags) const
+        copy_to(_It __first, const basic_simd_mask& __k, simd_flags<_Flags...> __f = {}) const
         {
-          const auto* __ptr = _Flags::template _S_apply<basic_simd_mask>(std::addressof(*__first));
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd_mask>(
+                                std::addressof(*__first));
           _Impl::_S_masked_store(_M_data, __ptr, __k._M_data);
         }
 

@@ -95,26 +95,101 @@ namespace std
         {}
 
       // load constructor
-      template <typename _It, typename _Flags = element_aligned_tag>
-        requires __detail::__vectorizable<std::iter_value_t<_It>>
-                   and std::convertible_to<std::iter_value_t<_It>, value_type>
-                   and std::contiguous_iterator<_It>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_simd(_It __first, _Flags = {})
-        : _M_data(_Impl::_S_load(_Flags::template _S_apply<basic_simd>(std::to_address(__first)),
-                                 _S_type_tag))
+      template <typename _It, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
+          and std::contiguous_iterator<_It>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr // TODO explicit
+        basic_simd(_It __first, simd_flags<_Flags...> __flags = {})
+        : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
+                                   std::to_address(__first)), _S_type_tag))
         {}
 
-      template <typename _It, typename _Flags = element_aligned_tag>
-        requires __detail::__vectorizable<std::iter_value_t<_It>>
-                   and std::convertible_to<std::iter_value_t<_It>, value_type>
-                   and std::contiguous_iterator<_It>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_simd(_It __first, const mask_type& __k, _Flags = {})
+      template <typename _It, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
+          and std::contiguous_iterator<_It>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr // TODO explicit
+        basic_simd(_It __first, const mask_type& __k, simd_flags<_Flags...> __flags = {})
         : _M_data(_Impl::_S_masked_load(_MemberType(), __data(__k),
-                                        _Flags::template _S_apply<basic_simd>(
+                                        __flags.template _S_adjust_pointer<basic_simd>(
                                           std::to_address(__first))))
         {}
+
+      ////////////////////////////////////////////////////////////////////////////////////////////
+      // begin exploration
+
+      // construction from span of static extent is simple
+      //   basic_simd(std::span<_Tp, size()> __mem)
+      //
+      // but let's add conversions and flags
+      template <typename _Up, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<_Up, value_type, _Flags...>
+        constexpr // TODO explicit?
+        basic_simd(std::span<_Up, size()> __mem, simd_flags<_Flags...> __flags = {})
+        : basic_simd(__mem.begin(), __flags)
+        {}
+
+      // ranges typically don't have a static size() function :(
+      // but if one does, this ctor is useful
+      template <std::ranges::contiguous_range _Rg, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                 value_type, _Flags...>
+          and (__detail::__static_range_size<_Rg> == size.value)
+        constexpr // TODO explicit?
+        basic_simd(_Rg&& __range, simd_flags<_Flags...> __flags = {})
+        : basic_simd(std::ranges::begin(__range), __flags)
+        {}
+
+      template <std::ranges::contiguous_range _Rg, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                 value_type, _Flags...>
+          and (__detail::__static_range_size<_Rg> == std::dynamic_extent)
+        constexpr // TODO explicit?
+        basic_simd(_Rg&& __range, simd_flags<_Flags...> __f = {})
+        {
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd>(std::ranges::data(__range));
+          if(std::ranges::size(__range) >= size())
+            _M_data = _Impl::_S_load(__ptr, _S_type_tag);
+          else
+            {
+              *this = _Tp();
+              __builtin_memcpy(&_M_data, __ptr, size() - std::ranges::size(__range));
+            }
+        }
+
+      /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
+       * (decay to pointer) as well as contiguous ranges.
+       *
+      template <std::ranges::random_access_range _Rg>
+        requires(std::convertible_to<std::ranges::range_value_t<_Rg>, _Tp>)
+        constexpr explicit (not std::same_as<std::ranges::range_value_t<_Rg>, _Tp>)
+        basic_simd(const _Rg& __range)
+        : basic_simd([&__range](auto __i) -> _Tp { return __range[__i]; })
+        {}*/
+
+      template <std::ranges::contiguous_range _Rg, typename... _Flags>
+        requires std::ranges::output_range<_Rg, value_type>
+          and __detail::__loadstore_convertible_to<
+                 value_type, std::ranges::range_value_t<_Rg>, _Flags...>
+          and (__detail::__static_range_size<_Rg> == std::dynamic_extent
+                 or __detail::__static_range_size<_Rg> == size.value)
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
+        copy_to(_Rg&& __range, simd_flags<_Flags...> __f = {})
+        {
+          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd>(std::ranges::data(__range));
+          if constexpr (__detail::__static_range_size<_Rg> == std::dynamic_extent)
+            {
+              if(std::ranges::size(__range) >= size())
+                _Impl::_S_store(_M_data, __ptr, _S_type_tag);
+              else
+                __builtin_memcpy(__ptr, &_M_data, size() - std::ranges::size(__range));
+            }
+          else
+            _Impl::_S_store(_M_data, __ptr, _S_type_tag);
+        }
+
+
+      // end exploration
+      ////////////////////////////////////////////////////////////////////////////////////////////
 
       // private init
       _GLIBCXX_SIMD_INTRINSIC constexpr
@@ -123,58 +198,44 @@ namespace std
       {}
 
       // loads and stores
-      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
-        requires __detail::__vectorizable<std::iter_value_t<_It>>
-                   and std::convertible_to<std::iter_value_t<_It>, value_type>
+      template <std::contiguous_iterator _It, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, _Flags = {})
+        copy_from(_It __first, simd_flags<_Flags...> __flags = {})
         {
-          _M_data = _Impl::_S_load(_Flags::template _S_apply<basic_simd>(std::to_address(__first)),
-                                   _S_type_tag);
+          _M_data = _Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
+                                     std::to_address(__first)), _S_type_tag);
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
-        requires __detail::__vectorizable<std::iter_value_t<_It>>
-                   and std::convertible_to<std::iter_value_t<_It>, value_type>
+      template <std::contiguous_iterator _It, typename... _Flags>
+        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, const mask_type& __k, _Flags = {})
+        copy_from(_It __first, const mask_type& __k, simd_flags<_Flags...> __flags = {})
         {
           _M_data = _Impl::_S_masked_load(_M_data, __data(__k),
-                                          _Flags::template _S_apply<basic_simd>(
+                                          __flags.template _S_adjust_pointer<basic_simd>(
                                             std::to_address(__first)));
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
-        requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
+      template <std::contiguous_iterator _It, typename... _Flags>
+        requires std::output_iterator<_It, _Tp>
+          and __detail::__loadstore_convertible_to<value_type, std::iter_value_t<_It>, _Flags...>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_It __first, _Flags = {}) const
+        copy_to(_It __first, simd_flags<_Flags...> __flags = {}) const
         {
-          _Impl::_S_store(_M_data, _Flags::template _S_apply<basic_simd>(std::to_address(__first)),
-                          _S_type_tag);
+          _Impl::_S_store(_M_data, __flags.template _S_adjust_pointer<basic_simd>(
+                                     std::to_address(__first)), _S_type_tag);
         }
 
-      template <std::contiguous_iterator _It, typename _Flags = element_aligned_tag>
-        requires std::output_iterator<_It, _Tp> && __detail::__vectorizable<std::iter_value_t<_It>>
+      template <std::contiguous_iterator _It, typename... _Flags>
+        requires std::output_iterator<_It, _Tp>
+          and __detail::__loadstore_convertible_to<value_type, std::iter_value_t<_It>, _Flags...>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_It __first, const mask_type& __k, _Flags = {}) const
+        copy_to(_It __first, const mask_type& __k, simd_flags<_Flags...> __flags = {}) const
         {
           _Impl::_S_masked_store(
-            __data(*this), _Flags::template _S_apply<basic_simd>(std::to_address(__first)),
+            __data(*this), __flags.template _S_adjust_pointer<basic_simd>(std::to_address(__first)),
             __data(__k));
-        }
-
-      template <std::ranges::contiguous_range _Rg, typename _Flags = element_aligned_tag>
-        requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
-                    && std::ranges::output_range<_Rg, _Tp>
-                    && __detail::__static_range_size<_Rg> == std::dynamic_extent)
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_to(_Rg&& __range, _Flags __f = {})
-        {
-          const auto __b = std::ranges::begin(__range);
-          if(std::ranges::size(__range) >= size())
-            copy_to(__b, __f);
-          else
-            __builtin_memcpy(std::to_address(__b), &_M_data, size() - std::ranges::size(__range));
         }
 
       // unary operators (for any _Tp)
@@ -385,51 +446,11 @@ namespace std
       requires requires (value_type __a) { __a >= __a; }
       { return {__detail::__private_init, _Impl::_S_less_equal(__data(__y), __data(__x))}; }
 
-      // construction from span is simple
-      constexpr
-      basic_simd(std::span<_Tp, size()> __mem)
-      : basic_simd(__mem.begin())
-      {}
-
-      // ranges typically don't have a static size() function :(
-      // but if one does, this ctor is useful
-      template <std::ranges::contiguous_range _Rg>
-        requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
-                    && __detail::__static_range_size<_Rg> == size())
-        constexpr
-        basic_simd(_Rg&& __range)
-        : basic_simd(std::ranges::begin(__range))
-        {}
-
-      template <std::ranges::contiguous_range _Rg>
-        requires (std::same_as<std::ranges::range_value_t<_Rg>, _Tp>
-                    && __detail::__static_range_size<_Rg> == std::dynamic_extent)
-        constexpr
-        basic_simd(_Rg&& __range)
-        {
-          *this = _Tp();
-          const auto __b = std::ranges::begin(__range);
-          if(std::ranges::size(__range) >= size())
-            copy_from(__b);
-          else
-            __builtin_memcpy(&_M_data, std::to_address(__b), size() - std::ranges::size(__range));
-        }
-
-      /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
-       * (decay to pointer) as well as contiguous ranges.
-       *
-      template <std::ranges::random_access_range _Rg>
-        requires(std::convertible_to<std::ranges::range_value_t<_Rg>, _Tp>)
-        constexpr explicit (not std::same_as<std::ranges::range_value_t<_Rg>, _Tp>)
-        basic_simd(const _Rg& __range)
-        : basic_simd([&__range](auto __i) -> _Tp { return __range[__i]; })
-        {}*/
-
       constexpr std::array<_Tp, size()>
       to_array() const noexcept
       {
         std::array<_Tp, size()> __r = {};
-        this->copy_to(__r.data(), element_aligned);
+        this->copy_to(__r.data(), simd_flag_default);
         return __r;
       }
 

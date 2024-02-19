@@ -166,12 +166,8 @@ namespace std
             typename _Abi = __detail::_NativeAbi<__detail::__mask_integer_from<_Bytes>>>
     class basic_simd_mask;
 
-  struct element_aligned_tag;
-
-  struct vector_aligned_tag;
-
-  template <size_t _Np>
-    struct overaligned_tag;
+  template <typename... _Flags>
+    struct simd_flags;
 
   template <typename _Tp>
     struct is_simd

@@ -104,14 +104,34 @@ static_assert(not std::convertible_to<std::simd<int, 4>, std::simd<float, 4>>);
 static_assert(not std::convertible_to<std::simd<float, 4>, std::simd<int, 4>>);
 static_assert(    std::convertible_to<std::simd<int, 4>, std::simd<double, 4>>);
 
-template <typename T>
-concept usable_simd = std::is_nothrow_move_constructible_v<T>
-                        and std::is_nothrow_move_assignable_v<T>
-                        and std::is_nothrow_default_constructible_v<T>
-                        and std::is_trivially_copyable_v<T>
-                        and std::is_standard_layout_v<T>
-                        and std::ranges::random_access_range<T&>
-                        and not std::ranges::output_range<T&, typename T::value_type>;
+template <typename V, typename T = typename V::value_type>
+  concept usable_simd_or_mask
+    = std::is_nothrow_move_constructible_v<V>
+        and std::is_nothrow_move_assignable_v<V>
+        and std::is_nothrow_default_constructible_v<V>
+        and std::is_trivially_copyable_v<V>
+        and std::is_standard_layout_v<V>
+        and std::ranges::random_access_range<V&>
+        and not std::ranges::output_range<V&, T>
+        and std::constructible_from<V, V> // broadcast
+      // loads:
+        and std::constructible_from<V, const T*>
+        and std::constructible_from<V, typename std::array<T, 4>::iterator>
+        and std::constructible_from<V, typename std::array<T, 4>::const_iterator>
+      ;
+
+template <typename V, typename T = typename V::value_type>
+  concept usable_simd
+    = usable_simd_or_mask<V, T>
+        and std::constructible_from<V, const int*, decltype(std::simd_flag_convert)>
+        and std::constructible_from<V, const int*, decltype(std::simd_flag_convert
+                                                              | std::simd_flag_aligned)>
+        and not std::constructible_from<V, const long double*>
+        and (not std::constructible_from<V, const double*>
+               or (std::floating_point<T> and sizeof(T) == sizeof(double)))
+        and (not std::constructible_from<V, const float*>
+               or (std::floating_point<T> and sizeof(T) >= sizeof(float)))
+      ;
 
 template <typename T>
   struct test_usable_simd
@@ -127,16 +147,16 @@ template <typename T>
     static_assert(usable_simd<std::simd<T, 63>>);
     static_assert(usable_simd<std::simd<T, 64>>);
 
-    static_assert(usable_simd<std::simd_mask<T, 1>>);
-    static_assert(usable_simd<std::simd_mask<T, 2>>);
-    static_assert(usable_simd<std::simd_mask<T, 3>>);
-    static_assert(usable_simd<std::simd_mask<T, 4>>);
-    static_assert(usable_simd<std::simd_mask<T, 7>>);
-    static_assert(usable_simd<std::simd_mask<T, 8>>);
-    static_assert(usable_simd<std::simd_mask<T, 16>>);
-    static_assert(usable_simd<std::simd_mask<T, 32>>);
-    static_assert(usable_simd<std::simd_mask<T, 63>>);
-    static_assert(usable_simd<std::simd_mask<T, 64>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 1>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 2>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 3>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 4>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 7>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 8>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 16>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 32>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 63>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 64>>);
   };
 
 template <template <typename> class Tpl>
@@ -398,30 +418,36 @@ static_assert(
 
 // simd_flags ////////////////////////
 
-static_assert(std::simd_flags<>() == std::simd_flag_default);
+static_assert(std::simd_flags<>()._M_is_equal(std::simd_flag_default));
 
-static_assert(std::simd_flag_aligned != std::simd_flag_default);
+static_assert(not std::simd_flag_aligned._M_is_equal(std::simd_flag_default));
 
-static_assert(std::simd_flag_default != std::simd_flag_aligned);
+static_assert(not std::simd_flag_default._M_is_equal(std::simd_flag_aligned));
 
-static_assert((std::simd_flag_default | std::simd_flag_default) == std::simd_flag_default);
+static_assert((std::simd_flag_default | std::simd_flag_default)
+                ._M_is_equal(std::simd_flag_default));
 
-static_assert((std::simd_flag_aligned | std::simd_flag_default) == std::simd_flag_aligned);
+static_assert((std::simd_flag_aligned | std::simd_flag_default)
+                ._M_is_equal(std::simd_flag_aligned));
 
-static_assert((std::simd_flag_aligned | std::simd_flag_aligned) == std::simd_flag_aligned);
+static_assert((std::simd_flag_aligned | std::simd_flag_aligned)
+                ._M_is_equal(std::simd_flag_aligned));
 
 static_assert((std::simd_flag_aligned | std::simd_flag_convert)
-                == (std::simd_flag_convert | std::simd_flag_aligned));
+                ._M_is_equal(std::simd_flag_convert | std::simd_flag_aligned));
 
-static_assert(((std::simd_flag_aligned | std::simd_flag_convert) & std::simd_flag_aligned)
-                != (std::simd_flag_convert | std::simd_flag_aligned));
+static_assert(not ((std::simd_flag_aligned | std::simd_flag_convert)
+                     ._M_and(std::simd_flag_aligned))
+                ._M_is_equal(std::simd_flag_convert | std::simd_flag_aligned));
 
-static_assert(((std::simd_flag_aligned | std::simd_flag_convert) & std::simd_flag_aligned)
-                == std::simd_flag_aligned);
+static_assert(((std::simd_flag_aligned | std::simd_flag_convert)
+                 ._M_and(std::simd_flag_aligned))
+                ._M_is_equal(std::simd_flag_aligned));
 
-static_assert(std::simd_flag_aligned.test(std::simd_flag_aligned));
+static_assert(std::simd_flag_aligned._M_test(std::simd_flag_aligned));
 
-static_assert(std::simd_flag_aligned.test(std::simd_flag_default));
+static_assert(std::simd_flag_aligned._M_test(std::simd_flag_default));
 
-static_assert(not std::simd_flag_default.test(std::simd_flag_aligned));
+static_assert(not std::simd_flag_default._M_test(std::simd_flag_aligned));
+
 
