@@ -145,6 +145,7 @@ template <template <typename> class Tpl>
     Tpl<float> a;
     Tpl<double> b;
     Tpl<char> c;
+    Tpl<char8_t> c8;
     Tpl<char16_t> d;
     Tpl<char32_t> e;
     Tpl<wchar_t> f;
@@ -158,6 +159,15 @@ template <template <typename> class Tpl>
     Tpl<unsigned long> n;
     Tpl<long long> o;
     Tpl<unsigned long long> p;
+#ifdef __STDCPP_FLOAT16_T__
+    //Tpl<std::float16_t> q;
+#endif
+#ifdef __STDCPP_FLOAT32_T__
+    Tpl<std::float32_t> r;
+#endif
+#ifdef __STDCPP_FLOAT64_T__
+    Tpl<std::float64_t> s;
+#endif
   };
 
 template struct instantiate_all_vectorizable<test_usable_simd>;
