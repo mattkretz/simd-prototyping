@@ -162,7 +162,8 @@ namespace std
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     class basic_simd;
 
-  template <size_t _Bytes, typename _Abi>
+  template <size_t _Bytes,
+            typename _Abi = __detail::_NativeAbi<__detail::__mask_integer_from<_Bytes>>>
     class basic_simd_mask;
 
   struct element_aligned_tag;
@@ -219,7 +220,7 @@ namespace std
   template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
     using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
-  template <typename _Tp, __detail::_SimdSizeType _Np>
+  template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
     using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 
   // mask_reductions.h

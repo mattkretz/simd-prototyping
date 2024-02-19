@@ -527,7 +527,6 @@ namespace std
     struct resize_simd<_Np, _Simd>
     { using type = simd<typename _Simd::value_type, _Np>; };
 
-  // FIXME: resize_simd_t<1, simd_mask<long double, 1>> turns out as a different type
   template <__detail::_SimdSizeType _Np, __detail::__mask_type _Mask>
     struct resize_simd<_Np, _Mask>
     { using type = simd_mask<typename decltype(+_Mask())::value_type, _Np>; };
