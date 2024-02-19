@@ -579,6 +579,34 @@ namespace std
             else
               return (__builtin_constant_p(__x[_Is]) and ...);
           }
+
+        template <typename _Tp, typename _BinaryOperation>
+          static constexpr _Tp
+          _S_reduce(basic_simd<_Tp, abi_type> __xx, const _BinaryOperation& __binary_op)
+          {
+            auto& __x = __data(__xx); // the array was copied by the caller - we're not changing it
+            (((_Is % 2) == 1 ? (__x[_Is - 1] = __binary_op(__x[_Is - 1], __x[_Is])) : __x[0]), ...);
+            if constexpr (_Np > 2)
+              (((_Is % 4) == 2 ? (__x[_Is - 2] = __binary_op(__x[_Is - 2], __x[_Is])) : __x[0]),
+               ...);
+            if constexpr (_Np > 4)
+              (((_Is % 8) == 4 ? (__x[_Is - 4] = __binary_op(__x[_Is - 4], __x[_Is])) : __x[0]),
+               ...);
+            if constexpr (_Np > 8)
+              (((_Is % 16) == 8 ? (__x[_Is - 8] = __binary_op(__x[_Is - 8], __x[_Is])) : __x[0]),
+               ...);
+            if constexpr (_Np > 16)
+              (((_Is % 32) == 16 ? (__x[_Is - 16] = __binary_op(__x[_Is - 16], __x[_Is])) : __x[0]),
+               ...);
+            if constexpr (_Np > 32)
+              (((_Is % 64) == 32 ? (__x[_Is - 32] = __binary_op(__x[_Is - 32], __x[_Is])) : __x[0]),
+               ...);
+            if constexpr (_Np > 64)
+              (((_Is % 128) == 64 ? (__x[_Is - 64] = __binary_op(__x[_Is - 64], __x[_Is]))
+                                  : __x[0]), ...);
+            static_assert(_Np <= 128);
+            return std::reduce(basic_simd<_Tp, _Abi0>(__private_init, __x[0]), __binary_op);
+          }
       };
 
     template <typename _Abi0, size_t... _Is>
@@ -699,10 +727,24 @@ namespace std
           _S_none_of(basic_simd_mask<_Bs, abi_type> const& __masks)
           { return (std::none_of(_S_submask(__masks, _Is)) and ...); }
 
+        // TODO: benchmark whether it's more efficient to do element-wise reduction of array members
+        // on -__k or +__k or a sum of popcount on each sub-mask.
+        // Beware of overflow with _Bs == 1.
         template <size_t _Bs>
+          requires (_Bs == 1)
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
           _S_popcount(const basic_simd_mask<_Bs, abi_type> & __k)
-          { return (std::reduce_count(_S_submask(__k, _Is)) + ...); }
+          {
+            using _Ip = __mask_integer_from<_Bs>;
+            using _Up = __make_unsigned_int_t<_Ip>;
+            if constexpr (-_S_size >= __finite_min_v<_Ip>)
+              return -_SimdImplArray<_Abi0, _Is...>::_S_reduce(-__k, std::plus<>());
+            else if constexpr (_S_size <= __finite_max_v<_Up>)
+              return _SimdImplArray<_Abi0, _Is...>::_S_reduce(
+                       static_cast<basic_simd<_Up, abi_type>>(__k), std::plus<>());
+            else
+              return (std::reduce_count(_S_submask(__k, _Is)) + ...);
+          }
 
         template <size_t _Bs>
           static constexpr _SimdSizeType
