@@ -175,4 +175,79 @@ namespace std
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Extensions.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// reduce, reduce_min, reduce_max have no overloads for scalars and thus can't be used in
+// SIMD-generic code. This could fix it:
+////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace std::simd_generic
+{
+  using std::reduce;
+  using std::reduce_min;
+  using std::reduce_max;
+
+  template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
+    constexpr _Tp
+    reduce(const _Tp& __x, _BinaryOperation)
+    { return __x; }
+
+  template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, __type_identity_t<_Tp> __identity_element, _BinaryOperation)
+    { return __k ? __x : __identity_element; }
+
+  template <__detail::__vectorizable _Tp>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, plus<>) noexcept
+    { return __k ? __x : _Tp(); }
+
+  template <__detail::__vectorizable _Tp>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, multiplies<>) noexcept
+    { return __k ? __x : _Tp(1); }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::integral<_Tp>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, bit_and<>) noexcept
+    { return __k ? __x : _Tp(~_Tp()); }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::integral<_Tp>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, bit_or<>) noexcept
+    { return __k ? __x : _Tp(); }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::integral<_Tp>
+    constexpr _Tp
+    reduce(const _Tp& __x, bool __k, bit_xor<>) noexcept
+    { return __k ? __x : _Tp(); }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::totally_ordered<_Tp>
+    constexpr _Tp
+    reduce_min(_Tp __x) noexcept
+    { return __x; }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::totally_ordered<_Tp>
+    constexpr _Tp
+    reduce_min(_Tp __x, bool __k) noexcept
+    { return __k ? __x : std::__finite_max_v<_Tp>; }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::totally_ordered<_Tp>
+    constexpr _Tp
+    reduce_max(_Tp __x) noexcept
+    { return __x; }
+
+  template <__detail::__vectorizable _Tp>
+    requires std::totally_ordered<_Tp>
+    constexpr _Tp
+    reduce_max(_Tp __x, bool __k) noexcept
+    { return __k ? __x : std::__finite_min_v<_Tp>; }
+}
+
 #endif  // PROTOTYPE_SIMD_REDUCTIONS_H_
