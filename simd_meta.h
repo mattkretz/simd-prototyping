@@ -141,6 +141,138 @@ namespace std::__detail
     _GLIBCXX_SIMD_INTRINSIC constexpr _Tp
     __div_roundup(_Tp __a, _Tp __b)
     { return (__a + __b - 1) / __b; }
+
+  template <typename _Tp>
+    concept __valid_simd = is_simd_v<_Tp>;
+
+  template <typename _Tp>
+    concept __valid_mask = is_simd_mask_v<_Tp>;
+
+  template <typename T>
+    concept __boolean_reducable_impl = requires(T&& x)
+    {
+      { std::all_of(x) } -> std::same_as<bool>;
+      { std::none_of(x) } -> std::same_as<bool>;
+      { std::any_of(x) } -> std::same_as<bool>;
+      { std::reduce_count(x) } -> std::signed_integral;
+      { std::reduce_min_index(x) } -> std::signed_integral;
+      { std::reduce_max_index(x) } -> std::signed_integral;
+    };
+
+  template <typename T>
+    concept __boolean_reducable = __boolean_reducable_impl<T> and requires(T&& x)
+    {
+      { !std::forward<T>(x) } -> __boolean_reducable_impl;
+    };
+
+  template <typename T, typename U>
+    concept __simd_weakly_equality_comparable_with = requires(const std::remove_reference_t<T>& __t,
+                                                         const std::remove_reference_t<U>& __u)
+    {
+      { __t == __u } -> __boolean_reducable;
+      { __t != __u } -> __boolean_reducable;
+      { __u == __t } -> __boolean_reducable;
+      { __u != __t } -> __boolean_reducable;
+    };
+
+  template <typename _Tp, typename _Up>
+    concept __simd_partially_ordered_with = requires(const std::remove_reference_t<_Tp>& __t,
+                                                const std::remove_reference_t<_Up>& __u)
+    {
+      { __t <  __u } -> __boolean_reducable;
+      { __t >  __u } -> __boolean_reducable;
+      { __t <= __u } -> __boolean_reducable;
+      { __t >= __u } -> __boolean_reducable;
+      { __u <  __t } -> __boolean_reducable;
+      { __u >  __t } -> __boolean_reducable;
+      { __u <= __t } -> __boolean_reducable;
+      { __u >= __t } -> __boolean_reducable;
+    };
+
+  /* TODO
+   * Do we need the common_reference checks for simd? The interesting scenarios must be user-defined
+   * types that are convertible to simd, no? (operator simd() or derived from simd)
+   */
+  template <typename _Tp, typename _Up>
+    concept __simd_comparison_common_type_with
+      = std::common_reference_with<const std::remove_reference_t<_Tp>&,
+                                   const std::remove_reference_t<_Up>&>;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Extensions.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO: To be proposed in some form. Potentially, by splitting into simd and
+// simd_generic concepts. But doing this properly requires a split of generic non-member functions
+// into different namespaces.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace std
+{
+  template <typename _Tp>
+    concept simd_integral = (__detail::__valid_simd<_Tp> or __detail::__valid_mask<_Tp>)
+                              and std::integral<typename _Tp::value_type>;
+
+  template <typename _Tp>
+    concept simd_signed_integral
+      = simd_integral<_Tp> and std::is_signed_v<typename _Tp::value_type>;
+
+  template <typename _Tp>
+    concept simd_unsigned_integral
+      = simd_integral<_Tp> and not simd_signed_integral<_Tp>;
+
+  template <typename _Tp>
+    concept simd_floating_point
+      = __detail::__valid_simd<_Tp> and std::floating_point<typename _Tp::value_type>;
+
+  template <typename _Tp>
+    concept simd_arithmetic = simd_integral<_Tp> or simd_floating_point<_Tp>;
+
+  template <typename _Tp>
+    concept simd_equality_comparable = __detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
+
+  template <typename _Tp, typename _Up>
+    concept simd_equality_comparable_with
+      = simd_equality_comparable<_Tp> and simd_equality_comparable<_Up>
+          and __detail::__simd_comparison_common_type_with<_Tp, _Up>
+          and simd_equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+                                                               const std::remove_reference_t<_Up>&>>
+          and __detail::__simd_weakly_equality_comparable_with<_Tp, _Up>;
+
+  template <typename _Tp>
+    concept simd_totally_ordered
+      = simd_equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
+
+  template <typename _Tp, typename _Up>
+    concept simd_totally_ordered_with
+      = simd_totally_ordered<_Tp> and simd_totally_ordered<_Up>
+          and simd_equality_comparable_with<_Tp, _Up>
+          and simd_totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+                                                           const std::remove_reference_t<_Up>&>>
+          and __detail::__simd_partially_ordered_with<_Tp, _Up>;
+
+  template <typename _Tp>
+    concept simd_regular = semiregular<_Tp> and simd_equality_comparable<_Tp>;
+}
+
+namespace std::simd_generic
+{
+  template <typename _Tp>
+    concept integral = std::integral<_Tp> or std::simd_integral<_Tp>;
+
+  template <typename _Tp>
+    concept signed_integral = std::signed_integral<_Tp> or std::simd_signed_integral<_Tp>;
+
+  template <typename _Tp>
+    concept unsigned_integral = std::unsigned_integral<_Tp> or std::simd_unsigned_integral<_Tp>;
+
+  template <typename _Tp>
+    concept floating_point = std::floating_point<_Tp> or std::simd_floating_point<_Tp>;
+
+  template <typename _Tp>
+    concept arithmetic = integral<_Tp> or floating_point<_Tp>;
+
+  template <typename _Tp>
+    concept regular = std::regular<_Tp> or std::simd_regular<_Tp>;
 }
 
 #endif  // PROTOTYPE_SIMD_META_H_

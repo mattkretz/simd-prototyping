@@ -224,25 +224,43 @@ namespace std
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
     all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  all_of(same_as<bool> auto __x) noexcept;
+
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
     any_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  any_of(same_as<bool> auto __x) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
     none_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  none_of(same_as<bool> auto __x) noexcept;
+
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_count(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_count(same_as<bool> auto __x) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k);
 
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_min_index(same_as<bool> auto __x) noexcept;
+
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k);
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_max_index(same_as<bool> auto __x) noexcept;
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto

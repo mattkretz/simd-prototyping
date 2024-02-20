@@ -114,6 +114,10 @@ template <typename V, typename T = typename V::value_type>
         and std::ranges::random_access_range<V&>
         and not std::ranges::output_range<V&, T>
         and std::constructible_from<V, V> // broadcast
+        and std::simd_integral<V> == std::integral<T>
+        and std::simd_floating_point<V> == std::floating_point<T>
+        and std::simd_regular<V>
+        and std::simd_equality_comparable<V>
       // loads:
         and std::constructible_from<V, const T*>
         and std::constructible_from<V, typename std::array<T, 4>::iterator>
@@ -131,6 +135,9 @@ template <typename V, typename T = typename V::value_type>
                or (std::floating_point<T> and sizeof(T) == sizeof(double)))
         and (not std::constructible_from<V, const float*>
                or (std::floating_point<T> and sizeof(T) >= sizeof(float)))
+      // Not for masks because no implicit conversion from bool -> simd_mask
+        and std::simd_equality_comparable_with<V, T>
+        and std::simd_equality_comparable_with<T, V>
       ;
 
 template <typename T>
@@ -450,4 +457,12 @@ static_assert(std::simd_flag_aligned._M_test(std::simd_flag_default));
 
 static_assert(not std::simd_flag_default._M_test(std::simd_flag_aligned));
 
+// simd concepts ///////////////////////////////////
 
+static_assert(std::simd_generic::integral<int>);
+static_assert(std::simd_generic::integral<std::simd<int>>);
+static_assert(std::simd_generic::integral<std::simd_mask<int>>);
+
+static_assert(std::simd_regular<int>);
+static_assert(std::simd_regular<std::simd<int>>);
+static_assert(std::simd_regular<std::simd_mask<int>>);
