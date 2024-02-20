@@ -1,4 +1,6 @@
 CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
+CXXFLAGS_clang := -Wno-unknown-pragmas
+CXXFLAGS_gcc := -fconcepts-diagnostics-depth=3
 
 ifneq ($(shell $(CXX) --version|grep -i clang),)
 compiler:=clang
@@ -8,11 +10,7 @@ else
 compiler:=unknown
 endif
 
-ifeq ($(compiler),gcc)
-CXXFLAGS+=-fconcepts-diagnostics-depth=3
-else ifeq ($(compiler),clang)
-CXXFLAGS+=-Wno-unknown-pragmas
-endif
+CXXFLAGS += $(CXXFLAGS_$(compiler))
 
 #-D_GLIBCXX_DEBUG_UB=1
 

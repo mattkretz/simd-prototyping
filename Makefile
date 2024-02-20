@@ -12,9 +12,13 @@ fortestarchs := for a in $(testarchs); do
 fortesttypes := for type in $(testtypes); do
 fortestwidths := for w in $(testwidths); do
 
+clang_flags = $(CXXFLAGS)
+ifneq ($(compiler),clang)
+clang_flags := $(filter-out $(CXXFLAGS_$(compiler)),$(clang_flags)) $(CXXFLAGS_clang)
+endif
 define ccjson
   { "directory": "$(PWD)",
-    "arguments": ["$(CXX)", $(CXXFLAGS:%="%",) "-march=$1", "-include", "obj/$1.hpp", "-S", "$2"],
+    "arguments": ["$(CXX)", $(clang_flags:%="%",) "-march=$1", "-include", "obj/$1.hpp", "-S", "$2"],
     "file": "$2" }
 endef
 
@@ -35,6 +39,7 @@ tidy: obj/compile_commands.json
 .PHONY: debug
 debug:
 	@echo "compiler: $(compiler)"
+	@echo "CXXFLAGS: $(CXXFLAGS)"
 	@echo "$(testarchs)"
 	@echo "$(tests)"
 	@echo "$(testwidths)"
