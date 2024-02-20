@@ -315,6 +315,24 @@ namespace std
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
            bit_xor<> __binary_op) noexcept;
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept;
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_min(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept;
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_max(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

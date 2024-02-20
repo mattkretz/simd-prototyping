@@ -132,6 +132,47 @@ namespace std
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
            bit_xor<> __binary_op) noexcept
     { return reduce(simd_select(__k, __x, _Tp()), __binary_op); }
+
+  // NaN inputs are precondition violations (_Tp satisfies and models totally_ordered)
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept
+    {
+      return reduce(__x, []<simd_totally_ordered _UV>(const _UV& __a, const _UV& __b) {
+               return simd_select(__a < __b, __a, __b);
+             });
+    }
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_min(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
+    {
+      return reduce(simd_select(__k, __x, std::__finite_max_v<_Tp>),
+                    []<simd_totally_ordered _UV>(const _UV& __a, const _UV& __b) {
+                      return simd_select(__a < __b, __a, __b);
+                    });
+    }
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept
+    {
+      return reduce(__x, []<simd_totally_ordered _UV>(const _UV& __a, const _UV& __b) {
+               return simd_select(__a < __b, __b, __a);
+             });
+    }
+
+  template <std::totally_ordered _Tp, typename _Abi>
+    constexpr _Tp
+    reduce_max(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
+    {
+      return reduce(simd_select(__k, __x, std::__finite_min_v<_Tp>),
+                    []<simd_totally_ordered _UV>(const _UV& __a, const _UV& __b) {
+                      return simd_select(__a < __b, __b, __a);
+                    });
+    }
 }
 
 #endif  // PROTOTYPE_SIMD_REDUCTIONS_H_
