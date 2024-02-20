@@ -289,32 +289,32 @@ namespace std
             std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           _Tp __identity_element, _BinaryOperation __binary_op);
+           __type_identity_t<_Tp> __identity_element, _BinaryOperation __binary_op);
 
   template <typename _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           plus<> __binary_op = {});
+           plus<> __binary_op = {}) noexcept;
 
   template <typename _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           multiplies<> __binary_op);
+           multiplies<> __binary_op) noexcept;
 
-  template <typename _Tp, typename _Abi>
+  template <std::integral _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           bit_and<> __binary_op);
+           bit_and<> __binary_op) noexcept;
 
-  template <typename _Tp, typename _Abi>
+  template <std::integral _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           bit_or<> __binary_op);
+           bit_or<> __binary_op) noexcept;
 
-  template <typename _Tp, typename _Abi>
+  template <std::integral _Tp, typename _Abi>
     constexpr _Tp
     reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
-           bit_xor<> __binary_op);
+           bit_xor<> __binary_op) noexcept;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_
