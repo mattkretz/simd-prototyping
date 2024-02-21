@@ -38,7 +38,12 @@ namespace std::__detail
    * @internal
    * Tag used for private init constructor of simd and simd_mask
    */
-  inline constexpr struct _PrivateInit {} __private_init = {};
+  struct _PrivateInit
+  {
+    explicit _PrivateInit() = default;
+  };
+
+  inline constexpr _PrivateInit __private_init = _PrivateInit{};
 
   template <integral _Tp, typename _Fp>
     _GLIBCXX_SIMD_INTRINSIC static void
