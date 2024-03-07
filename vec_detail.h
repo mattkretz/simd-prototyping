@@ -349,7 +349,7 @@ namespace std::__detail
       using _RV = __vec_builtin_type<__value_type_of<_Tp>, _N0 * 2>;
       return _GLIBCXX_SIMD_INT_PACK(_N0 * 2, _Is, {
                return _RV{__vec_get(_Is < _N0 ? __a : __b, _Is % _N0)...};
-      });
+             });
 #else
       return _GLIBCXX_SIMD_INT_PACK(__width_of<_Tp> * 2, _Is, {
                return __builtin_shufflevector(__a, __b, _Is...);
@@ -420,61 +420,61 @@ namespace std::__detail
    *                 all
    * \tparam _Offset where to start, number of elements (not Bytes or Parts)
    */
-   template <typename _To, int _NParts = 0, int _Offset = 0, int _FromSize = 0, __vec_builtin _From>
-     _GLIBCXX_SIMD_INTRINSIC auto
-     __vec_convert_all(_From __v)
-     {
-       static_assert(_FromSize < __width_of<_From>);
-       constexpr int __input_size = _FromSize == 0 ? __width_of<_From> : _FromSize;
-       if constexpr (is_arithmetic_v<_To> && _NParts != 1)
-         {
-           static_assert(_Offset < __width_of<_From>);
-           constexpr int _Np = _NParts == 0 ? __input_size - _Offset : _NParts;
-           using _Rp = array<_To, _Np>;
-           return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
-                    return _Rp{(static_cast<_To>(__v[_Is + _Offset]))...};
-                  });
-         }
-       else
-         {
-           static_assert(__vec_builtin<_To>);
-           if constexpr (_NParts == 1)
-             {
-               static_assert(_Offset % __width_of<_To> == 0);
-               return array<_To, 1>{
-                 __vec_convert<_To>(__vec_extract_part<
-                                      _Offset / __width_of<_To>,
-                                      __div_roundup(__input_size, __width_of<_To>)>(__v))
-               };
-             }
-           else if constexpr ((__input_size - _Offset) > __width_of<_To>)
-             {
-               constexpr size_t _NTotal = (__input_size - _Offset) / __width_of<_To>;
-               constexpr size_t _Np = _NParts == 0 ? _NTotal : _NParts;
-               static_assert(_Np <= _NTotal
-                               or (_Np == _NTotal + 1
-                                     and (__input_size - _Offset) % __width_of<_To> > 0));
-               using _Rp = array<_To, _Np>;
-               if constexpr (_Np == 1)
-                 return _Rp{__vec_convert<_To>(__vec_extract_part<_Offset, __input_size,
-                                                                  __width_of<_To>>(__v))};
-               else
-                 return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
-                          return _Rp {
-                            __vec_convert<_To>(
-                              __vec_extract_part<_Is * __width_of<_To> + _Offset, __input_size,
-                                                 __width_of<_To>>(__v))...
-                          };
-                        });
-             }
-           else if constexpr (_Offset == 0)
-             return array<_To, 1>{__vec_convert<_To>(__v)};
-           else
-             return array<_To, 1>{__vec_convert<_To>(
-                                    __vec_extract_part<_Offset, __input_size,
-                                                       __input_size - _Offset>(__v))};
-         }
-     }
+  template <typename _To, int _NParts = 0, int _Offset = 0, int _FromSize = 0, __vec_builtin _From>
+    _GLIBCXX_SIMD_INTRINSIC auto
+    __vec_convert_all(_From __v)
+    {
+      static_assert(_FromSize < __width_of<_From>);
+      constexpr int __input_size = _FromSize == 0 ? __width_of<_From> : _FromSize;
+      if constexpr (is_arithmetic_v<_To> && _NParts != 1)
+        {
+          static_assert(_Offset < __width_of<_From>);
+          constexpr int _Np = _NParts == 0 ? __input_size - _Offset : _NParts;
+          using _Rp = array<_To, _Np>;
+          return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
+                   return _Rp{(static_cast<_To>(__v[_Is + _Offset]))...};
+                 });
+        }
+      else
+        {
+          static_assert(__vec_builtin<_To>);
+          if constexpr (_NParts == 1)
+            {
+              static_assert(_Offset % __width_of<_To> == 0);
+              return array<_To, 1>{
+                __vec_convert<_To>(__vec_extract_part<
+                                     _Offset / __width_of<_To>,
+                                     __div_roundup(__input_size, __width_of<_To>)>(__v))
+              };
+            }
+          else if constexpr ((__input_size - _Offset) > __width_of<_To>)
+            {
+              constexpr size_t _NTotal = (__input_size - _Offset) / __width_of<_To>;
+              constexpr size_t _Np = _NParts == 0 ? _NTotal : _NParts;
+              static_assert(_Np <= _NTotal
+                              or (_Np == _NTotal + 1
+                                    and (__input_size - _Offset) % __width_of<_To> > 0));
+              using _Rp = array<_To, _Np>;
+              if constexpr (_Np == 1)
+                return _Rp{__vec_convert<_To>(__vec_extract_part<_Offset, __input_size,
+                                                                 __width_of<_To>>(__v))};
+              else
+                return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, {
+                         return _Rp {
+                           __vec_convert<_To>(
+                             __vec_extract_part<_Is * __width_of<_To> + _Offset, __input_size,
+                                                __width_of<_To>>(__v))...
+                         };
+                       });
+            }
+          else if constexpr (_Offset == 0)
+            return array<_To, 1>{__vec_convert<_To>(__v)};
+          else
+            return array<_To, 1>{__vec_convert<_To>(
+                                   __vec_extract_part<_Offset, __input_size,
+                                                      __input_size - _Offset>(__v))};
+        }
+    }
 
   /**
    * Generator "ctor" for __vec_builtin types.

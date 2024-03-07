@@ -85,7 +85,7 @@ namespace std::__detail
       }
 
       constexpr decltype(auto)
-        _M_sanitized() const noexcept
+      _M_sanitized() const noexcept
       {
         if constexpr (_Sanitized)
           return *this;

@@ -132,7 +132,7 @@ namespace std
       // but if one does, this ctor is useful
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                 value_type, _Flags...>
+                                                      value_type, _Flags...>
           and (__detail::__static_range_size<_Rg> == size.value)
         constexpr // TODO explicit?
         basic_simd(_Rg&& __range, simd_flags<_Flags...> __flags = {})
@@ -141,7 +141,7 @@ namespace std
 
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                 value_type, _Flags...>
+                                                      value_type, _Flags...>
           and (__detail::__static_range_size<_Rg> == std::dynamic_extent)
         constexpr // TODO explicit?
         basic_simd(_Rg&& __range, simd_flags<_Flags...> __f = {})
@@ -169,7 +169,7 @@ namespace std
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires std::ranges::output_range<_Rg, value_type>
           and __detail::__loadstore_convertible_to<
-                 value_type, std::ranges::range_value_t<_Rg>, _Flags...>
+                value_type, std::ranges::range_value_t<_Rg>, _Flags...>
           and (__detail::__static_range_size<_Rg> == std::dynamic_extent
                  or __detail::__static_range_size<_Rg> == size.value)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void

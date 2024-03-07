@@ -123,15 +123,15 @@ namespace std::__detail
 
   template <typename _Fp>
     concept __index_permutation_function_nosize = requires(_Fp const& __f)
-    {
-      { __f(0) } -> std::integral;
-    };
+      {
+        { __f(0) } -> std::integral;
+      };
 
   template <typename _Fp, typename _Simd>
     concept __index_permutation_function_size = requires(_Fp const& __f)
-    {
-      { __f(0, _Simd::size) } -> std::integral;
-    };
+      {
+        { __f(0, _Simd::size) } -> std::integral;
+      };
 
   template <typename _Fp, typename _Simd>
     concept __index_permutation_function
@@ -150,44 +150,44 @@ namespace std::__detail
 
   template <typename T>
     concept __boolean_reducable_impl = requires(T&& x)
-    {
-      { std::all_of(x) } -> std::same_as<bool>;
-      { std::none_of(x) } -> std::same_as<bool>;
-      { std::any_of(x) } -> std::same_as<bool>;
-      { std::reduce_count(x) } -> std::signed_integral;
-      { std::reduce_min_index(x) } -> std::signed_integral;
-      { std::reduce_max_index(x) } -> std::signed_integral;
-    };
+      {
+        { std::all_of(x) } -> std::same_as<bool>;
+        { std::none_of(x) } -> std::same_as<bool>;
+        { std::any_of(x) } -> std::same_as<bool>;
+        { std::reduce_count(x) } -> std::signed_integral;
+        { std::reduce_min_index(x) } -> std::signed_integral;
+        { std::reduce_max_index(x) } -> std::signed_integral;
+      };
 
   template <typename T>
     concept __boolean_reducable = __boolean_reducable_impl<T> and requires(T&& x)
-    {
-      { !std::forward<T>(x) } -> __boolean_reducable_impl;
-    };
+      {
+        { !std::forward<T>(x) } -> __boolean_reducable_impl;
+      };
 
   template <typename T, typename U>
     concept __simd_weakly_equality_comparable_with = requires(const std::remove_reference_t<T>& __t,
-                                                         const std::remove_reference_t<U>& __u)
-    {
-      { __t == __u } -> __boolean_reducable;
-      { __t != __u } -> __boolean_reducable;
-      { __u == __t } -> __boolean_reducable;
-      { __u != __t } -> __boolean_reducable;
-    };
+                                                              const std::remove_reference_t<U>& __u)
+      {
+        { __t == __u } -> __boolean_reducable;
+        { __t != __u } -> __boolean_reducable;
+        { __u == __t } -> __boolean_reducable;
+        { __u != __t } -> __boolean_reducable;
+      };
 
   template <typename _Tp, typename _Up>
     concept __simd_partially_ordered_with = requires(const std::remove_reference_t<_Tp>& __t,
-                                                const std::remove_reference_t<_Up>& __u)
-    {
-      { __t <  __u } -> __boolean_reducable;
-      { __t >  __u } -> __boolean_reducable;
-      { __t <= __u } -> __boolean_reducable;
-      { __t >= __u } -> __boolean_reducable;
-      { __u <  __t } -> __boolean_reducable;
-      { __u >  __t } -> __boolean_reducable;
-      { __u <= __t } -> __boolean_reducable;
-      { __u >= __t } -> __boolean_reducable;
-    };
+                                                     const std::remove_reference_t<_Up>& __u)
+      {
+        { __t <  __u } -> __boolean_reducable;
+        { __t >  __u } -> __boolean_reducable;
+        { __t <= __u } -> __boolean_reducable;
+        { __t >= __u } -> __boolean_reducable;
+        { __u <  __t } -> __boolean_reducable;
+        { __u >  __t } -> __boolean_reducable;
+        { __u <= __t } -> __boolean_reducable;
+        { __u >= __t } -> __boolean_reducable;
+      };
 
   /* TODO
    * Do we need the common_reference checks for simd? The interesting scenarios must be user-defined

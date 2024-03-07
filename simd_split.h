@@ -52,8 +52,8 @@ namespace std
           return _Rp {_V([&](auto __i) {
                         return __x[__i + __out * _Is];
                       })..., _Rem([&](auto __i) {
-                        return __x[__i + __in - __rem];
-                      })};
+                               return __x[__i + __in - __rem];
+                             })};
         }(std::make_index_sequence<__in / __out>());
     }
 
@@ -81,8 +81,8 @@ namespace std
           return _Rp {_M([&](auto __i) {
                         return __x[__i + __out * _Is];
                       })..., _Rem([&](auto __i) {
-                        return __x[__i + __in - __rem];
-                      })};
+                               return __x[__i + __in - __rem];
+                             })};
         }(std::make_index_sequence<__in / __out>());
     }
 
@@ -110,11 +110,11 @@ namespace std
         using _Tp = typename _T0::value_type;
         constexpr int __size = _T0::size.value + _T1::size.value;
         const std::resize_simd_t<__size, _T0>
-          __x01(__private_init,
-                [&]<_SimdSizeType... _Is, _SimdSizeType... _Js,
-                    _SimdSizeType... _Ks> [[__gnu__::__always_inline__]]
-                    (_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
-                                          _SimdIndexSequence<_Ks...>) {
+          __x01{__private_init,
+                [&]<_SimdSizeType... _Is, _SimdSizeType... _Js, _SimdSizeType... _Ks>
+                  [[__gnu__::__always_inline__]]
+                  (_SimdIndexSequence<_Is...>, _SimdIndexSequence<_Js...>,
+                   _SimdIndexSequence<_Ks...>) {
 #ifdef __clang__
                   constexpr int __simd_bytes = std::__bit_ceil(__size) * sizeof(_Tp);
                   using _Rp [[__gnu__::__vector_size__(__simd_bytes)]] = _Tp;
@@ -131,7 +131,7 @@ namespace std
 #endif
                 }(_MakeSimdIndexSequence<_T0::size.value>(),
                   _MakeSimdIndexSequence<_T1::size.value>(),
-                  _MakeSimdIndexSequence<std::__bit_ceil(__size) - __size>()));
+                  _MakeSimdIndexSequence<std::__bit_ceil(__size) - __size>())};
         if constexpr (sizeof...(_Ts) == 0)
           return __x01;
         else
@@ -151,7 +151,7 @@ namespace std
         return __detail::__cat_recursive(__xs...);
       else
         return simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>([&] [[__gnu__::__always_inline__]]
-               (auto __i) {
+                                                            (auto __i) {
                  return __detail::__get_simd_element_from_pack(__i, __xs...);
                });
     }
@@ -163,9 +163,9 @@ namespace std
     {
       return simd_mask<__detail::__mask_integer_from<_Bs>,
                        (basic_simd_mask<_Bs, _Abis>::size.value + ...)>(
-                           [&] [[__gnu__::__always_inline__]] (auto __i) {
-               return __detail::__get_simd_element_from_pack(__i, __xs...);
-             });
+               [&] [[__gnu__::__always_inline__]] (auto __i) {
+                 return __detail::__get_simd_element_from_pack(__i, __xs...);
+               });
     }
 }
 

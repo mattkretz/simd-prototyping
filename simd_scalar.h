@@ -22,14 +22,14 @@ namespace std::__detail
     __promote_preserving_unsigned(const _Tp& __x)
     {
       if constexpr (std::is_integral_v<_Tp>)
-	{
-	  if constexpr (is_signed_v<decltype(+__x)> && is_unsigned_v<_Tp>)
-	    return static_cast<unsigned int>(__x);
-	  else
-	    return __x;
-	}
+        {
+          if constexpr (is_signed_v<decltype(+__x)> && is_unsigned_v<_Tp>)
+            return static_cast<unsigned int>(__x);
+          else
+            return __x;
+        }
       else
-	return __x;
+        return __x;
     }
 
   struct _SimdImplScalar;
@@ -86,13 +86,13 @@ namespace std
         template <typename _FromAbi>
           static constexpr bool _S_explicit_mask_conversion = false;
 
-	using _SimdImpl = __detail::_SimdImplScalar;
+        using _SimdImpl = __detail::_SimdImplScalar;
 
-	using _MaskImpl = __detail::_MaskImplScalar;
+        using _MaskImpl = __detail::_MaskImplScalar;
 
-	using _SimdMember = _Tp;
+        using _SimdMember = _Tp;
 
-	using _MaskMember = bool;
+        using _MaskMember = bool;
 
         static constexpr __detail::_SimdSizeType _S_size = 1;
 
@@ -100,13 +100,13 @@ namespace std
 
         static constexpr bool _S_is_partial = false;
 
-	static constexpr size_t _S_simd_align = alignof(_SimdMember);
+        static constexpr size_t _S_simd_align = alignof(_SimdMember);
 
-	static constexpr size_t _S_mask_align = alignof(_MaskMember);
+        static constexpr size_t _S_mask_align = alignof(_MaskMember);
 
-	struct _SimdCastType { _SimdCastType() = delete; };
+        struct _SimdCastType { _SimdCastType() = delete; };
 
-	struct _MaskCastType { _MaskCastType() = delete; };
+        struct _MaskCastType { _MaskCastType() = delete; };
       };
   };
 }
@@ -139,9 +139,9 @@ namespace std::__detail
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_masked_load(_Tp __merge, bool __k, const _Up* __mem) noexcept
       {
-	if (__k)
-	  __merge = static_cast<_Tp>(__mem[0]);
-	return __merge;
+        if (__k)
+          __merge = static_cast<_Tp>(__mem[0]);
+        return __merge;
       }
 
     template <typename _Tp, typename _Up>
@@ -188,82 +188,82 @@ namespace std::__detail
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_plus(_Tp __x, _Tp __y)
       {
-	return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				  + __promote_preserving_unsigned(__y));
+        return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                  + __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_minus(_Tp __x, _Tp __y)
       {
-	return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				  - __promote_preserving_unsigned(__y));
+        return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                  - __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_multiplies(_Tp __x, _Tp __y)
       {
-	return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				  * __promote_preserving_unsigned(__y));
+        return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                  * __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_divides(_Tp __x, _Tp __y)
       {
-	return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				  / __promote_preserving_unsigned(__y));
+        return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                  / __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_modulus(_Tp __x, _Tp __y)
       {
-	return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				  % __promote_preserving_unsigned(__y));
+        return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                  % __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_bit_and(_Tp __x, _Tp __y)
       {
-	if constexpr (is_floating_point_v<_Tp>)
-	  {
-	    using _Ip = __make_unsigned_int_t<_Tp>;
-	    return bit_cast<_Tp>(bit_cast<_Ip>(__x) & bit_cast<_Ip>(__y));
-	  }
-	else
-	  return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				    & __promote_preserving_unsigned(__y));
+        if constexpr (is_floating_point_v<_Tp>)
+          {
+            using _Ip = __make_unsigned_int_t<_Tp>;
+            return bit_cast<_Tp>(bit_cast<_Ip>(__x) & bit_cast<_Ip>(__y));
+          }
+        else
+          return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                    & __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_bit_or(_Tp __x, _Tp __y)
       {
-	if constexpr (is_floating_point_v<_Tp>)
-	  {
-	    using _Ip = __make_unsigned_int_t<_Tp>;
-	    return _bit_cast<_Tp>(bit_cast<_Ip>(__x) | _bit_cast<_Ip>(__y));
-	  }
-	else
-	  return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				    | __promote_preserving_unsigned(__y));
+        if constexpr (is_floating_point_v<_Tp>)
+          {
+            using _Ip = __make_unsigned_int_t<_Tp>;
+            return _bit_cast<_Tp>(bit_cast<_Ip>(__x) | _bit_cast<_Ip>(__y));
+          }
+        else
+          return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                    | __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_bit_xor(_Tp __x, _Tp __y)
       {
-	if constexpr (is_floating_point_v<_Tp>)
-	  {
-	    using _Ip = __make_unsigned_int_t<_Tp>;
-	    return _bit_cast<_Tp>(_bit_cast<_Ip>(__x) ^ _bit_cast<_Ip>(__y));
-	  }
-	else
-	  return static_cast<_Tp>(__promote_preserving_unsigned(__x)
-				    ^ __promote_preserving_unsigned(__y));
+        if constexpr (is_floating_point_v<_Tp>)
+          {
+            using _Ip = __make_unsigned_int_t<_Tp>;
+            return _bit_cast<_Tp>(_bit_cast<_Ip>(__x) ^ _bit_cast<_Ip>(__y));
+          }
+        else
+          return static_cast<_Tp>(__promote_preserving_unsigned(__x)
+                                    ^ __promote_preserving_unsigned(__y));
       }
 
     template <typename _Tp>
@@ -642,7 +642,7 @@ namespace std::__detail
       {
         if (__i != 0)
           __invoke_ub("Subscript %d is out of range: must be 0", __i);
-	__v = static_cast<_Up&&>(__x);
+        __v = static_cast<_Up&&>(__x);
       }
 
     template <typename _Tp>
@@ -686,7 +686,7 @@ namespace std::__detail
     _S_masked_load(bool __merge, bool __mask, const bool* __mem) noexcept
     {
       if (__mask)
-	__merge = __mem[0];
+        __merge = __mem[0];
       return __merge;
     }
 
@@ -698,7 +698,7 @@ namespace std::__detail
     _S_masked_store(const bool __v, bool* __mem, const bool __k) noexcept
     {
       if (__k)
-	__mem[0] = __v;
+        __mem[0] = __v;
     }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
@@ -737,7 +737,7 @@ namespace std::__detail
     _S_set(bool& __k, _SimdSizeType __i, bool __x)
     {
       if (__i != 0)
-	__invoke_ub("Subscript %d is out of range: must be 0", __i);
+        __invoke_ub("Subscript %d is out of range: must be 0", __i);
       __k = __x;
     }
 
@@ -745,7 +745,7 @@ namespace std::__detail
     _S_masked_assign(bool __k, bool& __lhs, bool __rhs)
     {
       if (__k)
-	__lhs = __rhs;
+        __lhs = __rhs;
     }
 
     template <size_t _Bs>
@@ -769,14 +769,14 @@ namespace std::__detail
       { return __data(__k); }
 
     template <size_t _Bs>
-    _GLIBCXX_SIMD_INTRINSIC static constexpr int
-    _S_find_first_set(basic_simd_mask<_Bs, abi_type>)
-    { return 0; }
+      _GLIBCXX_SIMD_INTRINSIC static constexpr int
+      _S_find_first_set(basic_simd_mask<_Bs, abi_type>)
+      { return 0; }
 
     template <size_t _Bs>
-    _GLIBCXX_SIMD_INTRINSIC static constexpr int
-    _S_find_last_set(basic_simd_mask<_Bs, abi_type>)
-    { return 0; }
+      _GLIBCXX_SIMD_INTRINSIC static constexpr int
+      _S_find_last_set(basic_simd_mask<_Bs, abi_type>)
+      { return 0; }
   };
 }
 #endif // PROTOTYPE_SIMD_SCALAR_H_

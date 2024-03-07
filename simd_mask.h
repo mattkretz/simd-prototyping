@@ -149,7 +149,7 @@ namespace std
       // masked load ctor
       template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
+          and std::contiguous_iterator<_It>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         basic_simd_mask(_It __first, const basic_simd_mask& __k, simd_flags<_Flags...> __f = {})
         : _M_data {}
@@ -170,14 +170,14 @@ namespace std
           if (__builtin_is_constant_evaluated())
             {
               _M_data = [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                        (__detail::_SimdIndexSequence<_Is...>) {
-                          if constexpr (size.value == 1)
-                            return *__first;
-                          else if constexpr (_S_is_bitmask)
-                            return ((__first[_Is] ? (1ull << _Is) : 0) | ...);
-                          else
-                            return _MemberType { -__first[_Is]... };
-                        }(__detail::_MakeSimdIndexSequence<size.value>());
+                          (__detail::_SimdIndexSequence<_Is...>) {
+                if constexpr (size.value == 1)
+                  return *__first;
+                else if constexpr (_S_is_bitmask)
+                  return ((__first[_Is] ? (1ull << _Is) : 0) | ...);
+                else
+                  return _MemberType { -__first[_Is]... };
+              }(__detail::_MakeSimdIndexSequence<size.value>());
             }
           else
             _M_data = _Impl::template _S_load<_Tp>(__ptr);
@@ -196,8 +196,8 @@ namespace std
       // stores [simd.mask.copy]
       template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
-                   and std::indirectly_writable<_It, value_type>
+          and std::contiguous_iterator<_It>
+          and std::indirectly_writable<_It, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, simd_flags<_Flags...> __f = {}) const
         {
@@ -208,8 +208,8 @@ namespace std
 
       template <typename _It, typename... _Flags>
         requires std::same_as<std::iter_value_t<_It>, bool>
-                   and std::contiguous_iterator<_It>
-                   and std::indirectly_writable<_It, value_type>
+          and std::contiguous_iterator<_It>
+          and std::indirectly_writable<_It, value_type>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
         copy_to(_It __first, const basic_simd_mask& __k, simd_flags<_Flags...> __f = {}) const
         {

@@ -179,7 +179,7 @@ namespace std
             return __x;
           else
             return __builtin_bit_cast(_TV, __builtin_bit_cast(_MaskMember<_Tp>, __x)
-                                           & _S_implicit_mask<_Tp>);
+                                        & _S_implicit_mask<_Tp>);
         }
 
       template <__detail::__vec_builtin _TV>
@@ -207,7 +207,7 @@ namespace std
                 return __x | ~__implicit_mask;
             }
         }
-  };
+    };
 }
 
 namespace std::__detail
@@ -473,7 +473,7 @@ namespace std::__detail
         {                                                                                          \
           using _RAbi = typename _Abi::template _Rebind<_RetTp>;                                   \
           return _RAbi::_Impl::template _S_generator<_RetTp>([&] [[__gnu__::__always_inline__]]    \
-                     (auto __i) {                                                                  \
+                                                               (auto __i) {                        \
                    return __name(__x[__i], __more[__i]...);                                        \
                  });                                                           \
         }
@@ -1012,8 +1012,8 @@ namespace std::__detail
           static_assert(is_same_v<_RV, _MaskMember<_Rp>>);
           static_assert(__width_of<_RV> == _TN * __width_of<_TV>);
           const auto __k = _GLIBCXX_SIMD_INT_PACK(_TN, _Is, {
-                        return __vec_concat(__x[_Is]...);
-                      });
+                             return __vec_concat(__x[_Is]...);
+                           });
           if constexpr (sizeof(_Rp) == sizeof(_Tp))
             return __builtin_bit_cast(_RV, __k);
           else
@@ -1095,9 +1095,9 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           static_assert(is_integral_v<_Tp> and is_signed_v<_Tp>);
           _S_bit_iteration(_SuperImpl::_S_to_bits(__mask),
-                                           [&] [[__gnu__::__always_inline__]] (auto __i) {
-                                             __merge[__i] =  -__mem[__i];
-                                           });
+                           [&] [[__gnu__::__always_inline__]] (auto __i) {
+                             __merge[__i] =  -__mem[__i];
+                           });
           return __merge;
         }
 
@@ -1115,9 +1115,9 @@ namespace std::__detail
         _S_masked_store(const _TV __v, bool* __mem, const _TV __k)
         {
           _S_bit_iteration(_SuperImpl::_S_to_bits(__k),
-                                           [&] [[__gnu__::__always_inline__]] (auto __i) {
-                                             __mem[__i] = __v[__i];
-                                           });
+                           [&] [[__gnu__::__always_inline__]] (auto __i) {
+                             __mem[__i] = __v[__i];
+                           });
         }
 
       template <__vec_builtin _TV>

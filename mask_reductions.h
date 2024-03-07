@@ -59,9 +59,9 @@ namespace std
       else
         {
           return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                 (__detail::_SimdIndexSequence<_Is...>) {
-                   return (... and (__k[_Is] != 0));
-                 }(__detail::_MakeSimdIndexSequence<__size>());
+                   (__detail::_SimdIndexSequence<_Is...>) {
+            return (... and (__k[_Is] != 0));
+          }(__detail::_MakeSimdIndexSequence<__size>());
         }
     }
 
@@ -101,9 +101,9 @@ namespace std
       else
         {
           return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                 (__detail::_SimdIndexSequence<_Is...>) {
-                   return (... or (__k[_Is] != 0));
-                 }(__detail::_MakeSimdIndexSequence<__size>());
+                   (__detail::_SimdIndexSequence<_Is...>) {
+            return (... or (__k[_Is] != 0));
+          }(__detail::_MakeSimdIndexSequence<__size>());
         }
     }
 
@@ -144,9 +144,9 @@ namespace std
       else
         {
           return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                 (__detail::_SimdIndexSequence<_Is...>) {
-                   return (... and (__k[_Is] == 0));
-                 }(__detail::_MakeSimdIndexSequence<__size>());
+                   (__detail::_SimdIndexSequence<_Is...>) {
+            return (... and (__k[_Is] == 0));
+          }(__detail::_MakeSimdIndexSequence<__size>());
         }
     }
 

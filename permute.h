@@ -80,29 +80,29 @@ namespace std
     inline constexpr _Reverse reverse {};
 
     template <int _Offset>
-    struct _Rotate
-    {
-      consteval int
-      operator()(int __i, auto __size) const
-      { return (__i + _Offset) % int(__size()); }
-    };
+      struct _Rotate
+      {
+        consteval int
+        operator()(int __i, auto __size) const
+        { return (__i + _Offset) % int(__size()); }
+      };
 
     template <int _Offset>
       inline constexpr _Rotate<_Offset> rotate {};
 
     template <int _Offset>
-    struct _Shift
-    {
-      consteval int
-      operator()(int __i, auto __size) const
+      struct _Shift
       {
-        const int __j = __i + _Offset;
-        if (__j >= __size or -__j > __size)
-          return simd_permute_zero;
-        else
-          return __j;
-      }
-    };
+        consteval int
+        operator()(int __i, auto __size) const
+        {
+          const int __j = __i + _Offset;
+          if (__j >= __size or -__j > __size)
+            return simd_permute_zero;
+          else
+            return __j;
+        }
+      };
 
     template <int _Offset>
       inline constexpr _Shift<_Offset> shift {};

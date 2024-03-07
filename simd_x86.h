@@ -344,13 +344,13 @@ namespace std::__detail
                   static_assert(_S_use_bitmasks == false);
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
-                                 reinterpret_cast<_TV>(__maskload_epi32(__mem, __k)));
+                                     reinterpret_cast<_TV>(__maskload_epi32(__mem, __k)));
                 }
               else if constexpr (_Flags._M_have_avx and sizeof(_Tp) == 4)
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
-                                 reinterpret_cast<_TV>(__maskload_ps(__mem, __k)));
+                                     reinterpret_cast<_TV>(__maskload_ps(__mem, __k)));
                 }
               else if constexpr (_Flags._M_have_avx512vl and sizeof(_Tp) == 8
                                    and is_integral_v<_Up>)
@@ -380,13 +380,13 @@ namespace std::__detail
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
-                                 reinterpret_cast<_TV>(__maskload_epi64( __mem, __k)));
+                                     reinterpret_cast<_TV>(__maskload_epi64( __mem, __k)));
                 }
               else if constexpr (_Flags._M_have_avx and sizeof(_Tp) == 8)
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
-                                 reinterpret_cast<_TV>(__maskload_pd(__mem, __k)));
+                                     reinterpret_cast<_TV>(__maskload_pd(__mem, __k)));
                 }
               else
                 _S_bit_iteration(_S_to_bits(__k),
@@ -1247,7 +1247,7 @@ namespace std::__detail
               else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw)
                 return __vec_bitcast<_Tp>(
                          __vec_lo256(_mm512_sllv_epi16(_mm512_castsi256_si512(__ix),
-                                                   _mm512_castsi256_si512(__iy))));
+                                                       _mm512_castsi256_si512(__iy))));
               else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx2)
                 {
                   const auto __ux = __vec_bitcast<unsigned>(__x);
@@ -1263,7 +1263,7 @@ namespace std::__detail
               else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx512bw)
                 return __vec_bitcast_trunc<_TV>(
                          __vec_lo128(_mm512_sllv_epi16(_mm512_castsi128_si512(__ix),
-                                                   _mm512_castsi128_si512(__iy))));
+                                                       _mm512_castsi128_si512(__iy))));
               else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx2)
                 {
                   const auto __ux = __vec_bitcast<unsigned>(__ix);
@@ -1611,18 +1611,18 @@ namespace std::__detail
             {
               [[maybe_unused]] auto __blend_0xaa
                 = [] [[__gnu__::__always_inline__]] (auto __a, auto __b) {
-                  if constexpr (sizeof(__a) == 16)
-                    return _mm_blend_epi16(__to_x86_intrin(__a), __to_x86_intrin(__b),
-                                           0xaa);
-                  else if constexpr (sizeof(__a) == 32)
-                    return _mm256_blend_epi16(__to_x86_intrin(__a), __to_x86_intrin(__b),
-                                              0xaa);
-                  else if constexpr (sizeof(__a) == 64)
-                    return _mm512_mask_blend_epi16(0xaaaa'aaaaU, __to_x86_intrin(__a),
-                                                   __to_x86_intrin(__b));
-                  else
-                    __assert_unreachable<decltype(__a)>();
-                };
+                if constexpr (sizeof(__a) == 16)
+                  return _mm_blend_epi16(__to_x86_intrin(__a), __to_x86_intrin(__b),
+                                         0xaa);
+                else if constexpr (sizeof(__a) == 32)
+                  return _mm256_blend_epi16(__to_x86_intrin(__a), __to_x86_intrin(__b),
+                                            0xaa);
+                else if constexpr (sizeof(__a) == 64)
+                  return _mm512_mask_blend_epi16(0xaaaa'aaaaU, __to_x86_intrin(__a),
+                                                 __to_x86_intrin(__b));
+                else
+                  __assert_unreachable<decltype(__a)>();
+              };
               if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
                               and sizeof(_TV) <= 16)
                 return __vec_bitcast_trunc<_TV>(is_signed_v<_Tp>

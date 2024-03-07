@@ -39,8 +39,8 @@ namespace std
   template <typename _Tp, std::size_t _Np>
     inline constexpr std::array<_Tp, _Np>
     iota_v<std::array<_Tp, _Np>> = []<std::size_t... _Is>(std::index_sequence<_Is...>) {
-                                   return std::array<_Tp, _Np>{static_cast<_Tp>(_Is)...};
-                                 }(std::make_index_sequence<_Np>());
+      return std::array<_Tp, _Np>{static_cast<_Tp>(_Is)...};
+    }(std::make_index_sequence<_Np>());
 
   template <typename _Tp, std::size_t _Np>
     inline constexpr auto&

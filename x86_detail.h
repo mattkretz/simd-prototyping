@@ -252,32 +252,32 @@ namespace std::__detail
         return reinterpret_cast<_TV>(~reinterpret_cast<_UV>(__a) & reinterpret_cast<_UV>(__b));
       else
         return reinterpret_cast<_TV>([&] [[__gnu__::__always_inline__]] {
-          if constexpr (sizeof(_TV) == 16 and is_same_v<_Tp, float>)
-            return __builtin_ia32_andnps(__a, __b);
-          else if constexpr (sizeof(_TV) == 16 and is_same_v<_Tp, double>)
-            return __builtin_ia32_andnpd(__a, __b);
-          else if constexpr (sizeof(_TV) == 16 and is_integral_v<_Tp>)
-            return __builtin_ia32_pandn128(reinterpret_cast<__v2llong>(__a),
-                                           reinterpret_cast<__v2llong>(__b));
-          else if constexpr (sizeof(_TV) == 32 and is_same_v<_Tp, float>)
-            return __builtin_ia32_andnps256(__a, __b);
-          else if constexpr (sizeof(_TV) == 32 and is_same_v<_Tp, double>)
-            return __builtin_ia32_andnpd256(__a, __b);
-          else if constexpr (sizeof(_TV) == 32 and is_integral_v<_Tp> and __have_avx2)
-            return __builtin_ia32_andnotsi256(reinterpret_cast<__v4llong>(__a),
-                                              reinterpret_cast<__v4llong>(__b));
-          else if constexpr (sizeof(_TV) == 32 and is_integral_v<_Tp>)
-            return __builtin_ia32_andnpd256(reinterpret_cast<__v4double>(__a),
-                                            reinterpret_cast<__v4double>(__b));
-          else if constexpr (sizeof(_TV) == 64 and is_same_v<_Tp, float> and __have_avx512dq)
-            return __builtin_ia32_andnps512_mask(__a, __b, __v16float{}, -1);
-          else if constexpr (sizeof(_TV) == 64 and is_same_v<_Tp, double> and __have_avx512dq)
-            return __builtin_ia32_andnpd512_mask(__a, __b, __v8double{}, -1);
-          else if constexpr (sizeof(_TV) == 64)
-            return __builtin_ia32_pandnd512_mask(
-                     reinterpret_cast<__v16int>(__a), reinterpret_cast<__v16int>(__b),
-                     __v16int{}, -1);
-        }());
+                 if constexpr (sizeof(_TV) == 16 and is_same_v<_Tp, float>)
+                   return __builtin_ia32_andnps(__a, __b);
+                 else if constexpr (sizeof(_TV) == 16 and is_same_v<_Tp, double>)
+                   return __builtin_ia32_andnpd(__a, __b);
+                 else if constexpr (sizeof(_TV) == 16 and is_integral_v<_Tp>)
+                   return __builtin_ia32_pandn128(reinterpret_cast<__v2llong>(__a),
+                                                  reinterpret_cast<__v2llong>(__b));
+                 else if constexpr (sizeof(_TV) == 32 and is_same_v<_Tp, float>)
+                   return __builtin_ia32_andnps256(__a, __b);
+                 else if constexpr (sizeof(_TV) == 32 and is_same_v<_Tp, double>)
+                   return __builtin_ia32_andnpd256(__a, __b);
+                 else if constexpr (sizeof(_TV) == 32 and is_integral_v<_Tp> and __have_avx2)
+                   return __builtin_ia32_andnotsi256(reinterpret_cast<__v4llong>(__a),
+                                                     reinterpret_cast<__v4llong>(__b));
+                 else if constexpr (sizeof(_TV) == 32 and is_integral_v<_Tp>)
+                   return __builtin_ia32_andnpd256(reinterpret_cast<__v4double>(__a),
+                                                   reinterpret_cast<__v4double>(__b));
+                 else if constexpr (sizeof(_TV) == 64 and is_same_v<_Tp, float> and __have_avx512dq)
+                   return __builtin_ia32_andnps512_mask(__a, __b, __v16float{}, -1);
+                 else if constexpr (sizeof(_TV) == 64 and is_same_v<_Tp, double> and __have_avx512dq)
+                   return __builtin_ia32_andnpd512_mask(__a, __b, __v8double{}, -1);
+                 else if constexpr (sizeof(_TV) == 64)
+                   return __builtin_ia32_pandnd512_mask(
+                            reinterpret_cast<__v16int>(__a), reinterpret_cast<__v16int>(__b),
+                            __v16int{}, -1);
+               }());
     }
 #endif // not __clang__
 }
