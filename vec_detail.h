@@ -52,7 +52,7 @@ namespace std::__detail
    */
   template <typename _Tp>
     concept __vec_builtin
-      = requires(const _Tp& __x) {
+      = not std::is_class_v<_Tp> and requires(const _Tp& __x) {
         requires __vec_builtin_of<_Tp, remove_cvref_t<decltype(__x[0])>>;
       };
 

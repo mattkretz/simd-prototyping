@@ -397,9 +397,9 @@ namespace std
             return __ret;
           }
 
-        template <__vectorizable _Tp, typename _Up>
+        template <__vec_builtin _TV, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void
-          _S_store(_SimdMember<_Tp> const& __v, _Up* __mem, _TypeTag<_Tp> __tag) noexcept
+          _S_store(const array<_TV, _Np>& __v, _Up* __mem, _TypeTag<__value_type_of<_TV>> __tag) noexcept
           { (_Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size, __tag), ...); }
 
         template <typename _Tp, typename _Up>

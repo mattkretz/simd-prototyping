@@ -284,10 +284,11 @@ namespace std::__detail
           return __merge;
         }
 
-      template <typename _Tp, typename _Up>
+      template <__vec_builtin _TV, typename _Up>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_store(_SimdMember<_Tp> __v, _Up* __mem, _TypeTag<_Tp>) noexcept
+        _S_store(_TV __v, _Up* __mem, _TypeTag<__value_type_of<_TV>>) noexcept
         {
+          using _Tp = __value_type_of<_TV>;
           if constexpr (std::is_same_v<_Tp, _Up>)
             __builtin_memcpy(__mem, &__v, sizeof(_Tp) * _S_size);
           else
