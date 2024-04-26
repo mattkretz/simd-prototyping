@@ -3,10 +3,7 @@
  *                  Matthias Kretz <m.kretz@gsi.de>
  */
 
-#include "interleave.h"
-#include "permute.h"
-#include "simd_split.h"
-#include "mask_reductions.h"
+#include "simd"
 
 namespace test01
 {
@@ -104,6 +101,13 @@ static_assert(not std::convertible_to<std::simd<int, 4>, std::simd<float, 4>>);
 static_assert(not std::convertible_to<std::simd<float, 4>, std::simd<int, 4>>);
 static_assert(    std::convertible_to<std::simd<int, 4>, std::simd<double, 4>>);
 
+template <typename V>
+  concept has_static_size = requires {
+    { V::size } -> std::convertible_to<int>;
+    { V::size() } -> std::signed_integral;
+    { auto(V::size.value) } -> std::signed_integral;
+  };
+
 template <typename V, typename T = typename V::value_type>
   concept usable_simd_or_mask
     = std::is_nothrow_move_constructible_v<V>
@@ -122,6 +126,7 @@ template <typename V, typename T = typename V::value_type>
         and std::constructible_from<V, const T*>
         and std::constructible_from<V, typename std::array<T, 4>::iterator>
         and std::constructible_from<V, typename std::array<T, 4>::const_iterator>
+        and has_static_size<V>
       ;
 
 template <typename V, typename T = typename V::value_type>
@@ -143,6 +148,8 @@ template <typename V, typename T = typename V::value_type>
 template <typename T>
   struct test_usable_simd
   {
+    static_assert(not usable_simd<std::simd<T, 0>>);
+    static_assert(not has_static_size<std::simd<T, 0>>);
     static_assert(usable_simd<std::simd<T, 1>>);
     static_assert(usable_simd<std::simd<T, 2>>);
     static_assert(usable_simd<std::simd<T, 3>>);
@@ -154,6 +161,7 @@ template <typename T>
     static_assert(usable_simd<std::simd<T, 63>>);
     static_assert(usable_simd<std::simd<T, 64>>);
 
+    static_assert(not has_static_size<std::simd_mask<T, 0>>);
     static_assert(usable_simd_or_mask<std::simd_mask<T, 1>>);
     static_assert(usable_simd_or_mask<std::simd_mask<T, 2>>);
     static_assert(usable_simd_or_mask<std::simd_mask<T, 3>>);
@@ -218,6 +226,16 @@ static_assert([] constexpr {
   static_assert(b[2] == -(2 < 3));
   static_assert(b[3] == -(3 < 3));
   return all_of(b == std::simd<int, 7>([](int i) { return -int(i < 3); }));
+}());
+
+static_assert([] constexpr {
+  constexpr std::simd_mask<float, 7> a([](int i) -> bool { return i < 3; });
+  constexpr std::basic_simd b = ~a;
+  static_assert(b[0] == ~int(0 < 3));
+  static_assert(b[1] == ~int(1 < 3));
+  static_assert(b[2] == ~int(2 < 3));
+  static_assert(b[3] == ~int(3 < 3));
+  return all_of(b == std::simd<int, 7>([](int i) { return ~int(i < 3); }));
 }());
 
 static_assert([] constexpr {

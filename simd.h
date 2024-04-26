@@ -15,9 +15,37 @@
 
 namespace std
 {
+  // not supported:
+  // - deleted: dctor, dtor, cctor, cassign
+  // - no members except value_type, abi_type, and mask_type
+  template <typename _Tp, typename _Abi>
+    requires (__detail::_SimdTraits<_Tp, _Abi>::_S_size == 0)
+    class basic_simd<_Tp, _Abi>
+    {
+    public:
+      using value_type = _Tp;
+
+      using abi_type = _Abi;
+
+      using mask_type = std::basic_simd_mask<
+                          sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
+
+      basic_simd() = delete;
+
+      ~basic_simd() = delete;
+
+      basic_simd(const basic_simd&) = delete;
+
+      basic_simd& operator=(const basic_simd&) = delete;
+    };
+
+  // --------------------------------------------------------------
+  // supported
   template <typename _Tp, typename _Abi>
     class basic_simd
     {
+      static_assert(__detail::__vectorizable<_Tp> and __detail::__valid_abi_tag<_Abi, _Tp>);
+
       using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
 
       using _MemberType = typename _Traits::_SimdMember;
@@ -35,8 +63,7 @@ namespace std
 
       using abi_type = _Abi;
 
-      using mask_type = std::basic_simd_mask<
-                          sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
+      using mask_type = std::basic_simd_mask<sizeof(_Tp), _Abi>;
 
       static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 

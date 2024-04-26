@@ -34,6 +34,27 @@ namespace std
       using __simd_abi_for_mask_t = typename __simd_abi_for_mask<_Bytes, _Abi>::type;
   }
 
+  // not supported:
+  // - deleted: dctor, dtor, cctor, cassign
+  // - no members except value_type and abi_type
+  template <size_t _Bytes, typename _Abi>
+    requires (__detail::_SimdMaskTraits<_Bytes, _Abi>::_S_size == 0)
+    class basic_simd_mask<_Bytes, _Abi>
+    {
+    public:
+      using value_type = bool;
+
+      using abi_type = _Abi;
+
+      basic_simd_mask() = delete;
+
+      ~basic_simd_mask() = delete;
+
+      basic_simd_mask(const basic_simd_mask&) = delete;
+
+      basic_simd_mask& operator=(const basic_simd_mask&) = delete;
+    };
+
   template <size_t _Bytes, typename _Abi>
     class basic_simd_mask
     {
