@@ -113,7 +113,10 @@ $(foreach t,$(tests),\
 	$(foreach arch,$(testarchs),\
 	  $(foreach type,$(testtypes),\
 	    $(eval $(call check_template,$(t).$(arch).$(type),$(fortestwidths) \
-	      echo "check/$(t).$(arch)/$(type).$$$$w";done)))) \
+	      echo "check/$(t).$(arch)/$(type).$$$$w";done))) \
+	  $(foreach w,1 4 8 16,\
+	    $(eval $(call check_template,$t.$(arch).$w,$(fortesttypes) \
+	      echo "check/$t.$(arch)/$$$$type.$w";done)))) \
 	)
 
 $(check_targets): $(wildcard tests/*.cpp) Makefile Makefile.common
