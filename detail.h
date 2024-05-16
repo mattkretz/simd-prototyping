@@ -61,7 +61,7 @@ namespace std::__detail
   template <size_t _Np, bool _Sanitized, typename _Fp>
     _GLIBCXX_SIMD_INTRINSIC static void
     _S_bit_iteration(_BitMask<_Np, _Sanitized> __mask, _Fp&& __f)
-    { _S_bit_iteration(__mask._M_sanitized()._M_bits(), __f); }
+    { _S_bit_iteration(__mask._M_sanitized()._M_to_bits(), __f); }
 
 #ifdef math_errhandling
   // Determine if math functions must raise floating-point exceptions.
