@@ -31,8 +31,7 @@ namespace std::__detail
       = __simd_abi_tag<_Abi> and _Abi::template _IsValid<_Tp>::value;
 
   template <typename _Vp, _SimdSizeType _Width = 0>
-    concept __simd_type = std::is_simd_v<_Vp>
-                            && __vectorizable<typename _Vp::value_type>
+    concept __simd_type = std::is_simd_v<_Vp> // implies __vectorizable
                             && __simd_abi_tag<typename _Vp::abi_type>
                             && (_Width == 0 || _Vp::size() == _Width);
 
