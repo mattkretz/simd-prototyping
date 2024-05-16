@@ -282,7 +282,11 @@ namespace std
 
   template <typename _Tp, typename _Abi,
             std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation = plus<>>
+#if P1928
     constexpr _Tp
+#else
+    constexpr auto
+#endif
     reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
 
   template <typename _Tp, typename _Abi,

@@ -31,25 +31,45 @@ namespace std
       }();
 
     template <typename _Tp, typename _Abi, typename _BinaryOperation>
+#if P1928
       constexpr std::resize_simd_t<std::simd_size_v<_Tp, _Abi> / 2, basic_simd<_Tp, _Abi>>
+#else
+      constexpr auto
+#endif
       __split_and_invoke_once(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
       {
         using _V1 = basic_simd<_Tp, _Abi>;
         static_assert(std::__has_single_bit(unsigned(_V1::size.value)));
         using _V2 = std::resize_simd_t<_V1::size.value / 2, _V1>;
         const auto [__x0, __x1] = std::simd_split<_V2>(__x);
-        // Mandates: binary_op can be invoked with two arguments of type basic_simd<_Tp, A1>
-        // returning basic_simd<_Tp, A1> for every A1 that is an ABI tag type.
+        // Mandates: binary_op can be invoked with two arguments of type basic_simd<T, A1>
+        // returning basic_simd<T, A1> for every A1 that is an ABI tag type.
+        //   -- exploration:
+        // returning basic_simd<U, A2> with vectorizable U and simd-size<U, A2> == simd-size<T, A1>
         static_assert(requires {
+#if P1928
           { __binary_op(__x0, __x1) } -> same_as<_V2>;
+#else
+          { __binary_op(__x0, __x1) } -> __simd_type<_V2::size()>;
+#endif
         });
         return __binary_op(__x0, __x1);
       }
   }
 
+  // Mandates: binary_op can be invoked with two arguments of type basic_simd<T, A1>
+  // returning basic_simd<T, A1> for every A1 that is an ABI tag type.
+  //   -- Exploration:
+  // Mandates: binary_op can be invoked with two arguments of type basic_simd<T1, A1> and
+  // basic_simd<T2, A2> where simd-size
+  // returning basic_simd<T, A1> for every A1 that is an ABI tag type.
   template <typename _Tp, typename _Abi,
             std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation>
+#ifdef P1928
     constexpr _Tp
+#else
+    constexpr auto
+#endif
     reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
     {
       using _V1 = basic_simd<_Tp, _Abi>;
@@ -62,7 +82,7 @@ namespace std
         }
 
       if constexpr (_V1::size.value == 1)
-        return __x[0];
+        return _Tp(__x[0]);
 
       else if constexpr (_V1::size.value == 2 and sizeof(__x) == 16)
         return __binary_op(__x, _V1([&](auto __i) { return __x[__i ^ 1]; }))[0];
