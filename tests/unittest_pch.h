@@ -17,6 +17,19 @@ template <typename T>
   : std::bool_constant<false>
   {};
 
+template <typename T>
+  inline constexpr bool is_character_type_v = is_character_type<T>::value;
+
+template <typename T>
+  struct is_character_type<const T>
+  : is_character_type<T>
+  {};
+
+template <typename T>
+  struct is_character_type<T&>
+  : is_character_type<T>
+  {};
+
 template <> struct is_character_type<char> : std::bool_constant<true> {};
 template <> struct is_character_type<wchar_t> : std::bool_constant<true> {};
 template <> struct is_character_type<char8_t> : std::bool_constant<true> {};
@@ -30,7 +43,7 @@ template <typename T, typename Abi>
 std::ostream& operator<<(std::ostream& s, std::basic_simd<T, Abi> const& v)
 {
   using U = std::conditional_t<sizeof(T) == 1, int,
-                               std::conditional_t<is_character_type<T>::value,
+                               std::conditional_t<is_character_type_v<T>,
                                                   std::__detail::__make_unsigned_int_t<T>, T>>;
   s << '[' << U(v[0]);
   for (int i = 1; i < v.size(); ++i)
@@ -73,18 +86,30 @@ struct additional_info
 
 struct log_novalue {};
 
-additional_info
-log_failure(auto const& x, auto const& y, std::source_location loc, std::string_view s)
-{
-  ++failed_tests;
-  std::cout << loc.file_name() << ':' << loc.line() << ':' << loc.column() << ": "
-            << loc.function_name() << '\n' << std::boolalpha;
-  std::cout << s << x;
-  if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
-    std::cout << "\n       to: " << y << std::endl;
-  std::cout << std::endl;
-  return additional_info {true};
-}
+template <typename X, typename Y>
+  additional_info
+  log_failure(const X& x, const Y& y, std::source_location loc, std::string_view s)
+  {
+    ++failed_tests;
+    std::cout << loc.file_name() << ':' << loc.line() << ':' << loc.column() << ": "
+              << loc.function_name() << '\n' << std::boolalpha;
+    std::cout << s;
+    if constexpr (is_character_type_v<X>)
+      std::cout << int(x);
+    else
+      std::cout << x;
+    if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
+      {
+        std::cout << "\n       to: ";
+        if constexpr (is_character_type_v<X>)
+          std::cout << int(y);
+        else
+          std::cout << y;
+        std::cout << std::endl;
+      }
+    std::cout << std::endl;
+    return additional_info {true};
+  }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
