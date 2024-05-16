@@ -159,6 +159,13 @@ namespace std
   template <__detail::_SimdSizeType _Np, typename _Tag>
     struct _AbiCombine;
 
+  template <typename T>
+    struct representation_type
+    {};
+
+  template <typename T>
+    using representation_type_t = typename representation_type<T>::type;
+
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
     class basic_simd;
 

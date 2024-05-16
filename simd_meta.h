@@ -6,14 +6,22 @@
 #ifndef PROTOTYPE_SIMD_META_H_
 #define PROTOTYPE_SIMD_META_H_
 
-#include "fwddecl.h"
 #include "flags.h"
+#include "fwddecl.h"
 
 namespace std::__detail
 {
   template <typename _Tp>
     struct __assert_unreachable
     { static_assert(!is_same_v<_Tp, _Tp>, "this should be unreachable"); };
+
+  template <typename _To, typename... _Args>
+    concept __convertible_from
+      = std::constructible_from<_To, _Args...>
+          and requires(_To (&__fun)(_To), _Args&&... __args)
+        {
+          { __fun({static_cast<_Args&&>(__args)...}) } -> std::same_as<_To>;
+        };
 
   template <typename _Tp>
     concept __vectorizable = __is_vectorizable<_Tp>::value;

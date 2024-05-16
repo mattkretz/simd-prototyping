@@ -283,6 +283,12 @@
   _GLIBCXX_SIMD_LIST_ARITHMETICS(__macro) static_assert(true)
 #endif
 
+#define _GLIBCXX_SIMD_LIST_COMPARES(__macro)                                                       \
+  __macro(==) __macro(!=) __macro(>) __macro(>=) __macro(<) __macro(<=)
+
+#define _GLIBCXX_SIMD_ALL_COMPARES(__macro)                                                        \
+  _GLIBCXX_SIMD_LIST_COMPARES(__macro) static_assert(true)
+
 #if defined __GXX_CONDITIONAL_IS_OVERLOADABLE__ and SIMD_CONDITIONAL_OPERATOR
 #define simd_select_impl operator?:
 #endif
