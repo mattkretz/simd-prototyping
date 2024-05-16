@@ -268,7 +268,7 @@ namespace std
       // unary operators (for any _Tp)
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr mask_type
       operator!() const
-      requires requires(value_type __a) { +__a; }
+      requires requires(value_type __a) { {!__a} -> same_as<bool>; }
       { return {__detail::__private_init, _Impl::_S_negate(__data(*this))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
