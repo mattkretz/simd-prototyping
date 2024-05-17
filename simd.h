@@ -121,77 +121,17 @@ namespace std
         : _M_data(_Impl::template _S_generator<value_type>(static_cast<_Fp&&>(__gen)))
         {}
 
-      // load constructor
-      template <typename _It, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
-          and std::contiguous_iterator<_It>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr // TODO explicit
-        basic_simd(_It __first, simd_flags<_Flags...> __flags = {})
-        : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
-                                   std::to_address(__first)), _S_type_tag))
-        {}
-
-      template <typename _It, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
-          and std::contiguous_iterator<_It>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr // TODO explicit
-        basic_simd(_It __first, const mask_type& __k, simd_flags<_Flags...> __flags = {})
-        : _M_data(_Impl::_S_masked_load(_MemberType(), __data(__k),
-                                        __flags.template _S_adjust_pointer<basic_simd>(
-                                          std::to_address(__first))))
-        {}
-
-      ////////////////////////////////////////////////////////////////////////////////////////////
-      // begin exploration
-
-      // construction from span of static extent is simple
-      //   basic_simd(std::span<_Tp, size()> __mem)
-      //
-      // but let's add conversions and flags
-      template <typename _Up, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<_Up, value_type, _Flags...>
-        constexpr // TODO explicit?
-        basic_simd(std::span<_Up, size()> __mem, simd_flags<_Flags...> __flags = {})
-        : basic_simd(__mem.begin(), __flags)
-        {}
-
-      // ranges typically don't have a static size() function :(
+      // ranges typically don't have a static size
       // but if one does, this ctor is useful
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
                                                       value_type, _Flags...>
           and (__detail::__static_range_size<_Rg> == size.value)
-        constexpr // TODO explicit?
+        constexpr // implicit!
         basic_simd(_Rg&& __range, simd_flags<_Flags...> __flags = {})
-        : basic_simd(std::ranges::begin(__range), __flags)
+        : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
+                                   std::ranges::data(__range)), _S_type_tag))
         {}
-
-      template <std::ranges::contiguous_range _Rg, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                      value_type, _Flags...>
-          and (__detail::__static_range_size<_Rg> == std::dynamic_extent)
-        constexpr // TODO explicit?
-        basic_simd(_Rg&& __range, simd_flags<_Flags...> __f = {})
-        {
-          const auto* __ptr = __f.template _S_adjust_pointer<basic_simd>(std::ranges::data(__range));
-          if(std::ranges::size(__range) >= size())
-            _M_data = _Impl::_S_load(__ptr, _S_type_tag);
-          else
-            {
-              *this = _Tp();
-              __builtin_memcpy(&_M_data, __ptr, size() - std::ranges::size(__range));
-            }
-        }
-
-      /* This constructor makes loads from C-arrays ambiguous because they are contiguous iterators
-       * (decay to pointer) as well as contiguous ranges.
-       *
-      template <std::ranges::random_access_range _Rg>
-        requires(std::convertible_to<std::ranges::range_value_t<_Rg>, _Tp>)
-        constexpr explicit (not std::same_as<std::ranges::range_value_t<_Rg>, _Tp>)
-        basic_simd(const _Rg& __range)
-        : basic_simd([&__range](auto __i) -> _Tp { return __range[__i]; })
-        {}*/
 
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires std::ranges::output_range<_Rg, value_type>
@@ -224,26 +164,7 @@ namespace std
       : _M_data(__init)
       {}
 
-      // loads and stores
-      template <std::contiguous_iterator _It, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, simd_flags<_Flags...> __flags = {})
-        {
-          _M_data = _Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
-                                     std::to_address(__first)), _S_type_tag);
-        }
-
-      template <std::contiguous_iterator _It, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::iter_value_t<_It>, value_type, _Flags...>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr void
-        copy_from(_It __first, const mask_type& __k, simd_flags<_Flags...> __flags = {})
-        {
-          _M_data = _Impl::_S_masked_load(_M_data, __data(__k),
-                                          __flags.template _S_adjust_pointer<basic_simd>(
-                                            std::to_address(__first)));
-        }
-
+      // stores
       template <std::contiguous_iterator _It, typename... _Flags>
         requires std::output_iterator<_It, _Tp>
           and __detail::__loadstore_convertible_to<value_type, std::iter_value_t<_It>, _Flags...>
@@ -589,6 +510,90 @@ namespace std
     : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_int_t<bool>,
                                                   basic_simd_mask<_Bs, _Abi>::size()>)>
     {};
+
+  template <typename _Tp, typename _Rg>
+    struct __simd_load_return;
+
+  template <typename _Rg>
+    struct __simd_load_return<void, _Rg>
+    { using type = simd<ranges::range_value_t<_Rg>>; };
+
+  template <__detail::__simd_type _Vp, typename _Rg>
+    struct __simd_load_return<_Vp, _Rg>
+    { using type = _Vp; };
+
+  template <__detail::__vectorizable _Tp, typename _Rg>
+    struct __simd_load_return<_Tp, _Rg>
+    { using type = simd<_Tp>; };
+
+  template <typename _Tp, typename _Rg>
+    using __simd_load_return_t = typename __simd_load_return<_Tp, _Rg>::type;
+
+  [[gnu::error("out of bounds")]]
+  void __invoke_out_of_bounds_error();
+
+  template <typename _Tp = void, typename _Rg, typename... _Flags>
+    constexpr __simd_load_return_t<_Tp, _Rg>
+    simd_load(_Rg&& __range, simd_flags<_Flags...> __flags = {})
+    {
+      using _RV = __simd_load_return_t<_Tp, _Rg>;
+      static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                         typename _RV::value_type, _Flags...>);
+      constexpr bool __allow_out_of_bounds
+        = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
+      static_assert(__detail::__static_range_size<_Rg> >= _RV::size.value
+                      or __allow_out_of_bounds
+                      or __detail::__static_range_size<_Rg> == dynamic_extent,
+                    "Out-of-bounds access: load of %d values out of range of size %d");
+      const auto* __ptr = __flags.template _S_adjust_pointer<_RV>(std::ranges::data(__range));
+      using _Rp = typename _RV::value_type;
+      constexpr _Rp* __type_tag = nullptr;
+
+      const auto __rg_size = std::ranges::size(__range);
+      const bool __out_of_bounds = __rg_size < _RV::size();
+      if (not __allow_out_of_bounds and __builtin_constant_p(__out_of_bounds) and __out_of_bounds)
+        __invoke_out_of_bounds_error();
+
+      if constexpr (__detail::__static_range_size<_Rg> != dynamic_extent
+                      and __detail::__static_range_size<_Rg> >= _RV::size())
+        return _RV(_RV::_Impl::_S_load(__ptr, __type_tag));
+      else if (__rg_size >= _RV::size())
+        return _RV(_RV::_Impl::_S_load(__ptr, __type_tag));
+      else if (__allow_out_of_bounds and (__builtin_is_constant_evaluated()
+                                            or __builtin_constant_p(__rg_size)))
+        return _RV([&](size_t __i) {
+                 return __i < __rg_size ? __range[__i] : _Rp();
+               });
+      else if (__allow_out_of_bounds)
+        {
+          _RV __ret {};
+          __builtin_memcpy(&__data(__ret), __ptr, _RV::size() - __rg_size);
+          return __ret;
+        }
+      else
+        {
+          _RV __ret;
+#ifdef UB_LOADS
+          __detail::__invoke_ub("Out-of-bounds access: load of %d values out of range of size %d",
+                                _RV::size(), __rg_size);
+#else
+          // otherwise we get EB
+          __builtin_memcpy(&__data(__ret), __ptr, _RV::size() - __rg_size);
+#endif
+          return __ret;
+        }
+    }
+
+  template <typename _Tp = void, contiguous_iterator _First, sentinel_for<_First> _Last,
+            typename... _Flags>
+    constexpr auto
+    simd_load(_First __first, _Last __last, simd_flags<_Flags...> __flags = {})
+    { return simd_load(std::span(__first, __last), __flags); }
+
+  template <typename _Tp = void, contiguous_iterator _First, typename... _Flags>
+    constexpr auto
+    simd_load(_First __first, size_t __size, simd_flags<_Flags...> __flags = {})
+    { return simd_load(std::span(__first, __size), __flags); }
 }
 
 #endif  // PROTOTYPE_SIMD2_H_

@@ -17,6 +17,10 @@ namespace std::__detail
   struct _LoadStoreTag
   {};
 
+  struct _LoadDefaultInit
+  : _LoadStoreTag
+  {};
+
   struct _Convert
   : _LoadStoreTag
   {};
@@ -205,6 +209,8 @@ namespace std
   // extensions
   template <typename _To>
     inline constexpr simd_flags<__detail::_ConvertTo<_To>> simd_flag_convert_to;
+
+  inline constexpr simd_flags<__detail::_LoadDefaultInit> simd_flag_default_init;
 
   inline constexpr std::simd_flags<std::__detail::_Streaming> __simd_flag_streaming;
 
