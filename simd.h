@@ -522,29 +522,35 @@ namespace std
     struct __simd_load_return<_Vp, _Rg>
     { using type = _Vp; };
 
-  template <__detail::__vectorizable _Tp, typename _Rg>
+  /*  template <__detail::__vectorizable _Tp, typename _Rg>
     struct __simd_load_return<_Tp, _Rg>
-    { using type = simd<_Tp>; };
+    { using type = simd<_Tp>; };*/
 
   template <typename _Tp, typename _Rg>
     using __simd_load_return_t = typename __simd_load_return<_Tp, _Rg>::type;
 
-  [[gnu::error("out of bounds")]]
-  void __invoke_out_of_bounds_error();
+  [[__gnu__::__error__("simd_load reads beyond the end of the given range")]]
+  void
+  __error_simd_load_out_of_bounds();
 
-  template <typename _Tp = void, typename _Rg, typename... _Flags>
+  template <typename _Tp = void, ranges::contiguous_range _Rg, typename... _Flags>
+    requires (not __detail::__vectorizable<_Tp>)
     constexpr __simd_load_return_t<_Tp, _Rg>
     simd_load(_Rg&& __range, simd_flags<_Flags...> __flags = {})
     {
       using _RV = __simd_load_return_t<_Tp, _Rg>;
       static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                         typename _RV::value_type, _Flags...>);
+                                                         typename _RV::value_type, _Flags...>,
+                    "The converting load is not value-preserving. "
+                    "Pass 'std::simd_flag_convert' if lossy conversion matches the intent.");
+
       constexpr bool __allow_out_of_bounds
         = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
       static_assert(__detail::__static_range_size<_Rg> >= _RV::size.value
                       or __allow_out_of_bounds
                       or __detail::__static_range_size<_Rg> == dynamic_extent,
                     "Out-of-bounds access: load of %d values out of range of size %d");
+
       const auto* __ptr = __flags.template _S_adjust_pointer<_RV>(std::ranges::data(__range));
       using _Rp = typename _RV::value_type;
       constexpr _Rp* __type_tag = nullptr;
@@ -552,7 +558,7 @@ namespace std
       const auto __rg_size = std::ranges::size(__range);
       const bool __out_of_bounds = __rg_size < _RV::size();
       if (not __allow_out_of_bounds and __builtin_constant_p(__out_of_bounds) and __out_of_bounds)
-        __invoke_out_of_bounds_error();
+        __error_simd_load_out_of_bounds();
 
       if constexpr (__detail::__static_range_size<_Rg> != dynamic_extent
                       and __detail::__static_range_size<_Rg> >= _RV::size())
@@ -588,12 +594,55 @@ namespace std
             typename... _Flags>
     constexpr auto
     simd_load(_First __first, _Last __last, simd_flags<_Flags...> __flags = {})
-    { return simd_load(std::span(__first, __last), __flags); }
+    { return simd_load<_Tp>(std::span(__first, __last), __flags); }
 
   template <typename _Tp = void, contiguous_iterator _First, typename... _Flags>
     constexpr auto
     simd_load(_First __first, size_t __size, simd_flags<_Flags...> __flags = {})
-    { return simd_load(std::span(__first, __size), __flags); }
+    { return simd_load<_Tp>(std::span(__first, __size), __flags); }
+
+  // simd-generic loads
+  template <__detail::__vectorizable _Tp, ranges::contiguous_range _Rg, typename... _Flags>
+    constexpr _Tp
+    simd_load(_Rg&& __range, simd_flags<_Flags...> __flags = {})
+    {
+      static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                         _Tp, _Flags...>,
+                    "The converting load is not value-preserving. "
+                    "Pass 'std::simd_flag_convert' if lossy conversion matches the intent.");
+
+      constexpr bool __allow_out_of_bounds
+        = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
+      static_assert(__detail::__static_range_size<_Rg> > 0
+                      or __allow_out_of_bounds
+                      or __detail::__static_range_size<_Rg> == dynamic_extent,
+                    "Out-of-bounds access: load of 1 value out of range of size 0");
+
+      const auto* __ptr = __flags.template _S_adjust_pointer<_Tp>(std::ranges::data(__range));
+
+      const auto __rg_size = std::ranges::size(__range);
+      const bool __out_of_bounds = __rg_size == 0;
+      if (not __allow_out_of_bounds and __builtin_constant_p(__out_of_bounds) and __out_of_bounds)
+        __error_simd_load_out_of_bounds();
+
+      if constexpr (__detail::__static_range_size<_Rg> != dynamic_extent
+                      and __detail::__static_range_size<_Rg> > 0)
+        return *__ptr;
+      else if (__rg_size > 0)
+        return *__ptr;
+      else if (__allow_out_of_bounds)
+        return _Tp();
+      else
+        {
+          _Tp __ret;
+#ifdef UB_LOADS
+          __detail::__invoke_ub("Out-of-bounds access: load of 1 value out of range of size 0");
+#else
+          // otherwise we get EB
+#endif
+          return __ret;
+        }
+    }
 }
 
 #endif  // PROTOTYPE_SIMD2_H_
