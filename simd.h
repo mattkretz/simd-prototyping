@@ -643,6 +643,36 @@ namespace std
           return __ret;
         }
     }
+
+  template <same_as<void> = void, typename _Fp>
+    requires __detail::__simd_broadcast_invokable<
+               _Fp, decltype(declval<_Fp&&>()(__detail::__ic<0>)),
+               simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>::size()>
+    constexpr simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>
+    simd_generate(_Fp&& __gen)
+    {
+      using _Tp = decltype(declval<_Fp&&>()(__detail::__ic<0>));
+      using _Vp = simd<_Tp>;
+      return _Vp(_Vp::_Impl::template _S_generator<_Tp>(static_cast<_Fp&&>(__gen)));
+    }
+
+  template <__detail::__simd_or_mask _Vp = void,
+            __detail::__simd_broadcast_invokable<typename _Vp::value_type, _Vp::size()> _Fp>
+    constexpr _Vp
+    simd_generate(_Fp&& __gen)
+    {
+      if constexpr (__detail::__simd_type<_Vp>)
+        return _Vp(_Vp::_Impl::template _S_generator<typename _Vp::value_type>(
+                 static_cast<_Fp&&>(__gen)));
+      else
+        return _Vp(static_cast<_Fp&&>(__gen));
+    }
+
+  // simd-generic generators
+  template <__detail::__vectorizable _Tp, __detail::__simd_broadcast_invokable<_Tp, 1> _Fp>
+    constexpr _Tp
+    simd_generate(_Fp&& __gen)
+    { return __gen(__detail::__ic<0>); }
 }
 
 #endif  // PROTOTYPE_SIMD2_H_
