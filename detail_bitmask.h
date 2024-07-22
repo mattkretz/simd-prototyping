@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <bitset>
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   inline constexpr size_t
   __div_roundup(size_t __a, size_t __b)
@@ -39,11 +39,11 @@ namespace std::__detail
 
       constexpr _BitMask() noexcept = default;
 
-      template <unsigned_integral _Up>
+      template <std::unsigned_integral _Up>
         constexpr _BitMask(_Up __x) noexcept
         : _M_bits{_Sanitized ? static_cast<_Tp>(_S_bitmask & __x) : static_cast<_Tp>(__x)} {}
 
-      template <integral _Up>
+      template <std::integral _Up>
         requires (_Sanitized)
         _GLIBCXX_SIMD_ALWAYS_INLINE static constexpr _BitMask
         __create_unchecked(_Up __x)
@@ -359,7 +359,7 @@ namespace std::__detail
       }
     };
 
-  template <integral _Tp>
+  template <std::integral _Tp>
     _BitMask(_Tp)
     -> _BitMask<__CHAR_BIT__ * sizeof(_Tp)>;
 }

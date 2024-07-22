@@ -1,5 +1,5 @@
-CXXFLAGS+=-std=gnu++23 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
-CXXFLAGS_clang := -Wno-unknown-pragmas
+CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
+CXXFLAGS_clang := -Wno-unknown-pragmas --gcc-toolchain=/home/mkretz/.local/gcc-master
 CXXFLAGS_gcc := -fconcepts-diagnostics-depth=3
 
 ifneq ($(shell $(CXX) --version|grep -i clang),)
@@ -132,9 +132,11 @@ codegen_files ::= $(wildcard codegen/*.c++)
 codegen_names ::= $(patsubst codegen/%.c++,%,$(codegen_files))
 codegen_targets ::= $(patsubst %,check-codegen-%,$(codegen_names))
 
-obj/codegen.depend: $(codegen_files)
-	@echo "Update codegen dependencies"
+obj:
 	@mkdir -p obj
+
+obj/codegen.depend: obj $(codegen_files)
+	@echo "Update codegen dependencies"
 	$(file >$@)
 	$(foreach c,$(codegen_names),\
 	  $(shell $(CXX) $(CXXFLAGS) -MM -MT obj/codegen.$c.s codegen/$c.c++ >> $@))

@@ -10,13 +10,13 @@
 #include "simd_reductions.h"
 #include "x86_detail.h"
 
-namespace std
+namespace SIMD_NSPC
 {
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    all_of(const basic_mask<_Bs, _Abi>& __k) noexcept
     {
-      using _Kp = basic_simd_mask<_Bs, _Abi>;
+      using _Kp = basic_mask<_Bs, _Abi>;
       constexpr __detail::_SimdSizeType __size = _Kp::size.value;
       if constexpr (__size == 1)
         return __data(__k);
@@ -67,9 +67,9 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    any_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    any_of(const basic_mask<_Bs, _Abi>& __k) noexcept
     {
-      using _Kp = basic_simd_mask<_Bs, _Abi>;
+      using _Kp = basic_mask<_Bs, _Abi>;
       constexpr __detail::_SimdSizeType __size = _Kp::size.value;
       if constexpr (__size == 1)
         return __data(__k);
@@ -109,9 +109,9 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    none_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    none_of(const basic_mask<_Bs, _Abi>& __k) noexcept
     {
-      using _Kp = basic_simd_mask<_Bs, _Abi>;
+      using _Kp = basic_mask<_Bs, _Abi>;
       constexpr __detail::_SimdSizeType __size = _Kp::size.value;
       if constexpr (__size == 1)
         return !__data(__k);
@@ -152,9 +152,9 @@ namespace std
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_count(const basic_simd_mask<_Bs, _Abi>& __k) noexcept
+    reduce_count(const basic_mask<_Bs, _Abi>& __k) noexcept
     {
-      using _Kp = basic_simd_mask<_Bs, _Abi>;
+      using _Kp = basic_mask<_Bs, _Abi>;
       constexpr __detail::_SimdSizeType __size = _Kp::size.value;
       if constexpr (__size == 1)
         return +__data(__k);
@@ -183,12 +183,11 @@ namespace std
    */
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k)
+    reduce_min_index(const basic_mask<_Bs, _Abi>& __k)
     {
-      if (__builtin_is_constant_evaluated() and not any_of(__k))
-        __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+      __glibcxx_simd_precondition(any_of(__k), "any_of(k) must be true");
 
-      constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
+      constexpr int __size = basic_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
         return 0;
 
@@ -220,12 +219,11 @@ namespace std
    */
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k)
+    reduce_max_index(const basic_mask<_Bs, _Abi>& __k)
     {
-      if (__builtin_is_constant_evaluated() and not any_of(__k))
-        __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
+      __glibcxx_simd_precondition(any_of(__k), "any_of(k) must be true");
 
-      constexpr int __size = basic_simd_mask<_Bs, _Abi>::size.value;
+      constexpr int __size = basic_mask<_Bs, _Abi>::size.value;
       if constexpr (__size == 1)
         return 0;
 
@@ -251,37 +249,5 @@ namespace std
         return __detail::__highest_bit(
                  _Abi::_MaskImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits());
     }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  all_of(same_as<bool> auto __x) noexcept
-  { return __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  any_of(same_as<bool> auto __x) noexcept
-  { return __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  none_of(same_as<bool> auto __x) noexcept
-  { return not __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_count(same_as<bool> auto __x) noexcept
-  { return static_cast<__detail::_SimdSizeType>(__x); }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_min_index(same_as<bool> auto __x) noexcept
-  {
-    if (__builtin_is_constant_evaluated() and !__x)
-      __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
-    return 0;
-  }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_max_index(same_as<bool> auto __x) noexcept
-  {
-    if (__builtin_is_constant_evaluated() and !__x)
-      __detail::__invoke_ub("reduce_max_index(x): precondition any_of(x) failed");
-    return 0;
-  }
 }
 #endif  // PROTOTYPE_MASK_REDUCTIONS_H_

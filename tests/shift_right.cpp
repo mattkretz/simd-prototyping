@@ -5,8 +5,7 @@
 
 #include "unittest.h"
 
-#include "../mask_reductions.h"
-#include "../iota.h"
+#include "../simd"
 
 using namespace vir::literals;
 
@@ -25,7 +24,7 @@ template <typename V>
           auto test_shift = [=](auto _shift) {
             log_start();
 
-            const auto x = std::iota_v<V>;
+            const auto x = simd::iota_v<V>;
             const auto y = ~x;
             constexpr T tmax = std::numeric_limits<T>::max();
             const auto z = tmax - x;

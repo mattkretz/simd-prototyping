@@ -12,7 +12,7 @@
 
 #include <x86intrin.h>
 
-namespace std
+namespace SIMD_NSPC
 {
   template <int _Width>
     struct _Avx512Abi
@@ -92,6 +92,9 @@ namespace std
             static constexpr bool _S_is_simd_ctor_arg
               = std::is_same_v<_Arg, _SimdMember>
                   or std::is_same_v<_Arg, __detail::__x86_intrin_t<_SimdMember>>;
+
+          // guard against PR115897
+          static_assert(not _S_is_simd_ctor_arg<_Tp>);
 
           template <typename _Arg>
             static constexpr bool _S_is_mask_ctor_arg
@@ -175,7 +178,7 @@ namespace std
 }
 
 #if __x86_64__ or __i386__
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   template <typename _Abi, auto _Flags>
     struct _SimdMaskTraits<sizeof(float), _Abi, _Flags>
@@ -236,7 +239,7 @@ namespace std::__detail
         _S_to_bitmask(_TV __k)
         { return _S_to_bits(__k)._M_to_bits(); }
 
-      template <integral _Tp>
+      template <std::integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_to_bitmask(_Tp __k)
         { return __k; }
@@ -423,7 +426,7 @@ namespace std::__detail
 
       // Returns: __k ? __a : __b
       // Requires: _TV to be a __vec_builtin_type matching valuetype for the bitmask __k
-      template <integral _Kp, __vec_builtin _TV>
+      template <std::integral _Kp, __vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_select_bitmask(const _Kp __k, const _TV __a, const _TV __b)
         {
@@ -514,7 +517,7 @@ namespace std::__detail
 #endif
         }
 
-      template <integral _Kp, __vec_builtin _TV>
+      template <std::integral _Kp, __vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_select(const _Kp __k, const _TV __a, const _TV __b)
         { return _S_select_bitmask(__k, __a, __b); }
@@ -569,7 +572,7 @@ namespace std::__detail
        * Pre-condition: \p __k is a mask (all bits either 0 or 1)
        */
       template <__vec_builtin _TV>
-        requires (not integral<_MaskMember<_TV>>)
+        requires (not std::integral<_MaskMember<_TV>>)
         _GLIBCXX_SIMD_INTRINSIC static _TV
         _S_select(const _MaskMember<_TV> __k, const _TV __a, const _TV __b)
         {
@@ -661,7 +664,7 @@ namespace std::__detail
                     {
                       if (__builtin_constant_p(__rhs) and __rhs == 1)
                         {
-                          // like simd_mask::operator+ / mask conversion to _SimdType
+                          // like mask::operator+ / mask conversion to _SimdType
                           const auto __ki = __vec_bitcast<__x86_builtin_int_t<_Tp>>(__k);
                           if constexpr (sizeof(_TV) == 32)
                             __lhs = reinterpret_cast<_TV>(__builtin_ia32_psignb256(__ki, __ki));
@@ -687,7 +690,7 @@ namespace std::__detail
             _Base::_S_masked_assign(__k, __lhs, __rhs);
         }
 
-      template <unsigned_integral _Kp, size_t _Np, bool _Sanitized>
+      template <std::unsigned_integral _Kp, size_t _Np, bool _Sanitized>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Kp
         _S_convert_mask(_BitMask<_Np, _Sanitized> __x)
         {
@@ -944,21 +947,21 @@ namespace std::__detail
 
 #endif
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_bit_and(_Tp __x, _Tp __y)
         { return __x & __y; }
 
       using _Base::_S_bit_and;
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_bit_or(_Tp __x, _Tp __y)
         { return __x | __y; }
 
       using _Base::_S_bit_or;
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_bit_xor(_Tp __x, _Tp __y)
         { return __x ^ __y; }
@@ -1880,29 +1883,29 @@ namespace std::__detail
                     __assert_unreachable<_Tp>();
                 }
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
-                return ~_mm512_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
+                return _mm512_mask_cmpneq_epi64_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
-                return ~_mm512_mask_cmpeq_epi32_mask(__k1, __xi, __yi);
+                return _mm512_mask_cmpneq_epi32_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
-                return ~_mm512_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
+                return _mm512_mask_cmpneq_epi16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 64>)
-                return ~_mm512_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
+                return _mm512_mask_cmpneq_epi8_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
-                return ~_mm256_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
+                return _mm256_mask_cmpneq_epi64_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
-                return ~_mm256_mask_cmpeq_epi32_mask(__k1, __xi, __yi);
+                return _mm256_mask_cmpneq_epi32_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
-                return ~_mm256_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
+                return _mm256_mask_cmpneq_epi16_mask(__k1, __xi, __yi);
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32>)
-                return ~_mm256_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
+                return _mm256_mask_cmpneq_epi8_mask(__k1, __xi, __yi);
               else if constexpr (sizeof(_Tp) == 8)
-                return ~_mm_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
+                return _mm_mask_cmpneq_epi64_mask(__k1, __xi, __yi);
               else if constexpr (sizeof(_Tp) == 4)
-                return ~_mm_mask_cmpeq_epi32_mask(__k1, __xi, __yi);
+                return _mm_mask_cmpneq_epi32_mask(__k1, __xi, __yi);
               else if constexpr (sizeof(_Tp) == 2)
-                return ~_mm_mask_cmpeq_epi16_mask(__k1, __xi, __yi);
+                return _mm_mask_cmpneq_epi16_mask(__k1, __xi, __yi);
               else if constexpr (sizeof(_Tp) == 1)
-                return ~_mm_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
+                return _mm_mask_cmpneq_epi8_mask(__k1, __xi, __yi);
               else
                 __assert_unreachable<_Tp>();
             }
@@ -3028,14 +3031,14 @@ namespace std::__detail
             __assert_unreachable<_TV>();
         }
 
-      template <unsigned_integral _Kp>
+      template <std::unsigned_integral _Kp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
         _S_get(_Kp __k, _SimdSizeType __i)
         { return ((__k >> __i) & 1) == 1; }
 
       using _Base::_S_get;
 
-      template <unsigned_integral _Kp>
+      template <std::unsigned_integral _Kp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
         _S_set(_Kp& __k, _SimdSizeType __i, bool __x)
         {
@@ -3059,7 +3062,7 @@ namespace std::__detail
                    and ((_S_have_ssse3 and is_integral_v<_Tp>)
                           or (_S_have_sse3 and is_floating_point_v<_Tp>)))
         static constexpr _Tp
-        _S_reduce(basic_simd<_Tp, _Abi> __x, const plus<>&)
+        _S_reduce(basic_vec<_Tp, _Abi> __x, const plus<>&)
         {
           constexpr auto _Np = _S_size;
           using _Ip = __x86_builtin_int_t<_Tp>;
@@ -3172,7 +3175,7 @@ namespace std::__detail
         }
 #endif // __clang__
 
-      template <unsigned_integral _Kp>
+      template <std::unsigned_integral _Kp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _BitMask<_S_size>
         _S_to_bits(_Kp __x)
         { return __x; }
@@ -3238,21 +3241,21 @@ namespace std::__detail
             return _Base::_S_to_bits(__x);
         }
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_logical_and(_Tp __x, _Tp __y)
         { return __x & __y; }
 
       using _Base::_S_logical_and;
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_logical_or(_Tp __x, _Tp __y)
         { return __x | __y; }
 
       using _Base::_S_logical_or;
 
-      template <unsigned_integral _Tp>
+      template <std::unsigned_integral _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
         _S_bit_not(_Tp __x)
         { return ~__x; }
@@ -3261,7 +3264,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static bool
-        _S_all_of(const basic_simd_mask<_Bs, _Abi> __k)
+        _S_all_of(const basic_mask<_Bs, _Abi> __k)
         {
           using _Tp = __mask_integer_from<_Bs>;
           if constexpr (_S_use_bitmasks)
@@ -3303,7 +3306,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static bool
-        _S_any_of(const basic_simd_mask<_Bs, _Abi> __k)
+        _S_any_of(const basic_mask<_Bs, _Abi> __k)
         {
           using _Tp = __mask_integer_from<_Bs>;
           if constexpr (_S_use_bitmasks)
@@ -3328,7 +3331,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static bool
-        _S_none_of(const basic_simd_mask<_Bs, _Abi> __k)
+        _S_none_of(const basic_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
             return _Abi::_S_masked(__data(__k)) == 0;
@@ -3353,7 +3356,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static int
-        _S_popcount(basic_simd_mask<_Bs, _Abi> __k)
+        _S_popcount(basic_mask<_Bs, _Abi> __k)
         {
           const auto __kk = _Abi::_S_masked(__data(__k));
           if constexpr (_S_use_bitmasks)
@@ -3449,7 +3452,7 @@ namespace std::__detail
                 }
 
               else if constexpr (_Flags._M_have_sse2)
-                return -std::reduce(-__k);
+                return -SIMD_NSPC::reduce(-__k);
 
               else
                 return __builtin_popcount(__bits);
@@ -3458,7 +3461,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static int
-        _S_find_first_set(basic_simd_mask<_Bs, _Abi> __k)
+        _S_find_first_set(basic_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
             return __lowest_bit(__data(__k));
@@ -3474,7 +3477,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static int
-        _S_find_last_set(basic_simd_mask<_Bs, _Abi> __k)
+        _S_find_last_set(basic_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
             return __highest_bit(_Abi::_S_masked(__data(__k)));
@@ -3488,6 +3491,18 @@ namespace std::__detail
               else
                 return __highest_bit(__bits);
             }
+        }
+
+      // AVX-512 needs to generate a bit-mask
+      template <__vectorizable _Tp, typename _Fp>
+        requires requires { typename _Abi::_MaskInteger; }
+        _GLIBCXX_SIMD_INTRINSIC static constexpr auto
+        _S_mask_generator(_Fp&& __gen)
+        {
+          return static_cast<_Abi::_MaskInteger>(
+                   _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                     return ((uint64_t(bool(__gen(__ic<_Is>))) << _Is) | ...);
+                   }));
         }
 
     private:

@@ -15,7 +15,7 @@
 
 #include <experimental/bits/numeric_traits.h>
 
-namespace std
+namespace SIMD_NSPC
 {
   namespace __detail
   {
@@ -111,6 +111,9 @@ namespace std
                   or std::is_same_v<_Arg, __detail::__x86_intrin_t<_SimdMember>>
 #endif
                 ;
+
+          // guard against PR115897
+          static_assert(not _S_is_simd_ctor_arg<_Tp>);
 
           template <typename _Arg>
             static constexpr bool _S_is_mask_ctor_arg
@@ -210,7 +213,7 @@ namespace std
     };
 }
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   template <typename _Abi, auto>
     struct _ImplBuiltinBase
@@ -235,7 +238,7 @@ namespace std::__detail
       using _SuperImpl = typename _Abi::_Impl;
 
       template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_simd<__value_type_of<_TV>, _Abi>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_vec<__value_type_of<_TV>, _Abi>
         _M_make_simd(_TV __x)
         { return __x; }
 
@@ -248,7 +251,9 @@ namespace std::__detail
         inline static constexpr _SimdMember<_Tp>
         _S_generator(_Fp&& __gen)
         {
-          return _GLIBCXX_SIMD_VEC_GEN(_SimdMember<_Tp>, _S_size, _Is, {__gen(__ic<_Is>)...});
+          return _GLIBCXX_SIMD_VEC_GEN(_SimdMember<_Tp>, _S_size, _Is, {
+                   static_cast<_Tp>(__gen(__ic<_Is>))...
+                 });
         }
 
       template <typename _Tp, typename _Up>
@@ -523,7 +528,7 @@ namespace std::__detail
       template <__vec_builtin _TV>
         static constexpr _TV
         _S_remquo(const _TV __x, const _TV __y,
-                  basic_simd<int, typename _Abi::template _Rebind<int>>
+                  basic_vec<int, typename _Abi::template _Rebind<int>>
                  __fixed_size_storage_t<int, _TVT::_S_partial_width>* __z)
         {
           return __vec_generate<_TV>([&] [[__gnu__::__always_inline__]] (auto __i) {
@@ -848,7 +853,7 @@ namespace std::__detail
         _S_decrement(_TV& __x)
         { __x = __x - 1; }
 
-      // If called from simd_mask (or simd_mask::reference), then this returns a signed integer
+      // If called from mask (or mask::reference), then this returns a signed integer
       // instead of bool. However, the implicit conversion to bool always yields the correct value.
       // (reinterpretation of the bits, would not be correct, though.)
       template <__vec_builtin _TV>
@@ -1024,7 +1029,7 @@ namespace std::__detail
 
       template <typename _Tp, size_t _Bs, typename _UAbi>
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
-        _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
+        _S_convert(basic_mask<_Bs, _UAbi> __x)
         { return _SuperImpl::template _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
       template <__vec_builtin _TV>
@@ -1144,27 +1149,27 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_all_of(basic_simd_mask<_Bs, abi_type> __k)
+        _S_all_of(basic_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... and (__k[_Is] != 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_any_of(basic_simd_mask<_Bs, abi_type> __k)
+        _S_any_of(basic_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... or (__k[_Is] != 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_none_of(basic_simd_mask<_Bs, abi_type> __k)
+        _S_none_of(basic_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... and (__k[_Is] == 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_first_set(basic_simd_mask<_Bs, abi_type> __k)
+        _S_find_first_set(basic_mask<_Bs, abi_type> __k)
         { return __lowest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_to_bits()); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
+        _S_find_last_set(basic_mask<_Bs, abi_type> __k)
         { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
     };
 

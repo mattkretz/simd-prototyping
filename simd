@@ -14,6 +14,8 @@
 #include "interleave.h"
 #include "iota.h"
 #include "permute.h"
+#include "simd_math.h"
+#include "simd_generic.h"
 
 #endif  // PROTOTYPE_SIMD_
 

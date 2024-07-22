@@ -11,11 +11,11 @@
 #include "simd.h"
 #include "iota.h"
 
-namespace std
+namespace SIMD_NSPC
 {
-  constexpr int simd_permute_zero = INT_MIN;
+  constexpr int permute_zero = INT_MIN;
 
-  namespace simd_permutations
+  namespace permutations
   {
     struct _DuplicateEven
     {
@@ -98,7 +98,7 @@ namespace std
         {
           const int __j = __i + _Offset;
           if (__j >= __size or -__j > __size)
-            return simd_permute_zero;
+            return permute_zero;
           else
             return __j;
         }
@@ -110,19 +110,20 @@ namespace std
 
   template <__detail::_SimdSizeType _Np = 0, __detail::__simd_or_mask _Vp,
             __detail::__index_permutation_function<_Vp> _Fp>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr std::resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>
-    simd_permute(_Vp const& __v, _Fp const __idx_perm) noexcept
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+    SIMD_NSPC::resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>
+    permute(_Vp const& __v, _Fp const __idx_perm) noexcept
     {
       using _Tp = typename _Vp::value_type;
       using _Rp = resize_simd_t<_Np == 0 ? _Vp::size() : _Np, _Vp>;
-      return _Rp([&] [[__gnu__::__always_inline__]] (auto __i) -> _Tp {
+      return generate<_Rp>([&] [[__gnu__::__always_inline__]] (auto __i) -> _Tp {
                constexpr int __j = [&] {
                  if constexpr (__detail::__index_permutation_function_nosize<_Fp>)
                    return __idx_perm(__i);
                  else
                    return __idx_perm(__i, _Vp::size);
                }();
-               if constexpr (__j == simd_permute_zero)
+               if constexpr (__j == permute_zero)
                  return 0;
                else if constexpr (__j < 0)
                  {

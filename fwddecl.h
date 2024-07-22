@@ -12,8 +12,9 @@
 #include <functional>
 #include <stdfloat>
 #include <type_traits>
+#include <ranges>
 
-namespace std
+namespace SIMD_NSPC
 {
   template <int _Width>
     struct _VecAbi;
@@ -102,6 +103,9 @@ namespace std
     template <> struct __is_vectorizable<std::float64_t> : bool_constant<true> {};
 #endif
 
+    template <typename _Tp>
+      concept __vectorizable = __is_vectorizable<_Tp>::value;
+
     template <typename _Tp, typename>
       struct __make_dependent
       { using type = _Tp; };
@@ -160,14 +164,14 @@ namespace std
     struct _AbiCombine;
 
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
-    class basic_simd;
+    class basic_vec;
 
   template <size_t _Bytes,
             typename _Abi = __detail::_NativeAbi<__detail::__mask_integer_from<_Bytes>>>
-    class basic_simd_mask;
+    class basic_mask;
 
   template <typename... _Flags>
-    struct simd_flags;
+    struct flags;
 
   template <typename _Tp>
     struct is_simd
@@ -178,19 +182,19 @@ namespace std
     inline constexpr bool is_simd_v = is_simd<_Tp>::value;
 
   template <typename _Tp>
-    struct is_simd_mask
+    struct is_mask
     : bool_constant<false>
     {};
 
   template <typename _Tp>
-    inline constexpr bool is_simd_mask_v = is_simd_mask<_Tp>::value;
+    inline constexpr bool is_mask_v = is_mask<_Tp>::value;
 
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
-    struct simd_size
+    struct __simd_size : integral_constant<__detail::_SimdSizeType, 0>
     {};
 
-  template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
-    inline constexpr __detail::_SimdSizeType simd_size_v = simd_size<_Tp, _Abi>::value;
+  template <typename _Tp, typename _Abi>
+    inline constexpr __detail::_SimdSizeType __simd_size_v = __simd_size<_Tp, _Abi>::value;
 
   template <typename _Tp, typename _Up = typename _Tp::value_type>
     struct simd_alignment
@@ -213,126 +217,227 @@ namespace std
   template <__detail::_SimdSizeType _Np, typename _Vp>
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
-  template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
-    using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
+  template <typename _Tp,
+            // FIXME: P1928 defines different default value:
+            __detail::_SimdSizeType _Np = __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>>
+    using vec = basic_vec<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
-  template <typename _Tp, __detail::_SimdSizeType _Np = basic_simd<_Tp>::size()>
-    using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
+  template <typename _Tp,
+            // FIXME: P1928 defines different default value:
+            __detail::_SimdSizeType _Np = __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>>
+    using mask = basic_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 
   // mask_reductions.h
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  all_of(same_as<bool> auto __x) noexcept;
+    all_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    any_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  any_of(same_as<bool> auto __x) noexcept;
+    any_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    none_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  none_of(same_as<bool> auto __x) noexcept;
+    none_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_count(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_count(same_as<bool> auto __x) noexcept;
+    reduce_count(const basic_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k);
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_min_index(same_as<bool> auto __x) noexcept;
+    reduce_min_index(const basic_mask<_Bs, _Abi>& __k);
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k);
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_max_index(same_as<bool> auto __x) noexcept;
+    reduce_max_index(const basic_mask<_Bs, _Abi>& __k);
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd<_Tp, _Abi>& __x) noexcept;
+    split(const basic_vec<_Tp, _Abi>& __x) noexcept;
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
+    split(const basic_mask<_Bs, _Abi>& __x) noexcept;
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    simd<_Tp, (simd_size_v<_Tp, _Abis> + ...)>
-    simd_cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept;
+    vec<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
+    cat(const basic_vec<_Tp, _Abis>&... __xs) noexcept;
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
-    simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept;
+    mask<__detail::__mask_integer_from<_Bs>, (basic_mask<_Bs, _Abis>::size.value + ...)>
+    cat(const basic_mask<_Bs, _Abis>&... __xs) noexcept;
 
   template <typename _Tp, typename _Abi,
-            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation = plus<>>
+            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation = plus<>>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
+    reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
 
   template <typename _Tp, typename _Abi,
-            std::invocable<simd<_Tp, 1>, simd<_Tp, 1>> _BinaryOperation>
+            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            __type_identity_t<_Tp> __identity_element, _BinaryOperation __binary_op);
 
   template <typename _Tp, typename _Abi>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            plus<> __binary_op = {}) noexcept;
 
   template <typename _Tp, typename _Abi>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            multiplies<> __binary_op) noexcept;
 
   template <std::integral _Tp, typename _Abi>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            bit_and<> __binary_op) noexcept;
 
   template <std::integral _Tp, typename _Abi>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            bit_or<> __binary_op) noexcept;
 
   template <std::integral _Tp, typename _Abi>
     constexpr _Tp
-    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
            bit_xor<> __binary_op) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept;
+    reduce_min(const basic_vec<_Tp, _Abi>& __x) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_simd<_Tp, _Abi>& __x,
-               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
+    reduce_min(const basic_vec<_Tp, _Abi>& __x,
+               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept;
+    reduce_max(const basic_vec<_Tp, _Abi>& __x) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_simd<_Tp, _Abi>& __x,
-               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
+    reduce_max(const basic_vec<_Tp, _Abi>& __x,
+               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept;
+
+  template <std::ranges::range _Rg, typename... _Tp>
+    requires (not std::ranges::contiguous_range<_Rg>)
+    constexpr void
+    load(_Rg&&, const _Tp&...)
+      = _GLIBCXX_DELETE_MSG(
+          "SIMD_NSPC::load(range, flags = {}) requires a contiguous range"
+          ", either by passing the range, begin and end iterators, or begin and size.");
+
+  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
+    requires std::ranges::output_range<_Rg, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags = {});
+
+  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
+    requires std::ranges::output_range<_Rg, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range,
+          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {});
+
+  template <typename _Tp, typename _Abi, contiguous_iterator _First, sentinel_for<_First> _Last,
+            typename... _Flags>
+    requires std::output_iterator<_First, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _First __first, _Last __last,
+          flags<_Flags...> __flags = {})
+    { store(__v, std::span(__first, __last), __flags); }
+
+  template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
+    requires std::output_iterator<_First, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _First __first, size_t __size,
+          flags<_Flags...> __flags = {})
+    { store(__v, std::span(__first, __size), __flags); }
+}
+
+namespace std::simd_generic
+{
+  namespace scalar
+  {
+    namespace __detail = SIMD_NSPC::__detail;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    all_of(same_as<bool> auto __x) noexcept;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    any_of(same_as<bool> auto __x) noexcept;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    none_of(same_as<bool> auto __x) noexcept;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+    reduce_count(same_as<bool> auto __x) noexcept;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+    reduce_min_index(same_as<bool> auto __x) noexcept;
+
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+    reduce_max_index(same_as<bool> auto __x) noexcept;
+
+    template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
+      constexpr _Tp
+      reduce(const _Tp& __x, _BinaryOperation);
+
+    template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, __type_identity_t<_Tp> __identity_element, _BinaryOperation);
+
+    template <__detail::__vectorizable _Tp>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, plus<>) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, multiplies<>) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::integral<_Tp>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, bit_and<>) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::integral<_Tp>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, bit_or<>) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::integral<_Tp>
+      constexpr _Tp
+      reduce(const _Tp& __x, bool __k, bit_xor<>) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::totally_ordered<_Tp>
+      constexpr _Tp
+      reduce_min(_Tp __x) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::totally_ordered<_Tp>
+      constexpr _Tp
+      reduce_min(_Tp __x, bool __k) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::totally_ordered<_Tp>
+      constexpr _Tp
+      reduce_max(_Tp __x) noexcept;
+
+    template <__detail::__vectorizable _Tp>
+      requires std::totally_ordered<_Tp>
+      constexpr _Tp
+      reduce_max(_Tp __x, bool __k) noexcept;
+  }
+
+  using namespace SIMD_NSPC;
+
+  using namespace std::simd_generic::scalar;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

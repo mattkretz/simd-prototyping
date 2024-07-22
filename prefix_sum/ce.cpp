@@ -1,8 +1,9 @@
-#include "../simd.h"
-#include "../permute.h"
-#include "../iota.h"
+#include "../simd"
 
-namespace std
+#include <numeric>
+#include <bit>
+
+namespace SIMD_NSPC
 {
   namespace __detail
   {
@@ -19,7 +20,7 @@ namespace std
     __for_template(auto __begin, auto __end, auto&& __f)
     {
       [&]<int... _Is>(std::integer_sequence<int, _Is...>) {
-        (__f(std::__detail::__ic<__begin + _Is>), ...);
+        (__f(simd::__detail::__ic<__begin + _Is>), ...);
       }(std::make_integer_sequence<int, __end - __begin>());
     }
 
@@ -27,48 +28,48 @@ namespace std
     __for_template(auto __end, auto&& __f)
     {
       [&]<int... _Is>(std::integer_sequence<int, _Is...>) {
-        (__f(std::__detail::__ic<_Is>), ...);
+        (__f(simd::__detail::__ic<_Is>), ...);
       }(std::make_integer_sequence<int, __end>());
     }
   }
 
   template <typename _Tp, typename _Abi>
-    constexpr simd<_Tp, _Abi>
-    inclusive_scan(simd<_Tp, _Abi> __v, auto&& __binary_op)
+    constexpr basic_vec<_Tp, _Abi>
+    inclusive_scan(basic_vec<_Tp, _Abi> __v, auto&& __binary_op)
     {
-      using _V = simd<_Tp, _Abi>;
+      using _V = basic_vec<_Tp, _Abi>;
       using _M = typename _V::mask_type;
-      using _Ip = __detail::__int_for_sizeof_t<_Tp>;
+      using _Ip = __detail::__make_signed_int_t<_Tp>;
       using _IV = rebind_simd_t<_Ip, _V>;
       __detail::__for_template(
         __detail::__ic<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
           const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
-          const _V __permuted = simd_permute(__v, __detail::__prefix_sum_permutation<__n>{});
+          const _V __permuted = permute(__v, __detail::__prefix_sum_permutation<__n>{});
           __v = __k ? __binary_op(__v, __permuted) : __v;
         });
       return __v;
     }
 
   template <typename _Tp, typename _Abi>
-    constexpr simd<_Tp, _Abi>
-    inclusive_scan(simd<_Tp, _Abi> const& __v)
+    constexpr basic_vec<_Tp, _Abi>
+    inclusive_scan(basic_vec<_Tp, _Abi> const& __v)
     { return inclusive_scan(__v, std::plus<>()); }
 
   template <typename _Tp, typename _Abi>
-    constexpr simd<_Tp, _Abi>
-    scaled_inclusive_scan(simd<_Tp, _Abi> __v, _Tp __a, auto&& __binary_op)
+    constexpr basic_vec<_Tp, _Abi>
+    scaled_inclusive_scan(basic_vec<_Tp, _Abi> __v, _Tp __a, auto&& __binary_op)
     {
-      using _V = simd<_Tp, _Abi>;
+      using _V = basic_vec<_Tp, _Abi>;
       using _M = typename _V::mask_type;
-      using _Ip = __detail::__int_for_sizeof_t<_Tp>;
+      using _Ip = __detail::__make_signed_int_t<_Tp>;
       using _IV = rebind_simd_t<_Ip, _V>;
       _V __factor = __a;
       __detail::__for_template(
         __detail::__ic<std::bit_width(__v.size()) - 1>, [&](auto __i) {
           constexpr int __n = 1 << __i;
           const _M __k = std::bit_cast<_M>((iota_v<_IV> & _IV(__n)) != 0);
-          const _V __permuted = simd_permute(__v, __detail::__prefix_sum_permutation<__n>{});
+          const _V __permuted = permute(__v, __detail::__prefix_sum_permutation<__n>{});
           __v = __k ? __binary_op(__v, __factor * __permuted) : __v;
           __factor = __k ? __a * __factor : __factor;
           __a *= __a;
@@ -77,25 +78,27 @@ namespace std
     }
 
   template <typename _Tp, typename _Abi>
-    constexpr simd<_Tp, _Abi>
-    scaled_inclusive_scan(simd<_Tp, _Abi> const& __v, _Tp __a)
+    constexpr basic_vec<_Tp, _Abi>
+    scaled_inclusive_scan(basic_vec<_Tp, _Abi> const& __v, _Tp __a)
     { return scaled_inclusive_scan(__v, __a, std::plus<>()); }
 
 } // namespace std
 
+namespace simd = SIMD_NSPC;
+
 auto f(float last, std::span<float> data)
 {
-  using V = std::simd<float>;
+  using V = simd::vec<float>;
   constexpr float a = 0.125f;
   constexpr float b = 1.f - a;
-  constexpr auto aa = std::inclusive_scan(V(a), std::multiplies<>());
+  constexpr auto aa = simd::inclusive_scan(V(a), std::multiplies<>());
   for (std::size_t i = 0; i < 1024; i += V::size)
     {
       __asm volatile("# LLVM-MCA-BEGIN simd":::"memory");
-      V x(data.begin() + i);
+      auto x = simd::load<V>(data.begin() + i, data.end());
       V y = aa * last + scaled_inclusive_scan(b * x, a);
       last = y[V::size - 1];
-      y.copy_to(data.begin() + i);
+      store(y, data.begin() + i, data.end());
       __asm volatile("# LLVM-MCA-END":::"memory");
     }
 }
@@ -114,5 +117,5 @@ auto f_scalar(float last, std::span<float> data)
     }
 }
 
-constexpr auto x = scaled_inclusive_scan(std::simd<int>(1), 2);
+constexpr auto x = scaled_inclusive_scan(simd::vec<int>(1), 2);
 auto xx = x;

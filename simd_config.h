@@ -6,6 +6,54 @@
 #ifndef PROTOTYPE_SIMD_CONFIG_H_
 #define PROTOTYPE_SIMD_CONFIG_H_
 
+#include <bits/c++config.h>
+
+#if SIMD_IN_STD
+#define SIMD_NSPC std::simd
+#else
+#define SIMD_NSPC cpp26::simd
+namespace cpp26
+{
+  using namespace std;
+}
+#endif
+
+#ifndef SIMD_IS_A_RANGE
+// FIXME: not conforming to P1928
+#define SIMD_IS_A_RANGE 1
+#endif
+
+#ifndef IFNDR_SIMD_PRECONDITIONS
+// FIXME: not conforming to P1928
+#define IFNDR_SIMD_PRECONDITIONS 1
+#endif
+
+#ifndef SIMD_DISABLED_HAS_API
+// FIXME: not conforming to P1928
+#define SIMD_DISABLED_HAS_API 1
+#endif
+
+#ifndef SIMD_HAS_SUBSCRIPT_GATHER
+// cf. P2664
+#define SIMD_HAS_SUBSCRIPT_GATHER 0
+#endif
+
+#ifndef SIMD_BROADCAST_CONDITIONAL_EXPLICIT
+// FIXME: not conforming to P1928
+#define SIMD_BROADCAST_CONDITIONAL_EXPLICIT 1
+#endif
+
+#ifndef SIMD_IMPLICIT_INTRINSICS_CONVERSION
+// FIXME: not conforming to P1928
+#define SIMD_IMPLICIT_INTRINSICS_CONVERSION 1
+#endif
+
+#if SIMD_IMPLICIT_INTRINSICS_CONVERSION
+#define _GLIBCXX_SIMD_IMPLDEF_CONV_EXPLICIT
+#else
+#define _GLIBCXX_SIMD_IMPLDEF_CONV_EXPLICIT explicit
+#endif
+
 // x86 macros {
 
 #ifdef __MMX__
@@ -290,5 +338,12 @@
 #define _GLIBCXX_SIMD_INT_PACK(N, pack, code)                                                      \
   [&]<int... pack> [[__gnu__::__always_inline__]] (std::integer_sequence<int, pack...>)            \
     code (std::make_integer_sequence<int, N>())
+
+#if __cpp_deleted_function >= 202403L
+#define _GLIBCXX_DELETE_MSG(msg) delete(msg)
+#else
+#define _GLIBCXX_DELETE_MSG(msg) delete
+#endif
+
 
 #endif  // PROTOTYPE_SIMD_CONFIG_H_

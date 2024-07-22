@@ -18,7 +18,7 @@
 #pragma GCC target("sse2", "sse3", "ssse3", "sse4.1", "sse4.2", "avx", "avx2", "bmi", "bmi2")
 #pragma GCC pop_options
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   struct _MachineFlags
   {

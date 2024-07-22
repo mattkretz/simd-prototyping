@@ -15,7 +15,7 @@
 #include <limits>
 #include <ranges>
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   template <typename _Tp>
     _GLIBCXX_SIMD_INTRINSIC constexpr bool
@@ -158,7 +158,34 @@ namespace std::__detail
   using __build_flags = _BuildFlags<_FloatingPointFlags, _MachineFlags>;
 }
 
-namespace std
+#define _GLIBCXX_SIMD_TOSTRING_IMPL(x) #x
+#define _GLIBCXX_SIMD_TOSTRING(x) _GLIBCXX_SIMD_TOSTRING_IMPL(x)
+#define _GLIBCXX_SIMD_LOC __FILE__ ":" _GLIBCXX_SIMD_TOSTRING(__LINE__) ": "
+
+#if not IFNDR_SIMD_PRECONDITIONS
+#define __glibcxx_simd_precondition(expr, msg)                                                     \
+  do {                                                                                             \
+    if (__builtin_expect(!bool(expr), false))                                                      \
+      SIMD_NSPC::__detail::__invoke_ub(                                                            \
+        _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
+        __PRETTY_FUNCTION__);                                                                      \
+  } while(false)
+#else
+#define __glibcxx_simd_precondition(expr, msg)                                                     \
+  do {                                                                                             \
+    const bool __precondition_result = bool(expr);                                                 \
+    if (__builtin_constant_p(__precondition_result) && !__precondition_result)                     \
+      []() __attribute__((__noinline__, __noipa__, __error__("precondition failure."               \
+        "\n" _GLIBCXX_SIMD_LOC "note: " msg " (precondition '" #expr "' does not hold)")))         \
+      { __builtin_unreachable(); }();                                                              \
+    else if (__builtin_expect(!__precondition_result, false))                                      \
+      SIMD_NSPC::__detail::__invoke_ub(                                                            \
+        _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
+        __PRETTY_FUNCTION__);                                                                      \
+  } while(false)
+#endif
+
+namespace SIMD_NSPC
 {
   namespace __detail
   {
@@ -166,9 +193,10 @@ namespace std
       [[noreturn]] _GLIBCXX_SIMD_ALWAYS_INLINE inline void
       __invoke_ub([[maybe_unused]] const char* __msg, [[maybe_unused]] const _Args&... __args)
       {
-#ifdef _GLIBCXX_DEBUG_UB
-        __builtin_fprintf(stderr, __msg, __args...);
-        __builtin_fprintf(stderr, "\n");
+#ifdef _GLIBCXX_ASSERTIONS
+        __builtin_fprintf(stderr, __msg "\n", __args...);
+        __builtin_abort();
+#elif _GLIBCXX_HARDEN >= 3
         __builtin_trap();
 #else
         __builtin_unreachable();
@@ -232,8 +260,10 @@ namespace std
           return _Tp::extent;
         else if constexpr (std::extent_v<_Tp> > 0)
           return std::extent_v<_Tp>;
-        else if constexpr (requires { typename std::integral_constant<
-                                        size_t, std::tuple_size<_Tp>::value>; })
+        else if constexpr (requires {
+                             typename std::integral_constant<size_t, std::tuple_size<_Tp>::value>;
+                             typename std::ranges::range_value_t<_Rg>;
+                           })
           {
             if constexpr (std::tuple_size_v<_Tp> >= 1
                             && std::same_as<std::tuple_element_t<0, _Tp>,
@@ -300,7 +330,7 @@ namespace std
   }
 }
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   template <typename _Up, typename _Accessor = _Up,
             typename _ValueType = typename _Up::value_type>
@@ -436,11 +466,11 @@ namespace std::__detail
     };
 }
 
-namespace std
+namespace SIMD_NSPC
 {
   template <__detail::__vectorizable _Tp, __detail::__simd_abi_tag _Abi>
     requires requires { _Abi::_S_size; }
-    struct simd_size<_Tp, _Abi>
+    struct __simd_size<_Tp, _Abi>
     : integral_constant<__detail::_SimdSizeType, _Abi::_S_size>
     {};
 }

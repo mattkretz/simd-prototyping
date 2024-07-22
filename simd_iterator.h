@@ -8,7 +8,8 @@
 
 #include "fwddecl.h"
 
-namespace std
+#if SIMD_IS_A_RANGE
+namespace SIMD_NSPC
 {
   class __simd_iterator_sentinel
   {};
@@ -16,7 +17,7 @@ namespace std
   template <typename _Tp, typename _Abi>
     class __simd_iterator
     {
-      using _Vp = basic_simd<_Tp, _Abi>;
+      using _Vp = basic_vec<_Tp, _Abi>;
       const _Vp* _M_data = nullptr;
       int _M_offset = 0;
 
@@ -128,9 +129,9 @@ namespace std
     };
 
   template <size_t _Bs, typename _Abi>
-    class __simd_mask_iterator
+    class __mask_iterator
     {
-      using _Vp = basic_simd_mask<_Bs, _Abi>;
+      using _Vp = basic_mask<_Bs, _Abi>;
       const _Vp* _M_data = nullptr;
       int _M_offset = 0;
 
@@ -139,81 +140,81 @@ namespace std
       using iterator_category = std::random_access_iterator_tag;
       using difference_type = int;
 
-      constexpr __simd_mask_iterator() = default;
+      constexpr __mask_iterator() = default;
 
       constexpr
-      __simd_mask_iterator(const _Vp& __d, int __x)
+      __mask_iterator(const _Vp& __d, int __x)
       : _M_data(&__d), _M_offset(__x)
       {}
 
       constexpr
-      __simd_mask_iterator(const __simd_mask_iterator &) = default;
+      __mask_iterator(const __mask_iterator &) = default;
 
-      constexpr __simd_mask_iterator&
-      operator=(const __simd_mask_iterator &) = default;
+      constexpr __mask_iterator&
+      operator=(const __mask_iterator &) = default;
 
       constexpr value_type
       operator*() const
       { return (*_M_data)[_M_offset]; }
 
-      constexpr __simd_mask_iterator&
+      constexpr __mask_iterator&
       operator++()
       {
         ++_M_offset;
         return *this;
       }
 
-      constexpr __simd_mask_iterator
+      constexpr __mask_iterator
       operator++(int)
       {
-        __simd_mask_iterator r = *this;
+        __mask_iterator r = *this;
         ++_M_offset;
         return r;
       }
 
-      constexpr __simd_mask_iterator&
+      constexpr __mask_iterator&
       operator--()
       {
         --_M_offset;
         return *this;
       }
 
-      constexpr __simd_mask_iterator
+      constexpr __mask_iterator
       operator--(int)
       {
-        __simd_mask_iterator r = *this;
+        __mask_iterator r = *this;
         --_M_offset;
         return r;
       }
 
       constexpr difference_type
-      operator-(__simd_mask_iterator __rhs) const
+      operator-(__mask_iterator __rhs) const
       { return _M_offset - __rhs._M_offset; }
 
-      constexpr friend __simd_mask_iterator
-      operator+(difference_type __x, const __simd_mask_iterator& __it)
-      { return __simd_mask_iterator(*__it._M_data, __it._M_offset + __x); }
+      constexpr friend __mask_iterator
+      operator+(difference_type __x, const __mask_iterator& __it)
+      { return __mask_iterator(*__it._M_data, __it._M_offset + __x); }
 
-      constexpr friend __simd_mask_iterator
-      operator+(const __simd_mask_iterator& __it, difference_type __x)
-      { return __simd_mask_iterator(*__it._M_data, __it._M_offset + __x); }
+      constexpr friend __mask_iterator
+      operator+(const __mask_iterator& __it, difference_type __x)
+      { return __mask_iterator(*__it._M_data, __it._M_offset + __x); }
 
-      constexpr friend __simd_mask_iterator
-      operator-(difference_type __x, const __simd_mask_iterator& __it)
-      { return __simd_mask_iterator(*__it._M_data, __it._M_offset - __x); }
+      constexpr friend __mask_iterator
+      operator-(difference_type __x, const __mask_iterator& __it)
+      { return __mask_iterator(*__it._M_data, __it._M_offset - __x); }
 
-      constexpr friend __simd_mask_iterator
-      operator-(const __simd_mask_iterator& __it, difference_type __x)
-      { return __simd_mask_iterator(*__it._M_data, __it._M_offset - __x); }
+      constexpr friend __mask_iterator
+      operator-(const __mask_iterator& __it, difference_type __x)
+      { return __mask_iterator(*__it._M_data, __it._M_offset - __x); }
 
-      constexpr __simd_mask_iterator&
+      constexpr __mask_iterator&
       operator+=(difference_type __x)
       {
         _M_offset += __x;
         return *this;
       }
 
-      constexpr __simd_mask_iterator&
+      constexpr __mask_iterator&
       operator-=(difference_type __x)
       {
         _M_offset -= __x;
@@ -224,14 +225,15 @@ namespace std
       operator[](difference_type __i) const
       { return (*_M_data)[_M_offset + __i]; }
 
-      constexpr friend auto operator<=>(__simd_mask_iterator __a, __simd_mask_iterator __b)
+      constexpr friend auto operator<=>(__mask_iterator __a, __mask_iterator __b)
       { return __a._M_offset <=> __b._M_offset; }
 
-      constexpr friend bool operator==(__simd_mask_iterator __a, __simd_mask_iterator __b) = default;
+      constexpr friend bool operator==(__mask_iterator __a, __mask_iterator __b) = default;
 
-      constexpr friend bool operator==(__simd_mask_iterator __a, __simd_iterator_sentinel)
+      constexpr friend bool operator==(__mask_iterator __a, __simd_iterator_sentinel)
       { return __a._M_offset == difference_type(_Vp::size.value); }
     };
 }
+#endif
 
 #endif  // PROTOTYPE_RANGES_INTEGRATION_ITERATOR_H_

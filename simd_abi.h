@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-namespace std
+namespace SIMD_NSPC
 {
   namespace __detail
   {
@@ -121,7 +121,7 @@ namespace std
       struct _NextAbiTuple
       {
         using _Native = _AllNativeAbis::_BestPartialAbi<_Tp, _Np>;
-        static constexpr int _S_native_size = simd_size_v<_Tp, _Native>;
+        static constexpr int _S_native_size = __simd_size_v<_Tp, _Native>;
         static constexpr int _S_array_size = _Np / _S_native_size;
         using type
           = std::conditional_t<_S_array_size >= 2, _AbiArray<_Native, _S_array_size>, _Native>;
@@ -129,7 +129,7 @@ namespace std
 
     template <typename _Tp, int _Np, typename _Tuple,
               typename _Next = typename _NextAbiTuple<_Tp, _Np>::type,
-              int _Remain = _Np - int(simd_size_v<_Tp, _Next>)>
+              int _Remain = _Np - int(__simd_size_v<_Tp, _Next>)>
       struct __fixed_size_storage_builder;
 
     template <typename _Tp, int _Np, typename... _As, typename _Next>
@@ -582,7 +582,7 @@ namespace std
 
         template <typename _Tp, typename _BinaryOperation>
           static constexpr _Tp
-          _S_reduce(basic_simd<_Tp, abi_type> __xx, const _BinaryOperation& __binary_op)
+          _S_reduce(basic_vec<_Tp, abi_type> __xx, const _BinaryOperation& __binary_op)
           {
             auto& __x = __data(__xx); // the array was copied by the caller - we're not changing it
             (((_Is % 2) == 1 ? (__x[_Is - 1] = __binary_op(__x[_Is - 1], __x[_Is])) : __x[0]), ...);
@@ -605,7 +605,7 @@ namespace std
               (((_Is % 128) == 64 ? (__x[_Is - 64] = __binary_op(__x[_Is - 64], __x[_Is]))
                                   : __x[0]), ...);
             static_assert(_Np <= 128);
-            return std::reduce(basic_simd<_Tp, _Abi0>(__private_init, __x[0]), __binary_op);
+            return SIMD_NSPC::reduce(basic_vec<_Tp, _Abi0>(__private_init, __x[0]), __binary_op);
           }
       };
 
@@ -617,7 +617,7 @@ namespace std
         using abi_type = _AbiArray<_Abi0, _Np>;
 
         template <typename _Ts>
-          using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
+          using mask_type = SIMD_NSPC::basic_mask<sizeof(_Ts), _Abi0>;
 
         template <__vectorizable _Tp>
           using _MaskMember0 = typename _Abi0::template _MaskMember<_Tp>;
@@ -645,7 +645,7 @@ namespace std
 
         template <typename _Tp, size_t _Bs, typename _UAbi>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
-          _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
+          _S_convert(SIMD_NSPC::basic_mask<_Bs, _UAbi> __x)
           { return _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
@@ -705,27 +705,27 @@ namespace std
           { return _Impl0::_S_set(__k[__i / _S_chunk_size], __i % _S_chunk_size, __x); }
 
         template <size_t _Bs>
-          static constexpr basic_simd_mask<_Bs, _Abi0>
-          _S_submask(basic_simd_mask<_Bs, abi_type> const& __masks, int __i)
+          static constexpr basic_mask<_Bs, _Abi0>
+          _S_submask(basic_mask<_Bs, abi_type> const& __masks, int __i)
           { return {__private_init, __data(__masks)[__i]}; }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_any_of(basic_simd_mask<_Bs, abi_type> const& __masks)
-          { return (std::any_of(_S_submask(__masks, _Is)) or ...); }
+          _S_any_of(basic_mask<_Bs, abi_type> const& __masks)
+          { return (SIMD_NSPC::any_of(_S_submask(__masks, _Is)) or ...); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_all_of(basic_simd_mask<_Bs, abi_type> const& __masks)
-          { return (std::all_of(_S_submask(__masks, _Is)) and ...); }
+          _S_all_of(basic_mask<_Bs, abi_type> const& __masks)
+          { return (SIMD_NSPC::all_of(_S_submask(__masks, _Is)) and ...); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_none_of(basic_simd_mask<_Bs, abi_type> const& __masks)
-          { return (std::none_of(_S_submask(__masks, _Is)) and ...); }
+          _S_none_of(basic_mask<_Bs, abi_type> const& __masks)
+          { return (SIMD_NSPC::none_of(_S_submask(__masks, _Is)) and ...); }
 
         // TODO: benchmark whether it's more efficient to do element-wise reduction of array members
         // on -__k or +__k or a sum of popcount on each sub-mask.
@@ -733,7 +733,7 @@ namespace std
         template <size_t _Bs>
           requires (_Bs == 1)
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(const basic_simd_mask<_Bs, abi_type> & __k)
+          _S_popcount(const basic_mask<_Bs, abi_type> & __k)
           {
             using _Ip = __mask_integer_from<_Bs>;
             using _Up = __make_unsigned_int_t<_Ip>;
@@ -741,41 +741,43 @@ namespace std
               return -_SimdImplArray<_Abi0, _Is...>::_S_reduce(-__k, std::plus<>());
             else if constexpr (_S_size <= __finite_max_v<_Up>)
               return _SimdImplArray<_Abi0, _Is...>::_S_reduce(
-                       static_cast<basic_simd<_Up, abi_type>>(__k), std::plus<>());
+                       static_cast<basic_vec<_Up, abi_type>>(__k), std::plus<>());
             else
-              return (std::reduce_count(_S_submask(__k, _Is)) + ...);
+              return (SIMD_NSPC::reduce_count(_S_submask(__k, _Is)) + ...);
           }
 
         template <size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_first_set(basic_simd_mask<_Bs, abi_type> const& __masks)
+          _S_find_first_set(basic_mask<_Bs, abi_type> const& __masks)
           {
-            if (std::any_of(_S_submask(__masks, 0)))
-              return std::reduce_min_index(_S_submask(__masks, 0));
+            if (SIMD_NSPC::any_of(_S_submask(__masks, 0)))
+              return SIMD_NSPC::reduce_min_index(_S_submask(__masks, 0));
 
             for (int __i = 1; __i < _Np - 1; ++__i)
               {
-                if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size + std::reduce_min_index(_S_submask(__masks, __i));
+                if (SIMD_NSPC::any_of(_S_submask(__masks, __i)))
+                  return __i * _S_chunk_size + SIMD_NSPC::reduce_min_index(
+                                                 _S_submask(__masks, __i));
               }
             return (_Np - 1) * _S_chunk_size
-                     + std::reduce_min_index(_S_submask(__masks, _Np - 1));
+                     + SIMD_NSPC::reduce_min_index(_S_submask(__masks, _Np - 1));
           }
 
         template <size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_last_set(basic_simd_mask<_Bs, abi_type> const& __masks)
+          _S_find_last_set(basic_mask<_Bs, abi_type> const& __masks)
           {
-            if (std::any_of(_S_submask(__masks, _Np - 1)))
+            if (SIMD_NSPC::any_of(_S_submask(__masks, _Np - 1)))
               return (_Np - 1) * _S_chunk_size
-                       + std::reduce_max_index(_S_submask(__masks, _Np - 1));
+                       + SIMD_NSPC::reduce_max_index(_S_submask(__masks, _Np - 1));
 
             for (int __i = _Np - 2; __i > 0; --__i)
               {
-                if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size + std::reduce_max_index(_S_submask(__masks, __i));
+                if (SIMD_NSPC::any_of(_S_submask(__masks, __i)))
+                  return __i * _S_chunk_size + SIMD_NSPC::reduce_max_index(
+                                                 _S_submask(__masks, __i));
               }
-            return std::reduce_max_index(_S_submask(__masks, 0));
+            return SIMD_NSPC::reduce_max_index(_S_submask(__masks, 0));
           }
 
         template <__vectorizable _Tp, typename _Fp>
@@ -786,10 +788,12 @@ namespace std
               return {_Impl0::template _S_mask_generator<_Tp>([&](auto __i) {
                         return __gen(__ic<_Is * _S_chunk_size + __i>);
                       })...};
+            else if constexpr (_S_chunk_size == 1)
+              return {bool(__gen(__ic<_Is>))...};
             else
               return {[&]<size_t... _Js>(vir::constexpr_value<int> auto __i,
                                          std::index_sequence<_Js...>) {
-                return _MaskMember0<_Tp>{ -__gen(__ic<__i * _S_chunk_size + _Js>)... };
+                return _MaskMember0<_Tp>{ _Tp(-bool(__gen(__ic<__i * _S_chunk_size + _Js>)))... };
               }(vir::cw<_Is>, std::make_index_sequence<_S_chunk_size>())...};
           }
 
@@ -814,7 +818,7 @@ namespace std
         using _MaskImpl = typename _Abi::_MaskImpl;
         using _MaskMember = typename _Traits::_MaskMember;
         static constexpr auto _S_offset = vir::cw<__offset>;
-        static constexpr auto _S_size = vir::cw<_SimdSizeType(simd_size_v<_Tp, _Abi>)>;
+        static constexpr auto _S_size = vir::cw<_SimdSizeType(__simd_size_v<_Tp, _Abi>)>;
         static constexpr _MaskImpl _S_mask_impl = {};
 
         template <size_t _Np, bool _Sanitized>
@@ -847,9 +851,9 @@ namespace std
           return __bits << _S_offset;
         }
 
-        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_simd<_Tp, _A0>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_vec<_Tp, _A0>
         _S_to_simd(const _Traits::_SimdMember& __x0)
-        { return basic_simd<_Tp, _A0>(__private_init, __x0); }
+        { return basic_vec<_Tp, _A0>(__private_init, __x0); }
       };
 
     template <typename _Tp, __valid_abi_tag<_Tp>... _As>
@@ -889,7 +893,7 @@ namespace std
         using _Base::_M_x;
         using _Base::_M_tail;
 
-        using _SimdType = basic_simd<_Tp, _A0>;
+        using _SimdType = basic_vec<_Tp, _A0>;
 
         using _Simpl0 = _A0::_SimdImpl;
 
@@ -897,10 +901,10 @@ namespace std
 
         static constexpr bool _S_recurse = sizeof...(_As) != 0;
 
-        static constexpr auto _S_size = vir::cw<(simd_size_v<_Tp, _A0>)>;
+        static constexpr auto _S_size = vir::cw<(__simd_size_v<_Tp, _A0>)>;
 
         static constexpr auto _S_total_size
-          = vir::cw<(simd_size_v<_Tp, _A0> + ... + simd_size_v<_Tp, _As>)>;
+          = vir::cw<(__simd_size_v<_Tp, _A0> + ... + __simd_size_v<_Tp, _As>)>;
 
         static constexpr auto _S_tail_size = _SimdTuple<_Tp, _As...>::_S_size;
 
@@ -990,6 +994,19 @@ namespace std
               return __first;
           }
 
+        template <vir::constexpr_value<int> _Cv = decltype(0_cw)>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdTuple
+          _S_generate_pervec(auto&& __fun, _Cv __vec_offset = {})
+          {
+            if constexpr (_S_recurse)
+              return _SimdTuple {
+                __fun(__vec_offset),
+                _SimdTuple<_Tp, _As...>::_S_generate_pervec(__fun, __vec_offset + 1_cw)
+              };
+            else
+              return _SimdTuple {__fun(__vec_offset)};
+          }
+
         constexpr
         _SimdTuple() = default;
 
@@ -1009,7 +1026,7 @@ namespace std
         using _Abi = _AbiCombine<_Np, _Tag>;
 
         template <typename _Tp>
-          using _Simd = basic_simd<_Tp, _Abi>;
+          using _Simd = basic_vec<_Tp, _Abi>;
 
         template <typename _Tp>
           using _TypeTag = _Tp*;
@@ -1108,25 +1125,25 @@ namespace std
 
         template <typename _Tp, typename _BinaryOperation, typename _A0>
           static constexpr _Tp
-          _S_reduce(const _BinaryOperation& __binary_op, const std::basic_simd<_Tp, _A0>& __x)
-          { return std::reduce(__x, __binary_op); }
+          _S_reduce(const _BinaryOperation& __binary_op, const SIMD_NSPC::basic_vec<_Tp, _A0>& __x)
+          { return SIMD_NSPC::reduce(__x, __binary_op); }
 
         template <typename _Tp, typename _BinaryOperation, typename _A0, typename _A1,
                   typename... _Abis>
           static constexpr _Tp
           _S_reduce(const _BinaryOperation& __binary_op,
-                    const std::basic_simd<_Tp, _A0>& __x0,
-                    const std::basic_simd<_Tp, _A1>& __x1,
-                    const std::basic_simd<_Tp, _Abis>&... __tail)
+                    const SIMD_NSPC::basic_vec<_Tp, _A0>& __x0,
+                    const SIMD_NSPC::basic_vec<_Tp, _A1>& __x1,
+                    const SIMD_NSPC::basic_vec<_Tp, _Abis>&... __tail)
           {
-            using _X0 = basic_simd<_Tp, _A0>;
-            using _X1 = basic_simd<_Tp, _A1>;
+            using _X0 = basic_vec<_Tp, _A0>;
+            using _X1 = basic_vec<_Tp, _A1>;
             if constexpr (_X0::size.value == _X1::size.value)
               return _S_reduce(__binary_op, __binary_op(__x0, __x1), __tail...);
             else if constexpr (_X0::size.value > _X1::size.value)
               {
-                using _X2 = std::resize_simd_t<__bit_ceil(_X0::size.value) / 2, _X0>;
-                auto __x02 = std::simd_split<_X2>(__x0);
+                using _X2 = SIMD_NSPC::resize_simd_t<__bit_ceil(_X0::size.value) / 2, _X0>;
+                auto __x02 = SIMD_NSPC::split<_X2>(__x0);
                 if constexpr (_X1::size.value == _X2::size.value)
                   {
                     std::get<0>(__x02) = __binary_op(std::get<0>(__x02), __x1);
@@ -1136,7 +1153,7 @@ namespace std
                   }
                 else if constexpr (_X1::size.value > _X2::size.value)
                   {
-                    auto __x12 = std::simd_split<_X2>(__x1);
+                    auto __x12 = SIMD_NSPC::split<_X2>(__x1);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
                     return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
                       return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {
@@ -1152,8 +1169,8 @@ namespace std
               }
             else
               {
-                using _X2 = std::resize_simd_t<__bit_ceil(_X1::size.value) / 2, _X1>;
-                auto __x12 = std::simd_split<_X2>(__x1);
+                using _X2 = SIMD_NSPC::resize_simd_t<__bit_ceil(_X1::size.value) / 2, _X1>;
+                auto __x12 = SIMD_NSPC::split<_X2>(__x1);
                 if constexpr (_X0::size.value == _X2::size.value)
                   {
                     std::get<0>(__x12) = __binary_op(std::get<0>(__x12), __x0);
@@ -1163,7 +1180,7 @@ namespace std
                   }
                 else if constexpr (_X1::size.value > _X2::size.value)
                   {
-                    auto __x02 = std::simd_split<_X2>(__x0);
+                    auto __x02 = SIMD_NSPC::split<_X2>(__x0);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
                     return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
                       return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {
@@ -1186,7 +1203,7 @@ namespace std
             using _Tup = _SimdMember<_Tp>;
             const _Tup& __tup = __data(__x);
             if constexpr (_Tup::_S_tuple_size == 1)
-              return std::reduce(__tup._M_simd_at(0_cw), __binary_op);
+              return SIMD_NSPC::reduce(__tup._M_simd_at(0_cw), __binary_op);
             else
               return _S_reduce(__binary_op, __tup._M_simd_at(0_cw), __tup._M_simd_at(1_cw));
           }
@@ -1532,7 +1549,7 @@ namespace std
             using _Up = unsigned long long;
             static_assert(_Np <= sizeof(_Up) * __CHAR_BIT__);
             return [&]<size_t... _Is>(std::index_sequence<_Is...>) {
-              return ((_Up(__gen(__ic<_Is>)) << _Is) | ...);
+              return ((_Up(bool(__gen(__ic<_Is>))) << _Is) | ...);
             }(std::make_index_sequence<_Np>());
           }
 
@@ -1543,7 +1560,7 @@ namespace std
 
         template <typename _Tp, size_t _Bs, typename _UAbi>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
-          _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
+          _S_convert(SIMD_NSPC::basic_mask<_Bs, _UAbi> __x)
           { return _UAbi::_MaskImpl::_S_to_bits(__data(__x)).template _M_extract<0, _Np>(); }
 
         //template <typename>
@@ -1554,7 +1571,7 @@ namespace std
             // the following load uses element_aligned and relies on __mem already
             // carrying alignment information from when this load function was
             // called.
-            const std::basic_simd<_Ip, _Abi> __bools(
+            const SIMD_NSPC::basic_vec<_Ip, _Abi> __bools(
                     reinterpret_cast<const __may_alias<_Ip>*>(__mem));
             return __data(__bools != 0);
           }
@@ -1643,32 +1660,32 @@ namespace std
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_all_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_all_of(const basic_mask<_Bs, _Abi> & __k)
           { return __data(__k).all(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_any_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_any_of(const basic_mask<_Bs, _Abi> & __k)
           { return __data(__k).any(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_none_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_none_of(const basic_mask<_Bs, _Abi> & __k)
           { return __data(__k).none(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_popcount(const basic_mask<_Bs, _Abi> & __k)
           { return __data(__k).count(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_first_set(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_find_first_set(const basic_mask<_Bs, _Abi> & __k)
           { return __detail::__lowest_bit(__data(__k)._M_to_bits()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_last_set(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_find_last_set(const basic_mask<_Bs, _Abi> & __k)
           { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
       };
 

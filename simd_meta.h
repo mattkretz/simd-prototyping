@@ -9,14 +9,11 @@
 #include "fwddecl.h"
 #include "flags.h"
 
-namespace std::__detail
+namespace SIMD_NSPC::__detail
 {
   template <typename _Tp>
     struct __assert_unreachable
     { static_assert(!is_same_v<_Tp, _Tp>, "this should be unreachable"); };
-
-  template <typename _Tp>
-    concept __vectorizable = __is_vectorizable<_Tp>::value;
 
   template <typename _Tp>
     concept __arithmetic = integral<_Tp> || floating_point<_Tp>;
@@ -31,12 +28,12 @@ namespace std::__detail
       = __simd_abi_tag<_Abi> and _Abi::template _IsValid<_Tp>::value;
 
   template <typename _Vp, _SimdSizeType _Width = 0>
-    concept __simd_type = std::is_simd_v<_Vp> // implies __vectorizable
+    concept __simd_type = SIMD_NSPC::is_simd_v<_Vp> // implies __vectorizable
                             && __simd_abi_tag<typename _Vp::abi_type>
                             && (_Width == 0 || _Vp::size() == _Width);
 
   template <typename _Vp, _SimdSizeType _Width = 0>
-    concept __mask_type = std::is_simd_mask_v<_Vp>
+    concept __mask_type = SIMD_NSPC::is_mask_v<_Vp>
                             && __simd_abi_tag<typename _Vp::abi_type>
                             && (_Width == 0 || _Vp::size() == _Width);
 
@@ -53,7 +50,7 @@ namespace std::__detail
   template <typename _From, typename _To>
     concept __value_preserving_convertible_to
       = convertible_to<_From, _To>
-          and (same_as<_From, _To> or not __arithmetic<_From> or not __arithmetic<_To>
+          and (same_as<_From, _To> or not __vectorizable<_From> or not __arithmetic<_To>
                  or (__vectorizable<_From>
                        and not (is_signed_v<_From> and is_unsigned_v<_To>)
                        and numeric_limits<_From>::digits <= numeric_limits<_To>::digits
@@ -65,7 +62,7 @@ namespace std::__detail
       = __constexpr_wrapper_like<_From> and convertible_to<_From, _To>
           and requires { { _From::value } -> std::convertible_to<_To>; }
           and static_cast<decltype(_From::value)>(_To(_From::value)) == _From::value
-          and not (std::unsigned_integral<_To> and _From::value < 0)
+          and not (std::unsigned_integral<_To> and _From::value < decltype(_From::value)())
           and _From::value <= std::numeric_limits<_To>::max()
           and _From::value >= std::numeric_limits<_To>::lowest();
 
@@ -93,9 +90,11 @@ namespace std::__detail
 
   template <typename _From, typename _To, typename... _Flags>
     concept __loadstore_convertible_to
-      = __vectorizable<_From> and __vectorizable<_To>
-          and (__value_preserving_convertible_to<_From, _To>
-                 or (std::convertible_to<_From, _To> and (std::same_as<_Flags, _Convert> or ...)));
+      = same_as<_From, _To>
+          or (__vectorizable<_From> and __vectorizable<_To>
+                and (__value_preserving_convertible_to<_From, _To>
+                       or (std::convertible_to<_From, _To>
+                             and (std::same_as<_Flags, _Convert> or ...))));
 
   template <auto _Value>
     using _Ic = integral_constant<std::remove_const_t<decltype(_Value)>, _Value>;
@@ -110,14 +109,25 @@ namespace std::__detail
     using _MakeSimdIndexSequence = std::make_integer_sequence<_SimdSizeType, _Np>;
 
   template <typename _Fp, typename _Tp, _SimdSizeType... _Is>
-    constexpr
-    _Ic<(__broadcast_constructible<decltype(declval<_Fp>()(__ic<_Is>)), _Tp> and ...)>
-    __simd_broadcast_invokable_impl(_SimdIndexSequence<_Is...>);
+    requires (__value_preserving_convertible_to<decltype(declval<_Fp>()(__ic<_Is>)), _Tp> and ...)
+    constexpr void
+    __simd_generator_invokable_impl(_SimdIndexSequence<_Is...>);
 
   template <typename _Fp, typename _Tp, _SimdSizeType _Np>
-    concept __simd_broadcast_invokable = requires {
-      { __simd_broadcast_invokable_impl<_Fp, _Tp>(_MakeSimdIndexSequence<_Np>()) }
-        -> same_as<_Ic<true>>;
+    concept __simd_generator_invokable = requires {
+      __simd_generator_invokable_impl<_Fp, _Tp>(_MakeSimdIndexSequence<_Np>());
+    };
+
+  template <typename _Fp, typename _Tp, _SimdSizeType... _Is>
+    requires (not __value_preserving_convertible_to<decltype(declval<_Fp>()(__ic<_Is>)), _Tp>
+                or ...)
+    constexpr void
+    __almost_simd_generator_invokable_impl(_SimdIndexSequence<_Is...>);
+
+  template <typename _Fp, typename _Tp, _SimdSizeType _Np>
+    concept __almost_simd_generator_invokable = requires(_Fp&& __gen) {
+      __gen(__ic<0>);
+      __almost_simd_generator_invokable_impl<_Fp, _Tp>(_MakeSimdIndexSequence<_Np>());
     };
 
   template <typename _Fp>
@@ -145,17 +155,17 @@ namespace std::__detail
     concept __valid_simd = is_simd_v<_Tp>;
 
   template <typename _Tp>
-    concept __valid_mask = is_simd_mask_v<_Tp>;
+    concept __valid_mask = is_mask_v<_Tp>;
 
   template <typename T>
     concept __boolean_reducable_impl = requires(T&& x)
       {
-        { std::all_of(x) } -> std::same_as<bool>;
-        { std::none_of(x) } -> std::same_as<bool>;
-        { std::any_of(x) } -> std::same_as<bool>;
-        { std::reduce_count(x) } -> std::signed_integral;
-        { std::reduce_min_index(x) } -> std::signed_integral;
-        { std::reduce_max_index(x) } -> std::signed_integral;
+        { std::simd_generic::all_of(x) } -> std::same_as<bool>;
+        { std::simd_generic::none_of(x) } -> std::same_as<bool>;
+        { std::simd_generic::any_of(x) } -> std::same_as<bool>;
+        { std::simd_generic::reduce_count(x) } -> std::signed_integral;
+        { std::simd_generic::reduce_min_index(x) } -> std::signed_integral;
+        { std::simd_generic::reduce_max_index(x) } -> std::signed_integral;
       };
 
   template <typename T>
@@ -202,76 +212,55 @@ namespace std::__detail
 // Extensions.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // TODO: To be proposed in some form. Potentially, by splitting into simd and
-// simd_generic concepts. But doing this properly requires a split of generic non-member functions
+// simd::generic concepts. But doing this properly requires a split of generic non-member functions
 // into different namespaces.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace std
+namespace SIMD_NSPC
 {
   template <typename _Tp>
-    concept simd_integral = (__detail::__valid_simd<_Tp> or __detail::__valid_mask<_Tp>)
+    concept integral = (__detail::__valid_simd<_Tp> or __detail::__valid_mask<_Tp>)
                               and std::integral<typename _Tp::value_type>;
 
   template <typename _Tp>
-    concept simd_signed_integral
-      = simd_integral<_Tp> and std::is_signed_v<typename _Tp::value_type>;
+    concept signed_integral
+      = simd::integral<_Tp> and std::is_signed_v<typename _Tp::value_type>;
 
   template <typename _Tp>
-    concept simd_unsigned_integral
-      = simd_integral<_Tp> and not simd_signed_integral<_Tp>;
+    concept unsigned_integral
+      = simd::integral<_Tp> and not simd::signed_integral<_Tp>;
 
   template <typename _Tp>
-    concept simd_floating_point
+    concept floating_point
       = __detail::__valid_simd<_Tp> and std::floating_point<typename _Tp::value_type>;
 
   template <typename _Tp>
-    concept simd_arithmetic = simd_integral<_Tp> or simd_floating_point<_Tp>;
+    concept arithmetic = simd::integral<_Tp> or simd::floating_point<_Tp>;
 
   template <typename _Tp>
-    concept simd_equality_comparable = __detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
+    concept equality_comparable = __detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
-    concept simd_equality_comparable_with
-      = simd_equality_comparable<_Tp> and simd_equality_comparable<_Up>
+    concept equality_comparable_with
+      = simd::equality_comparable<_Tp> and simd::equality_comparable<_Up>
           and __detail::__simd_comparison_common_type_with<_Tp, _Up>
-          and simd_equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+          and simd::equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                                const std::remove_reference_t<_Up>&>>
           and __detail::__simd_weakly_equality_comparable_with<_Tp, _Up>;
 
   template <typename _Tp>
-    concept simd_totally_ordered
-      = simd_equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
+    concept totally_ordered
+      = simd::equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
-    concept simd_totally_ordered_with
-      = simd_totally_ordered<_Tp> and simd_totally_ordered<_Up>
-          and simd_equality_comparable_with<_Tp, _Up>
-          and simd_totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+    concept totally_ordered_with
+      = simd::totally_ordered<_Tp> and simd::totally_ordered<_Up>
+          and simd::equality_comparable_with<_Tp, _Up>
+          and simd::totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                            const std::remove_reference_t<_Up>&>>
           and __detail::__simd_partially_ordered_with<_Tp, _Up>;
 
   template <typename _Tp>
-    concept simd_regular = semiregular<_Tp> and simd_equality_comparable<_Tp>;
-}
-
-namespace std::simd_generic
-{
-  template <typename _Tp>
-    concept integral = std::integral<_Tp> or std::simd_integral<_Tp>;
-
-  template <typename _Tp>
-    concept signed_integral = std::signed_integral<_Tp> or std::simd_signed_integral<_Tp>;
-
-  template <typename _Tp>
-    concept unsigned_integral = std::unsigned_integral<_Tp> or std::simd_unsigned_integral<_Tp>;
-
-  template <typename _Tp>
-    concept floating_point = std::floating_point<_Tp> or std::simd_floating_point<_Tp>;
-
-  template <typename _Tp>
-    concept arithmetic = integral<_Tp> or floating_point<_Tp>;
-
-  template <typename _Tp>
-    concept regular = std::regular<_Tp> or std::simd_regular<_Tp>;
+    concept regular = std::semiregular<_Tp> and simd::equality_comparable<_Tp>;
 }
 
 #endif  // PROTOTYPE_SIMD_META_H_
