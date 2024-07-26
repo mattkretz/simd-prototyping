@@ -163,15 +163,15 @@ namespace SIMD_NSPC::__detail
 #define _GLIBCXX_SIMD_LOC __FILE__ ":" _GLIBCXX_SIMD_TOSTRING(__LINE__) ": "
 
 #if not IFNDR_SIMD_PRECONDITIONS
-#define __glibcxx_simd_precondition(expr, msg)                                                     \
+#define __glibcxx_simd_precondition(expr, msg, ...)                                                \
   do {                                                                                             \
     if (__builtin_expect(!bool(expr), false))                                                      \
       SIMD_NSPC::__detail::__invoke_ub(                                                            \
         _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
-        __PRETTY_FUNCTION__);                                                                      \
+        __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
 #else
-#define __glibcxx_simd_precondition(expr, msg)                                                     \
+#define __glibcxx_simd_precondition(expr, msg, ...)                                                \
   do {                                                                                             \
     const bool __precondition_result = bool(expr);                                                 \
     if (__builtin_constant_p(__precondition_result) && !__precondition_result)                     \
@@ -181,7 +181,7 @@ namespace SIMD_NSPC::__detail
     else if (__builtin_expect(!__precondition_result, false))                                      \
       SIMD_NSPC::__detail::__invoke_ub(                                                            \
         _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
-        __PRETTY_FUNCTION__);                                                                      \
+        __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
 #endif
 
