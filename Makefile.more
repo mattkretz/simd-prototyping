@@ -28,9 +28,22 @@ check1: check-constexpr $(wordlist 1,$(total1),$(shuffled_checks)) $(codegen_tar
 check10: check-constexpr $(wordlist 1,$(total10),$(shuffled_checks)) $(codegen_targets)
 
 .PHONY: check-failed check-passed check-untested
-check-failed: $(shell grep -r 'Failed tests: [^0]' check/*.*/|cut -d: -f1|shuf)
 
-check-passed: $(shell grep -r 'Failed tests: 0' check/*.*/|cut -d: -f1|shuf)
+check_subdirs := $(wildcard check/*.*/)
+
+ifeq ($(check_subdirs),)
+
+check-failed:
+
+check-passed:
+
+else
+
+check-failed: $(shell grep -r 'Failed tests: [^0]' $(check_subdirs)|cut -d: -f1|shuf)
+
+check-passed: $(shell grep -r 'Failed tests: 0' $(check_subdirs)|cut -d: -f1|shuf)
+
+endif
 
 check-untested: $(untested)
 

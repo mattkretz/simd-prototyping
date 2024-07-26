@@ -22,8 +22,7 @@ define ccjson
     "file": "$2" }
 endef
 
-obj/compile_commands.json: Makefile Makefile.common
-	@mkdir -p obj
+obj/compile_commands.json: obj Makefile Makefile.common
 	$(file >$@,[)
 	$(file >>$@,$(call ccjson,$(firstword $(testarchs)),constexpr_tests.c++)$(foreach arch,$(wordlist 2,$(words $(testarchs)),$(testarchs)),,$(call ccjson,$(arch),constexpr_tests.c++)))
 	$(file >>$@,])
@@ -38,6 +37,7 @@ tidy: obj/compile_commands.json
 
 .PHONY: debug
 debug:
+	@echo "obj dir rule: $(make_obj_dir_rule)"
 	@echo "compiler: $(compiler)"
 	@echo "CXXFLAGS: $(CXXFLAGS)"
 	@echo "$(testarchs)"
@@ -119,7 +119,7 @@ $(foreach t,$(tests),\
 	      echo "check/$t.$(arch)/$$$$type.$w";done)))) \
 	)
 
-$(check_targets): $(wildcard tests/*.cpp) Makefile Makefile.common
+$(check_targets): obj/compile_commands.json $(wildcard tests/*.cpp) Makefile Makefile.common
 	$(file >$@)
 	$(foreach t,$(tests),$(foreach w,$(testwidths),$(foreach y,$(testtypes),$(foreach a,$(testarchs),\
 		$(file >>$@,check/$t.$a/$y.$w)))))
@@ -150,6 +150,7 @@ help: $(helptxt)
 
 .PHONY: clean
 clean:
+	test -L obj && { rm -rf $(realpath obj); rm obj; }
 	rm -rf obj
 	rm -rf check
 

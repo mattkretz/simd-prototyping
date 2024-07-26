@@ -2,13 +2,20 @@ CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
 CXXFLAGS_clang := -Wno-unknown-pragmas --gcc-toolchain=/home/mkretz/.local/gcc-master
 CXXFLAGS_gcc := -fconcepts-diagnostics-depth=3
 
-ifneq ($(shell $(CXX) --version|grep -i clang),)
+cxx_version := $(shell $(CXX) --version | head -n1)
+
+ifneq ($(findstring clang,$(cxx_version)),)
 compiler:=clang
-else ifneq ($(shell $(CXX) --version|grep 'g++'),)
+else ifneq ($(findstring g++,$(cxx_version))$(findstring GCC,$(cxx_version)),)
 compiler:=gcc
 else
 compiler:=unknown
 endif
+
+print_compiler_info:
+	@echo "Compiler: $(CXX) $(ICECC_CXX)"
+	@echo "          $(cxx_version)"
+	@echo
 
 CXXFLAGS += $(CXXFLAGS_$(compiler))
 
@@ -84,17 +91,17 @@ getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
 define pch_template
-obj/$(1).hpp: tests/unittest*.h tests/*.cpp
+obj/$(1).hpp: tests/unittest*.h tests/*.cpp | obj
 	@echo "Generate $$@"
-	@grep -h '^ *# *include ' $$^|grep -v unittest.h|sort -u|sed 's,","../tests/,' > $$@
+	@grep -h '^ *# *include ' tests/unittest*.h tests/*.cpp|grep -v unittest.h|sort -u|sed 's,","$(PWD)/tests/,' > $$@
 
 obj/$(1).depend: obj/$(1).hpp
 	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).hpp.gch" $$< > $$@
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).hpp.gch" obj/$(1).hpp > $$@
 
 include obj/$(1).depend
 
-obj/$(1).hpp.gch: obj/$(1).hpp
+obj/$(1).hpp.gch: obj/$(1).hpp | print_compiler_info
 	@echo "Build pre-compiled header for $(1)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@
 
@@ -132,8 +139,17 @@ codegen_files ::= $(wildcard codegen/*.c++)
 codegen_names ::= $(patsubst codegen/%.c++,%,$(codegen_files))
 codegen_targets ::= $(patsubst %,check-codegen-%,$(codegen_names))
 
+ifeq ($(SIMD_PROTOTYPING_OBJ),)
+make_obj_dir_rule := mkdir -p obj
+else
+make_obj_dir_rule := mkdir -p $(SIMD_PROTOTYPING_OBJ); ln -s $(SIMD_PROTOTYPING_OBJ) obj
+endif
+
 obj:
-	@mkdir -p obj
+	@echo "Set up build dir and check dir"
+	@$(make_obj_dir_rule)
+	@mkdir obj/check
+	@ln -s obj/check check
 
 obj/codegen.depend: obj $(codegen_files)
 	@echo "Update codegen dependencies"
@@ -164,7 +180,7 @@ check-codegen-%: obj/codegen.%.s codegen/check.sh
 	@echo "Testing for expected instructions in $<"
 	@codegen/check.sh "codegen/$*.c++" "$<"
 
-obj/codegen.%.s: codegen/%.c++
+obj/codegen.%.s: codegen/%.c++ obj
 	@echo "Building $@"
 	@$(CXX) $(CXXFLAGS) -masm=intel -march=skylake -S -o $@ $<
 	@cat $@ | grep -v '^\s*\.' | c++filt > $@.tmp
