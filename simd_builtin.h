@@ -399,22 +399,49 @@ namespace SIMD_NSPC::__detail
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_bit_shift_left(_TV __x, _TV __y)
-        { return __x << __y; }
+        {
+          using _Tp = __value_type_of<_TV>;
+          if constexpr (sizeof(_Tp) < sizeof(int))
+            return __y >= _Tp(sizeof(_Tp) * __CHAR_BIT__) ? _Tp() : __x << __y;
+          else
+            return __x << __y;
+        }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_bit_shift_left(_TV __x, int __y)
-        { return __x << __y; }
+        {
+          using _Tp = __value_type_of<_TV>;
+          if (sizeof(_Tp) < sizeof(int) and __y >= int(sizeof(_Tp) * __CHAR_BIT__))
+            return _TV();
+          else
+            return __x << __y;
+        }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_bit_shift_right(_TV __x, _TV __y)
-        { return __x >> __y; }
+        {
+          using _Tp = __value_type_of<_TV>;
+          if constexpr (sizeof(_Tp) < sizeof(int) and is_unsigned_v<_Tp>)
+            return __y >= _Tp(sizeof(_Tp) * __CHAR_BIT__) ? _Tp() : __x >> __y;
+          else if constexpr (sizeof(_Tp) < sizeof(int))
+            return __y >= _Tp(sizeof(_Tp) * __CHAR_BIT__) ? reinterpret_cast<_TV>(__x < 0)
+                                                          : __x >> __y;
+          else
+            return __x >> __y;
+        }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_bit_shift_right(_TV __x, int __y)
-        { return __x >> __y; }
+        {
+          using _Tp = __value_type_of<_TV>;
+          if (sizeof(_Tp) < sizeof(int) and __y >= int(sizeof(_Tp) * __CHAR_BIT__))
+            return is_unsigned_v<_Tp> ? _TV() : reinterpret_cast<_TV>(__x < 0);
+          else
+            return __x >> __y;
+        }
 
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
