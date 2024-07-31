@@ -39,6 +39,12 @@ namespace SIMD_NSPC::__detail
 
       constexpr _BitMask() noexcept = default;
 
+      constexpr
+      _BitMask(const _BitMask&) noexcept = default;
+
+      constexpr _BitMask&
+      operator=(const _BitMask&) noexcept = default;
+
       template <std::unsigned_integral _Up>
         constexpr _BitMask(_Up __x) noexcept
         : _M_bits{_Sanitized ? static_cast<_Tp>(_S_bitmask & __x) : static_cast<_Tp>(__x)} {}
@@ -53,8 +59,6 @@ namespace SIMD_NSPC::__detail
       _BitMask(bitset<_Np> __x) noexcept
       : _M_bits(static_cast<_Tp>(__x.to_ullong()))
       {}
-
-      constexpr _BitMask(const _BitMask&) noexcept = default;
 
       template <bool _RhsSanitized>
         requires (_RhsSanitized == false and _Sanitized == true)
