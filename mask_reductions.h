@@ -22,12 +22,7 @@ namespace SIMD_NSPC
         return __data(__k);
 
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
-        {
-          for (int __i = 0; __i < __size; ++__i)
-            if (!__k[__i])
-              return false;
-          return true;
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... and __k[_Is]); });
 
       else if constexpr (requires {_Abi::_MaskImpl::_S_all_of(__k);})
         return _Abi::_MaskImpl::_S_all_of(__k);
@@ -57,12 +52,7 @@ namespace SIMD_NSPC
 
 #endif
       else
-        {
-          return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                   (__detail::_SimdIndexSequence<_Is...>) {
-            return (... and (__k[_Is] != 0));
-          }(__detail::_MakeSimdIndexSequence<__size>());
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... and __k[_Is]); });
     }
 
   template <size_t _Bs, typename _Abi>
@@ -75,12 +65,7 @@ namespace SIMD_NSPC
         return __data(__k);
 
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
-        {
-          for (int __i = 0; __i < __size; ++__i)
-            if (__k[__i])
-              return true;
-          return false;
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... or __k[_Is]); });
 
       else if constexpr (requires {_Abi::_MaskImpl::_S_any_of(__k);})
         return _Abi::_MaskImpl::_S_any_of(__k);
@@ -99,12 +84,7 @@ namespace SIMD_NSPC
 
 #endif
       else
-        {
-          return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                   (__detail::_SimdIndexSequence<_Is...>) {
-            return (... or (__k[_Is] != 0));
-          }(__detail::_MakeSimdIndexSequence<__size>());
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... or __k[_Is]); });
     }
 
   template <size_t _Bs, typename _Abi>
@@ -117,12 +97,7 @@ namespace SIMD_NSPC
         return !__data(__k);
 
       else if (__builtin_is_constant_evaluated() or __k._M_is_constprop())
-        {
-          for (int __i = 0; __i < __k.size(); ++__i)
-            if (__k[__i])
-              return false;
-          return true;
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... and not __k[_Is]); });
 
       else if constexpr (requires {_Abi::_MaskImpl::_S_none_of(__k);})
         return _Abi::_MaskImpl::_S_none_of(__k);
@@ -142,12 +117,7 @@ namespace SIMD_NSPC
 
 #endif
       else
-        {
-          return [&]<__detail::_SimdSizeType... _Is> [[__gnu__::__always_inline__]]
-                   (__detail::_SimdIndexSequence<_Is...>) {
-            return (... and (__k[_Is] == 0));
-          }(__detail::_MakeSimdIndexSequence<__size>());
-        }
+        return _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... and not __k[_Is]); });
     }
 
   template <size_t _Bs, typename _Abi>
@@ -161,9 +131,7 @@ namespace SIMD_NSPC
 
       else if (__builtin_is_constant_evaluated() || __k._M_is_constprop())
         {
-          int __r = [&]<__detail::_SimdSizeType... _Is>(__detail::_SimdIndexSequence<_Is...>) {
-            return (int(__k[_Is] != 0) + ...);
-          }(__detail::_MakeSimdIndexSequence<__size>());
+          int __r = _GLIBCXX_SIMD_INT_PACK(__size, _Is, { return (... + int(__k[_Is])); });
           if (__builtin_is_constant_evaluated() || __builtin_constant_p(__r))
             return __r;
         }
