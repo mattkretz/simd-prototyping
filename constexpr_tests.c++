@@ -509,3 +509,57 @@ static_assert(std::simd_generic::integral<simd::mask<int>>);
 static_assert(simd::regular<int>);
 static_assert(simd::regular<simd::vec<int>>);
 static_assert(simd::regular<simd::mask<int>>);
+
+// simd.math ///////////////////////////////////////
+
+namespace math_tests
+{
+  using namespace vir::literals;
+
+  constexpr simd::vec<float, 1>
+    operator""_f1(long double x)
+  { return float(x); }
+
+  constexpr simd::vec<float, 4>
+    operator""_f4(long double x)
+  { return float(x); }
+
+  template <typename... Ts>
+    concept hypot_invocable = requires(Ts... xs) {
+      simd::hypot(xs...);
+    };
+
+  template <typename R, typename... Ts>
+    concept hypot_invocable_r = requires(Ts... xs) {
+      { simd::hypot(xs...) } -> std::same_as<R>;
+    };
+
+  template <typename T>
+    struct holder
+    {
+      T value;
+
+      constexpr
+      operator const T&() const
+      { return value; }
+    };
+
+  static_assert(simd::floor(1.1_f1)[0] == std::floor(1.1f));
+  static_assert(simd::floor(std::array{1.1f, 1.2f, 2.f, 3.f})[0] == std::floor(1.1f));
+  static_assert(simd::hypot(1.1_f1, 1.2_f1)[0] == std::hypot(1.1f, 1.2f));
+  static_assert(simd::hypot(1.1_f1, 1.2f)[0] == std::hypot(1.1f, 1.2f));
+  // the next doesn't work with the P1928 spec, but it can be made to work
+  static_assert(simd::hypot(std::array{1.1f}, 1.2f)[0] == std::hypot(1.1f, 1.2f));
+  static_assert(simd::hypot(1.1f, 1.2_f1)[0] == std::hypot(1.1f, 1.2f));
+  static_assert(simd::hypot(1_cw, 1.2_f1)[0] == std::hypot(1.f, 1.2f));
+  static_assert(simd::hypot(1.2_f1, 1_cw)[0] == std::hypot(1.f, 1.2f));
+  static_assert(simd::hypot(holder {1.f}, 1.2_f1)[0] == std::hypot(1.f, 1.2f));
+  // the following must not be valid. if you want simd<double> be explicit about it:
+  static_assert(not hypot_invocable<int, simd::vec<float, 1>>);
+  static_assert(not hypot_invocable<int, simd::vec<float, 1>, simd::vec<float, 1>>);
+
+  static_assert(hypot_invocable_r<simd::vec<float, 1>, holder<float>,
+                                  vir::constexpr_wrapper<2>, simd::vec<float, 1>>);
+  static_assert(hypot_invocable_r<simd::vec<float, 1>, holder<short>,
+                                  simd::vec<float, 1>, float>);
+}

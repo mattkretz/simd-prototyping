@@ -175,27 +175,6 @@ namespace SIMD_NSPC::__detail
   using __v8ullong [[__gnu__::__vector_size__(64)]] = unsigned long long;
 
   /**
-   * An object of given type where all bits are 1.
-   */
-  template <__vec_builtin _V>
-    static inline constexpr _V _S_allbits
-      = __builtin_bit_cast(_V, ~__vec_builtin_type_bytes<char, sizeof(_V)>());
-
-  /**
-   * An object of given type where only the sign bits are 1.
-   */
-  template <__vec_builtin _V>
-    requires floating_point<__value_type_of<_V>>
-    static inline constexpr _V _S_signmask = __xor(_V() + 1, _V() - 1);
-
-  /**
-   * An object of given type where only the sign bits are 0 (complement of _S_signmask).
-   */
-  template <__vec_builtin _V>
-    requires floating_point<__value_type_of<_V>>
-    static inline constexpr _V _S_absmask = __andnot(_S_signmask<_V>, _S_allbits<_V>);
-
-  /**
    * Helper function to work around Clang not allowing v[i] in constant expressions.
    */
   template <__vec_builtin _TV>
@@ -629,6 +608,27 @@ namespace SIMD_NSPC::__detail
           return __builtin_bit_cast(__vec_builtin_type_bytes<__value_type_of<_TV>, 16>, __tmp);
         }
     }
+
+  /**
+   * An object of given type where all bits are 1.
+   */
+  template <__vec_builtin _V>
+    static inline constexpr _V _S_allbits
+      = __builtin_bit_cast(_V, ~__vec_builtin_type_bytes<char, sizeof(_V)>());
+
+  /**
+   * An object of given type where only the sign bits are 1.
+   */
+  template <__vec_builtin _V>
+    requires std::floating_point<__value_type_of<_V>>
+    static inline constexpr _V _S_signmask = __vec_xor(_V() + 1, _V() - 1);
+
+  /**
+   * An object of given type where only the sign bits are 0 (complement of _S_signmask).
+   */
+  template <__vec_builtin _V>
+    requires std::floating_point<__value_type_of<_V>>
+    static inline constexpr _V _S_absmask = __vec_andnot(_S_signmask<_V>, _S_allbits<_V>);
 }
 
 #endif  // PROTOTYPE_VEC_DETAIL_H_

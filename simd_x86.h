@@ -2166,7 +2166,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_ldexp(_TV __x, typename _Abi::template _Rebind<
                             __make_dependent_t<int, _TV>>::template _SimdMember<int> __exp)
@@ -2207,43 +2207,45 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_trunc(_TV __x)
         {
-          if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
-            return _mm512_roundscale_pd(__x, 0x0b);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
-            return _mm512_roundscale_ps(__x, 0x0b);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
-            return _mm512_roundscale_ph(__x, 0x0b);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
-            return _mm256_round_pd(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
-            return _mm256_round_ps(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
-            return _mm256_round_ph(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
-            return _mm_round_pd(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
-            return _mm_round_ps(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
-            return _mm_round_ph(__x, 0xb);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4>)
+          if (not __builtin_is_constant_evaluated())
             {
-              auto __truncated = _mm_cvtepi32_ps(_mm_cvttps_epi32(__to_x86_intrin(__x)));
-              const auto __no_fractional_values
-                = __vec_bitcast<int>(__vec_bitcast<unsigned>(__to_x86_intrin(__x)) & 0x7f800000u)
-                    < 0x4b000000; // the exponent is so large that no mantissa bits signify fractional
-              // values (0x3f8 + 23*8 = 0x4b0)
-              return __no_fractional_values ? __truncated : __to_x86_intrin(__x);
+              if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
+                return _mm512_roundscale_pd(__x, 0x0b);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
+                return _mm512_roundscale_ps(__x, 0x0b);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
+                return _mm512_roundscale_ph(__x, 0x0b);
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
+                return _mm256_round_pd(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
+                return _mm256_round_ps(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
+                return _mm256_round_ph(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+                return _mm_round_pd(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+                return _mm_round_ps(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2>)
+                return _mm_round_ph(__x, 0xb);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4>)
+                {
+                  auto __truncated = _mm_cvtepi32_ps(_mm_cvttps_epi32(__to_x86_intrin(__x)));
+                  const auto __no_fractional_values
+                    = __vec_bitcast<int>(__vec_bitcast<unsigned>(__to_x86_intrin(__x)) & 0x7f800000u)
+                        < 0x4b000000; // the exponent is so large that no mantissa bits signify fractional
+                  // values (0x3f8 + 23*8 = 0x4b0)
+                  return __no_fractional_values ? __truncated : __to_x86_intrin(__x);
+                }
             }
-          else
-            return _Base::_S_trunc(__x);
+          return _Base::_S_trunc(__x);
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_round(_TV __x)
         {
@@ -2288,7 +2290,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_nearbyint(_TV __x)
         {
@@ -2315,7 +2317,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_rint(_TV __x)
         {
@@ -2342,34 +2344,36 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_floor(_TV __x)
         {
-          if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
-            return _mm512_roundscale_pd(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
-            return _mm512_roundscale_ps(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
-            return _mm512_roundscale_ph(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
-            return _mm256_round_pd(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
-            return _mm256_round_ps(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
-            return _mm256_round_ph(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
-            return _mm_round_pd(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
-            return _mm_round_ps(__x, 0x09);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2>)
-            return _mm_round_ph(__x, 0x09);
-          else
-            return _Base::_S_floor(__x);
+          if (not __builtin_is_constant_evaluated())
+            {
+              if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
+                return _mm512_roundscale_pd(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
+                return _mm512_roundscale_ps(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
+                return _mm512_roundscale_ph(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
+                return _mm256_round_pd(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
+                return _mm256_round_ps(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
+                return _mm256_round_ph(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+                return _mm_round_pd(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+                return _mm_round_ps(__x, 0x09);
+              else if constexpr (__vec_builtin_sizeof<_TV, 2>)
+                return _mm_round_ph(__x, 0x09);
+            }
+          return _Base::_S_floor(__x);
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_ceil(_TV __x)
         {
@@ -2396,7 +2400,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_signbit(_TV __x)
         {
@@ -2449,7 +2453,7 @@ namespace SIMD_NSPC::__detail
 
       // (isnormal | is subnormal == !isinf & !isnan & !is zero)
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
         _S_isnonzerovalue_mask(_TV __x)
         {
@@ -2507,7 +2511,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isfinite(_TV __x)
         {
@@ -2544,7 +2548,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isinf(_TV __x)
         {
@@ -2592,7 +2596,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isnormal(_TV __x)
         {
@@ -2670,13 +2674,13 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isnan(_TV __x)
         { return _S_isunordered(__x, __x); }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isunordered([[maybe_unused]] _TV __x, [[maybe_unused]] _TV __y)
         {
@@ -2726,7 +2730,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isgreater(_TV __x, _TV __y)
         {
@@ -2789,7 +2793,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isgreaterequal(_TV __x, _TV __y)
         {
@@ -2852,7 +2856,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_isless(_TV __x, _TV __y)
         {
@@ -2915,7 +2919,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_islessequal(_TV __x, _TV __y)
         {
@@ -2978,7 +2982,7 @@ namespace SIMD_NSPC::__detail
         }
 
       template <__vec_builtin _TV>
-        requires floating_point<__value_type_of<_TV>>
+        requires std::floating_point<__value_type_of<_TV>>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_TV>
         _S_islessgreater(_TV __x, _TV __y)
         {
