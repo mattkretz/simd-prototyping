@@ -433,17 +433,17 @@ namespace SIMD_NSPC::__detail
       { return std::tgamma(__x); }
 
     template <typename _Tp>
-      _GLIBCXX_SIMD_INTRINSIC static _Tp
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_trunc(_Tp __x)
       { return std::trunc(__x); }
 
     template <typename _Tp>
-      _GLIBCXX_SIMD_INTRINSIC static _Tp
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_floor(_Tp __x)
       { return std::floor(__x); }
 
     template <typename _Tp>
-      _GLIBCXX_SIMD_INTRINSIC static _Tp
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_ceil(_Tp __x)
       { return std::ceil(__x); }
 
@@ -596,6 +596,16 @@ namespace SIMD_NSPC::__detail
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
       _S_isunordered(_Tp __x, _Tp __y)
       { return std::isunordered(__x, __y); }
+
+    template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_hypot(_Tp __x, _Tp __y)
+      { return std::hypot(__x, __y); }
+
+    template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_hypot(_Tp __x, _Tp __y, _Tp __z)
+      { return std::hypot(__x, __y, __z); }
 
     template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr void
