@@ -568,22 +568,48 @@ namespace SIMD_NSPC
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
       operator>>(const basic_vec& __x, const basic_vec& __y)
       requires requires (value_type __a) { __a >> __a; }
-      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))}; }
+      {
+        __glibcxx_simd_precondition(is_unsigned_v<value_type> or all_of(__y >= value_type()),
+                                    "negative shift is undefined behavior");
+        __glibcxx_simd_precondition(
+          all_of(__y < value_type(std::max(sizeof(int), sizeof(value_type)) * __CHAR_BIT__)),
+          "too large shift invokes undefined behavior");
+        return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))};
+      }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
       operator<<(const basic_vec& __x, const basic_vec& __y)
       requires requires (value_type __a) { __a << __a; }
-      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))}; }
+      {
+        __glibcxx_simd_precondition(is_unsigned_v<value_type> or all_of(__y >= value_type()),
+                                    "negative shift is undefined behavior");
+        __glibcxx_simd_precondition(
+          all_of(__y < value_type(std::max(sizeof(int), sizeof(value_type)) * __CHAR_BIT__)),
+          "too large shift invokes undefined behavior");
+        return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))};
+      }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
       operator>>(const basic_vec& __x, int __y)
       requires requires (value_type __a, int __b) { __a >> __b; }
-      { return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)}; }
+      {
+        __glibcxx_simd_precondition(__y >= 0, "negative shift is undefined behavior");
+        __glibcxx_simd_precondition(
+          __y < int(std::max(sizeof(int), sizeof(value_type)) * __CHAR_BIT__),
+          "too large shift invokes undefined behavior");
+        return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)};
+      }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
       operator<<(const basic_vec& __x, int __y)
       requires requires (value_type __a, int __b) { __a << __b; }
-      { return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)}; }
+      {
+        __glibcxx_simd_precondition(__y >= 0, "negative shift is undefined behavior");
+        __glibcxx_simd_precondition(
+          __y < int(std::max(sizeof(int), sizeof(value_type)) * __CHAR_BIT__),
+          "too large shift invokes undefined behavior");
+        return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)};
+      }
 
       // compares [basic_vec.comparison]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
@@ -655,7 +681,7 @@ namespace SIMD_NSPC
           using _Rp = resize_simd_t<__simd_size_v<_Up, _Ap>, basic_vec>;
           return _Rp(__detail::__private_init,
                      _Rp::_Impl::template _S_generator<value_type>([&](int __i) {
-                       return operator[](__idx[__i]);
+                       return _Impl::_S_get(_M_data, __idx[__i]);
                      }));
         }
 #endif
