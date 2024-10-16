@@ -270,41 +270,37 @@ namespace SIMD_NSPC
     mask<__detail::__mask_integer_from<_Bs>, (basic_mask<_Bs, _Abis>::size.value + ...)>
     cat(const basic_mask<_Bs, _Abis>&... __xs) noexcept;
 
+  namespace __detail
+  {
+    template <typename _BinaryOperation, typename _Tp>
+      concept __binary_operation = requires (_BinaryOperation __binary_op, vec<_Tp, 1> __v) {
+        { __binary_op(__v, __v) } -> same_as<vec<_Tp, 1>>;
+      };
+
+    template <typename _Tp, typename _BinaryOperation>
+      requires same_as<_BinaryOperation, plus<>>
+        or same_as<_BinaryOperation, multiplies<>>
+        or same_as<_BinaryOperation, bit_and<>>
+        or same_as<_BinaryOperation, bit_or<>>
+        or same_as<_BinaryOperation, bit_xor<>>
+      constexpr _Tp __default_identity_element(); /*= [] {
+        static_assert(false, "You need to provide an identity element on masked reduce with custom "
+                             "binary operation.");
+      }();*/
+  }
+
   template <typename _Tp, typename _Abi,
-            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation = plus<>>
+            __detail::__binary_operation<_Tp> _BinaryOperation = plus<>>
     constexpr _Tp
     reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
 
   template <typename _Tp, typename _Abi,
-            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation>
+            __detail::__binary_operation<_Tp> _BinaryOperation = plus<>>
     constexpr _Tp
     reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           __type_identity_t<_Tp> __identity_element, _BinaryOperation __binary_op);
-
-  template <typename _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           plus<> __binary_op = {}) noexcept;
-
-  template <typename _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           multiplies<> __binary_op) noexcept;
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_and<> __binary_op) noexcept;
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_or<> __binary_op) noexcept;
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_xor<> __binary_op) noexcept;
+           _BinaryOperation __binary_op = {},
+           __type_identity_t<_Tp> __identity_element
+             = __detail::__default_identity_element<_Tp, _BinaryOperation>());
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp

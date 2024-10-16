@@ -30,6 +30,15 @@ namespace SIMD_NSPC
           return nullptr;
       }();
 
+    template <typename _Tp, typename _BinaryOperation>
+      requires same_as<_BinaryOperation, plus<>>
+        or same_as<_BinaryOperation, multiplies<>>
+        or same_as<_BinaryOperation, bit_and<>>
+        or same_as<_BinaryOperation, bit_or<>>
+        or same_as<_BinaryOperation, bit_xor<>>
+      constexpr _Tp __default_identity_element()
+      { return __identity_element_for<_Tp, _BinaryOperation>; }
+
     template <typename _Tp, typename _Abi, typename _BinaryOperation>
       constexpr SIMD_NSPC::resize_simd_t<SIMD_NSPC::__simd_size_v<_Tp, _Abi> / 2,
                                          basic_vec<_Tp, _Abi>>
@@ -48,8 +57,7 @@ namespace SIMD_NSPC
       }
   }
 
-  template <typename _Tp, typename _Abi,
-            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation>
+  template <typename _Tp, typename _Abi, __detail::__binary_operation<_Tp> _BinaryOperation>
     constexpr _Tp
     reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
     {
@@ -97,42 +105,22 @@ namespace SIMD_NSPC
         }
     }
 
-  template <typename _Tp, typename _Abi,
-            std::invocable<vec<_Tp, 1>, vec<_Tp, 1>> _BinaryOperation>
+  template <typename _Tp, typename _Abi, __detail::__binary_operation<_Tp> _BinaryOperation>
     constexpr _Tp
     reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           __type_identity_t<_Tp> __identity_element, _BinaryOperation __binary_op)
-    { return reduce(select(__k, __x, __identity_element), __binary_op); }
-
-  template <typename _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           plus<>) noexcept
-    { return reduce(select(__k, __x, _Tp())); }
-
-  template <typename _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           multiplies<> __binary_op) noexcept
-    { return reduce(select(__k, __x, _Tp(1)), __binary_op); }
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_and<> __binary_op) noexcept
-    { return reduce(select(__k, __x, _Tp(~_Tp())), __binary_op); }
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_or<> __binary_op) noexcept
-    { return reduce(select(__k, __x, _Tp()), __binary_op); }
-
-  template <std::integral _Tp, typename _Abi>
-    constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
-           bit_xor<> __binary_op) noexcept
-    { return reduce(select(__k, __x, _Tp()), __binary_op); }
+           _BinaryOperation __binary_op, __type_identity_t<_Tp> __identity_element)
+    {
+      __glibcxx_simd_precondition(__binary_op(vec<_Tp, 1>(_Tp(2)), vec<_Tp, 1>(_Tp(3)))[0]
+                                    == __binary_op(vec<_Tp, 1>(_Tp(3)), vec<_Tp, 1>(_Tp(2)))[0],
+                                  "The given binary operation needs to be commutative.");
+      __glibcxx_simd_precondition(__binary_op(vec<_Tp, 1>(_Tp(2)),
+                                              __binary_op(vec<_Tp, 1>(__identity_element),
+                                                          vec<_Tp, 1>(__identity_element)))[0]
+                                    == _Tp(2),
+                                  "The given identity_element needs to preserve identity over the "
+                                  "given binary operation.");
+      return reduce(select(__k, __x, __identity_element), __binary_op);
+    }
 
   // NaN inputs are precondition violations (_Tp satisfies and models totally_ordered)
   template <std::totally_ordered _Tp, typename _Abi>
