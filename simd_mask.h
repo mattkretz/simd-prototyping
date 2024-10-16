@@ -249,6 +249,21 @@ namespace SIMD_NSPC
         return _Impl::_S_get(_M_data, __i);
       }
 
+#if SIMD_HAS_SUBSCRIPT_GATHER
+      template <std::integral _Up, typename _Ap>
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+        resize_simd_t<__simd_size_v<_Up, _Ap>, basic_mask>
+        operator[](basic_vec<_Up, _Ap> const& __idx) const
+        {
+          __glibcxx_simd_precondition(is_unsigned_v<_Up> or all_of(__idx >= 0), "out-of-bounds");
+          __glibcxx_simd_precondition(all_of(__idx < _Up(size)), "out-of-bounds");
+          using _Rp = resize_simd_t<__simd_size_v<_Up, _Ap>, basic_mask>;
+          return _Rp([&](int __i) {
+                   return _Impl::_S_get(_M_data, __idx[__i]);
+                 }));
+        }
+#endif
+
       // [simd.mask.unary]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_mask
       operator!() const noexcept
