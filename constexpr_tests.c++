@@ -323,16 +323,32 @@ static_assert([] constexpr {
 
 // simd reductions ///////////////////
 
-static_assert(reduce(dp::vec<int, 7>(1)) == 7);
-static_assert(reduce(dp::vec<int, 7>(2), std::multiplies<>()) == 128);
-static_assert(reduce(dp::vec<int, 8>(2), std::bit_and<>()) == 2);
-static_assert(reduce(dp::vec<int, 8>(2), std::bit_or<>()) == 2);
-static_assert(reduce(dp::vec<int, 8>(2), std::bit_xor<>()) == 0);
-static_assert(reduce(dp::vec<int, 3>(2), std::bit_and<>()) == 2);
-static_assert(reduce(dp::vec<int, 6>(2), std::bit_and<>()) == 2);
-static_assert(reduce(dp::vec<int, 7>(2), std::bit_and<>()) == 2);
-static_assert(reduce(dp::vec<int, 7>(2), std::bit_or<>()) == 2);
-static_assert(reduce(dp::vec<int, 7>(2), std::bit_xor<>()) == 2);
+namespace simd_reduction_tests
+{
+  static_assert(reduce(dp::vec<int, 7>(1)) == 7);
+  static_assert(reduce(dp::vec<int, 7>(2), std::multiplies<>()) == 128);
+  static_assert(reduce(dp::vec<int, 8>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(dp::vec<int, 8>(2), std::bit_or<>()) == 2);
+  static_assert(reduce(dp::vec<int, 8>(2), std::bit_xor<>()) == 0);
+  static_assert(reduce(dp::vec<int, 3>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(dp::vec<int, 6>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(dp::vec<int, 7>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(dp::vec<int, 7>(2), std::bit_or<>()) == 2);
+  static_assert(reduce(dp::vec<int, 7>(2), std::bit_xor<>()) == 2);
+  static_assert(reduce(dp::vec<int, 4>(2), dp::mask<int, 4>(false)) == 0);
+  static_assert(reduce(dp::vec<int, 4>(2), dp::mask<int, 4>(false), std::multiplies<>()) == 1);
+  static_assert(reduce(dp::vec<int, 4>(2), dp::mask<int, 4>(false), std::bit_and<>()) == ~0);
+  static_assert(reduce(dp::vec<int, 4>(2), dp::mask<int, 4>(false), [](auto a, auto b) {
+                  return select(a < b, a, b);
+                }, INT_MAX) == INT_MAX);
+
+  template <typename BinaryOperation>
+    concept masked_reduce_works = requires(simd::vec<int, 4> a, simd::vec<int, 4> b) {
+      reduce(a, a < b, BinaryOperation());
+    };
+
+  static_assert(not masked_reduce_works<std::minus<>>);
+}
 
 // mask reductions ///////////////////
 
