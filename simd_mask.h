@@ -87,7 +87,7 @@ namespace SIMD_NSPC
       static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 
 #if SIMD_IS_A_RANGE
-      using iterator = __mask_iterator<_Bytes, _Abi>;
+      using iterator = __simd_iterator<basic_mask>;
 
       static_assert(std::random_access_iterator<iterator>);
       static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);

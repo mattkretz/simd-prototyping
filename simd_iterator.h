@@ -14,15 +14,14 @@ namespace SIMD_NSPC
   class __simd_iterator_sentinel
   {};
 
-  template <typename _Tp, typename _Abi>
+  template <typename _Vp>
     class __simd_iterator
     {
-      using _Vp = basic_vec<_Tp, _Abi>;
       const _Vp* _M_data = nullptr;
       int _M_offset = 0;
 
     public:
-      using value_type = _Tp;
+      using value_type = typename _Vp::value_type;
       using iterator_category = std::random_access_iterator_tag;
       using difference_type = int;
 
@@ -94,10 +93,6 @@ namespace SIMD_NSPC
       { return __simd_iterator(*__it._M_data, __it._M_offset + __x); }
 
       constexpr friend __simd_iterator
-      operator-(difference_type __x, const __simd_iterator& __it)
-      { return __simd_iterator(*__it._M_data, __it._M_offset - __x); }
-
-      constexpr friend __simd_iterator
       operator-(const __simd_iterator& __it, difference_type __x)
       { return __simd_iterator(*__it._M_data, __it._M_offset - __x); }
 
@@ -125,112 +120,6 @@ namespace SIMD_NSPC
       constexpr friend bool operator==(__simd_iterator __a, __simd_iterator __b) = default;
 
       constexpr friend bool operator==(__simd_iterator __a, __simd_iterator_sentinel)
-      { return __a._M_offset == difference_type(_Vp::size.value); }
-    };
-
-  template <size_t _Bs, typename _Abi>
-    class __mask_iterator
-    {
-      using _Vp = basic_mask<_Bs, _Abi>;
-      const _Vp* _M_data = nullptr;
-      int _M_offset = 0;
-
-    public:
-      using value_type = bool;
-      using iterator_category = std::random_access_iterator_tag;
-      using difference_type = int;
-
-      constexpr __mask_iterator() = default;
-
-      constexpr
-      __mask_iterator(const _Vp& __d, int __x)
-      : _M_data(&__d), _M_offset(__x)
-      {}
-
-      constexpr
-      __mask_iterator(const __mask_iterator &) = default;
-
-      constexpr __mask_iterator&
-      operator=(const __mask_iterator &) = default;
-
-      constexpr value_type
-      operator*() const
-      { return (*_M_data)[_M_offset]; }
-
-      constexpr __mask_iterator&
-      operator++()
-      {
-        ++_M_offset;
-        return *this;
-      }
-
-      constexpr __mask_iterator
-      operator++(int)
-      {
-        __mask_iterator r = *this;
-        ++_M_offset;
-        return r;
-      }
-
-      constexpr __mask_iterator&
-      operator--()
-      {
-        --_M_offset;
-        return *this;
-      }
-
-      constexpr __mask_iterator
-      operator--(int)
-      {
-        __mask_iterator r = *this;
-        --_M_offset;
-        return r;
-      }
-
-      constexpr difference_type
-      operator-(__mask_iterator __rhs) const
-      { return _M_offset - __rhs._M_offset; }
-
-      constexpr friend __mask_iterator
-      operator+(difference_type __x, const __mask_iterator& __it)
-      { return __mask_iterator(*__it._M_data, __it._M_offset + __x); }
-
-      constexpr friend __mask_iterator
-      operator+(const __mask_iterator& __it, difference_type __x)
-      { return __mask_iterator(*__it._M_data, __it._M_offset + __x); }
-
-      constexpr friend __mask_iterator
-      operator-(difference_type __x, const __mask_iterator& __it)
-      { return __mask_iterator(*__it._M_data, __it._M_offset - __x); }
-
-      constexpr friend __mask_iterator
-      operator-(const __mask_iterator& __it, difference_type __x)
-      { return __mask_iterator(*__it._M_data, __it._M_offset - __x); }
-
-      constexpr __mask_iterator&
-      operator+=(difference_type __x)
-      {
-        _M_offset += __x;
-        return *this;
-      }
-
-      constexpr __mask_iterator&
-      operator-=(difference_type __x)
-      {
-        _M_offset -= __x;
-        return *this;
-      }
-
-      constexpr value_type
-      operator[](difference_type __i) const
-      { return (*_M_data)[_M_offset + __i]; }
-
-      constexpr friend auto operator<=>(__mask_iterator __a, __mask_iterator __b)
-      { return __a._M_offset <=> __b._M_offset; }
-
-      constexpr friend bool operator==(__mask_iterator __a, __mask_iterator __b) = default;
-
-      constexpr friend bool operator==(__mask_iterator __a, __simd_iterator_sentinel)
       { return __a._M_offset == difference_type(_Vp::size.value); }
     };
 }
