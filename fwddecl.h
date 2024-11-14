@@ -353,6 +353,21 @@ namespace SIMD_NSPC
     store(const basic_vec<_Tp, _Abi>& __v, _First __first, size_t __size,
           flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __size), __flags); }
+
+  template <typename _Tp, typename _Abi, contiguous_iterator _First, sentinel_for<_First> _Last,
+            typename... _Flags>
+    requires std::output_iterator<_First, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _First __first, _Last __last,
+          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
+    { store(__v, std::span(__first, __last), __k, __flags); }
+
+  template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
+    requires std::output_iterator<_First, _Tp>
+    constexpr void
+    store(const basic_vec<_Tp, _Abi>& __v, _First __first, size_t __size,
+          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
+    { store(__v, std::span(__first, __size), __k, __flags); }
 }
 
 namespace SIMD_TOPLEVEL_NSPC
