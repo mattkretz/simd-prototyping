@@ -48,6 +48,7 @@ namespace SIMD_NSPC
       and __detail::__loadstore_convertible_to<
             std::ranges::range_value_t<_Rg>,
             typename __detail::__simd_load_return_t<_Tp, _Rg>::value_type, _Flags...>
+    _GLIBCXX_SIMD_INTRINSIC
     constexpr __detail::__simd_load_return_t<_Tp, _Rg>
     load(_Rg&& __range, flags<_Flags...> __flags = {})
     {
@@ -100,11 +101,13 @@ namespace SIMD_NSPC
 
   template <typename _Tp = void, contiguous_iterator _First, sentinel_for<_First> _Last,
             typename... _Flags>
+    _GLIBCXX_SIMD_INTRINSIC
     constexpr auto
     load(_First __first, _Last __last, flags<_Flags...> __flags = {})
     { return load<_Tp>(std::span(__first, __last), __flags); }
 
   template <typename _Tp = void, contiguous_iterator _First, typename... _Flags>
+    _GLIBCXX_SIMD_INTRINSIC
     constexpr auto
     load(_First __first, size_t __size, flags<_Flags...> __flags = {})
     { return load<_Tp>(std::span(__first, __size), __flags); }
