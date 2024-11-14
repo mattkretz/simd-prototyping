@@ -188,14 +188,14 @@ namespace SIMD_NSPC
       const auto __rg_size = std::ranges::size(__range);
       if constexpr (not __allow_out_of_bounds)
         __glibcxx_simd_precondition(none_of(__k)
-                                      or std::ranges::size(__range) > reduce_max_index(__k),
+                                      or std::ranges::size(__range) > size_t(reduce_max_index(__k)),
                                     "output range is too small. "
                                     "Consider passing 'std::simd::flag_allow_partial_store'.");
 
       if (__builtin_is_constant_evaluated())
         {
           for (int __i = 0; __i < _TV::size(); ++__i)
-            if (__k[__i] and (not __allow_out_of_bounds or __i < __rg_size))
+            if (__k[__i] and (not __allow_out_of_bounds or size_t(__i) < __rg_size))
               __ptr[__i] = static_cast<std::ranges::range_value_t<_Rg>>(__v[__i]);
         }
       else if (__allow_out_of_bounds && __rg_size < _TV::size())
