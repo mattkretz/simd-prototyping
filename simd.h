@@ -189,7 +189,6 @@ namespace SIMD_NSPC
         = (false or ... or is_same_v<_Flags, __detail::_AllowPartialStore>);
 
       auto* __ptr = __flags.template _S_adjust_pointer<_TV>(std::ranges::data(__range));
-      constexpr _Tp* __type_tag = nullptr;
 
       const auto __rg_size = std::ranges::size(__range);
       if constexpr (not __allow_out_of_bounds)
