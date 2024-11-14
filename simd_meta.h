@@ -212,7 +212,7 @@ namespace SIMD_NSPC::__detail
 // Extensions.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // TODO: To be proposed in some form. Potentially, by splitting into simd and
-// simd::generic concepts. But doing this properly requires a split of generic non-member functions
+// datapar::generic concepts. But doing this properly requires a split of generic non-member functions
 // into different namespaces.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace SIMD_NSPC
@@ -223,44 +223,44 @@ namespace SIMD_NSPC
 
   template <typename _Tp>
     concept signed_integral
-      = simd::integral<_Tp> and std::is_signed_v<typename _Tp::value_type>;
+      = datapar::integral<_Tp> and std::is_signed_v<typename _Tp::value_type>;
 
   template <typename _Tp>
     concept unsigned_integral
-      = simd::integral<_Tp> and not simd::signed_integral<_Tp>;
+      = datapar::integral<_Tp> and not datapar::signed_integral<_Tp>;
 
   template <typename _Tp>
     concept floating_point
       = __detail::__valid_simd<_Tp> and std::floating_point<typename _Tp::value_type>;
 
   template <typename _Tp>
-    concept arithmetic = simd::integral<_Tp> or simd::floating_point<_Tp>;
+    concept arithmetic = datapar::integral<_Tp> or datapar::floating_point<_Tp>;
 
   template <typename _Tp>
     concept equality_comparable = __detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
     concept equality_comparable_with
-      = simd::equality_comparable<_Tp> and simd::equality_comparable<_Up>
+      = datapar::equality_comparable<_Tp> and datapar::equality_comparable<_Up>
           and __detail::__simd_comparison_common_type_with<_Tp, _Up>
-          and simd::equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+          and datapar::equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                                const std::remove_reference_t<_Up>&>>
           and __detail::__simd_weakly_equality_comparable_with<_Tp, _Up>;
 
   template <typename _Tp>
     concept totally_ordered
-      = simd::equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
+      = datapar::equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
     concept totally_ordered_with
-      = simd::totally_ordered<_Tp> and simd::totally_ordered<_Up>
-          and simd::equality_comparable_with<_Tp, _Up>
-          and simd::totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
+      = datapar::totally_ordered<_Tp> and datapar::totally_ordered<_Up>
+          and datapar::equality_comparable_with<_Tp, _Up>
+          and datapar::totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                            const std::remove_reference_t<_Up>&>>
           and __detail::__simd_partially_ordered_with<_Tp, _Up>;
 
   template <typename _Tp>
-    concept regular = std::semiregular<_Tp> and simd::equality_comparable<_Tp>;
+    concept regular = std::semiregular<_Tp> and datapar::equality_comparable<_Tp>;
 }
 
 #endif  // PROTOTYPE_SIMD_META_H_

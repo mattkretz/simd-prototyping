@@ -355,6 +355,12 @@ namespace SIMD_NSPC
     { store(__v, std::span(__first, __size), __flags); }
 }
 
+namespace SIMD_TOPLEVEL_NSPC
+{
+  using SIMD_NSPC::basic_vec;
+  using SIMD_NSPC::vec;
+}
+
 namespace std::simd_generic
 {
   namespace scalar

@@ -97,11 +97,11 @@ static_assert(std::same_as<decltype(+simd::mask<float, 8>()), simd::vec<int, 8>>
 template <auto X>
   using Ic = simd::__detail::_Ic<X>;
 
-static_assert(    std::convertible_to<Ic<1>, simd::vec<float>>);
-static_assert(not std::convertible_to<Ic<1.1>, simd::vec<float>>);
-static_assert(not std::convertible_to<simd::vec<int, 4>, simd::vec<float, 4>>);
-static_assert(not std::convertible_to<simd::vec<float, 4>, simd::vec<int, 4>>);
-static_assert(    std::convertible_to<simd::vec<int, 4>, simd::vec<double, 4>>);
+static_assert(    std::convertible_to<Ic<1>, cpp26::vec<float>>);
+static_assert(not std::convertible_to<Ic<1.1>, cpp26::vec<float>>);
+static_assert(not std::convertible_to<cpp26::vec<int, 4>, cpp26::vec<float, 4>>);
+static_assert(not std::convertible_to<cpp26::vec<float, 4>, cpp26::vec<int, 4>>);
+static_assert(    std::convertible_to<cpp26::vec<int, 4>, cpp26::vec<double, 4>>);
 
 template <typename V>
   concept has_static_size = requires {
