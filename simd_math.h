@@ -127,14 +127,30 @@ namespace SIMD_NSPC
     */
 
     template <typename _Tp>
-      using __deduced_simd = decltype(basic_vec(std::declval<_Tp>()));
+      concept __can_deduce_simd = requires(const _Tp& __x) {
+        basic_vec(std::declval<_Tp>());
+      };
+
+    template <typename _Tp>
+      struct __deduced_simd
+      { using type = void; };
+
+    template <typename _Tp>
+      requires requires(const _Tp& __x) { { __x + __x } -> __valid_simd; }
+        and (not __can_deduce_simd<_Tp>)
+      struct __deduced_simd<_Tp>
+      { using type = decltype(std::declval<const _Tp&>() + std::declval<const _Tp&>()); };
+
+    template <__can_deduce_simd _Tp>
+      struct __deduced_simd<_Tp>
+      { using type = decltype(basic_vec(std::declval<const _Tp&>())); };
+
+    template <typename _Tp>
+      using __deduced_simd_t = typename __deduced_simd<_Tp>::type;
 
     template <typename... _Ts>
       concept __math_floating_point
-        = (requires(_Ts __x, void (&__fun)(__deduced_simd<_Ts>)) {
-          { basic_vec(__x)[0] } -> std::floating_point;
-          { __fun(__x) };
-        } or ...);
+        = (SIMD_NSPC::floating_point<__deduced_simd_t<_Ts>> or ...);
 
     template <typename... _Ts>
       struct __deduced_common_simd;
@@ -146,7 +162,7 @@ namespace SIMD_NSPC
     template <typename _T0>
       requires __math_floating_point<_T0>
       struct __deduced_common_simd<_T0>
-      { using type = __deduced_simd<_T0>; };
+      { using type = __deduced_simd_t<_T0>; };
 
     template <typename _T0>
       requires (not __math_floating_point<_T0>)
@@ -181,10 +197,10 @@ namespace SIMD_NSPC
   }
 
   template <__detail::__math_floating_point _V0, auto = __detail::__build_flags()>
-    constexpr __detail::__deduced_simd<_V0>
+    constexpr __detail::__deduced_simd_t<_V0>
     floor(const _V0& __xx)
     {
-      using _Vp = __detail::__deduced_simd<_V0>;
+      using _Vp = __detail::__deduced_simd_t<_V0>;
       const _Vp& __x = __xx;
       return _Vp::_Impl::_S_floor(__data(__x));
     }
@@ -233,7 +249,7 @@ namespace SIMD_NSPC                                                             
     _GLIBCXX_ALWAYS_INLINE constexpr _Up                                                           \
     name(const _Up& __xx)                                                                          \
     {                                                                                              \
-      using _Vp = __detail::__deduced_simd<_Up>;                                                   \
+      using _Vp = __detail::__deduced_simd_t<_Up>;                                                   \
       const _Vp& __x = __detail::__cast_if_needed<_Vp>(__xx);                                      \
       using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
       if (__builtin_is_constant_evaluated() or __x._M_is_constprop())                              \

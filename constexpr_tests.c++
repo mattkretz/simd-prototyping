@@ -560,8 +560,31 @@ namespace math_tests
       { return value; }
     };
 
+  static_assert(std::same_as<simd::vec<float, 2>,
+                             simd::__detail::__deduced_common_simd_t<
+                               short, holder<float>, holder<simd::vec<float, 2>>>
+                            >);
+
+  static_assert(std::same_as<simd::vec<float, 3>,
+                             simd::__detail::__deduced_common_simd_t<
+                               holder<simd::vec<float, 3>>, float, holder<short>>
+                            >);
+
+  static_assert(std::same_as<simd::vec<float, 3>,
+                             simd::__detail::__deduced_common_simd_t<
+                               holder<simd::vec<float, 3>>, float, holder<short>,
+                               simd::vec<char, 3>>
+                            >);
+
+  static_assert(std::same_as<simd::vec<float, 3>,
+                             simd::__detail::__deduced_common_simd_t<
+                               simd::vec<char, 3>,
+                               holder<simd::vec<float, 3>>, float, holder<short>>
+                            >);
+
   static_assert(simd::floor(1.1_f1)[0] == std::floor(1.1f));
   static_assert(simd::floor(std::array{1.1f, 1.2f, 2.f, 3.f})[0] == std::floor(1.1f));
+  static_assert(simd::floor(holder {1.1_f1})[0] == std::floor(1.1f));
   static_assert(simd::hypot(1.1_f1, 1.2_f1)[0] == std::hypot(1.1f, 1.2f));
   static_assert(simd::hypot(1.1_f1, 1.2f)[0] == std::hypot(1.1f, 1.2f));
   // the next doesn't work with the P1928 spec, but it can be made to work
