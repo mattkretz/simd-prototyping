@@ -45,7 +45,7 @@ namespace SIMD_NSPC::__detail
 
   inline constexpr _PrivateInit __private_init = _PrivateInit{};
 
-  template <integral _Tp, typename _Fp>
+  template <std::integral _Tp, typename _Fp>
     _GLIBCXX_SIMD_INTRINSIC static void
     _S_bit_iteration(_Tp __mask, _Fp&& __f)
     {
