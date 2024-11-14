@@ -136,7 +136,7 @@ namespace SIMD_NSPC
       { using type = void; };
 
     template <typename _Tp>
-      requires requires(const _Tp& __x) { { __x + __x } -> __valid_simd; }
+      requires requires(const _Tp& __x) { { __x + __x } -> floating_point; }
         and (not __can_deduce_simd<_Tp>)
       struct __deduced_simd<_Tp>
       { using type = decltype(std::declval<const _Tp&>() + std::declval<const _Tp&>()); };
@@ -153,39 +153,39 @@ namespace SIMD_NSPC
         = (SIMD_NSPC::floating_point<__deduced_simd_t<_Ts>> or ...);
 
     template <typename... _Ts>
-      struct __deduced_common_simd;
+      struct __math_common_simd;
 
     template <typename... _Ts>
       requires __math_floating_point<_Ts...>
-      using __deduced_common_simd_t = typename __deduced_common_simd<_Ts...>::type;
+      using __math_common_simd_t = typename __math_common_simd<_Ts...>::type;
 
     template <typename _T0>
       requires __math_floating_point<_T0>
-      struct __deduced_common_simd<_T0>
+      struct __math_common_simd<_T0>
       { using type = __deduced_simd_t<_T0>; };
 
     template <typename _T0>
       requires (not __math_floating_point<_T0>)
-      struct __deduced_common_simd<_T0>
+      struct __math_common_simd<_T0>
       { using type = _T0; };
 
     template <typename _T0, typename _T1>
       requires __math_floating_point<_T0, _T1>
-      struct __deduced_common_simd<_T0, _T1>
-      : std::common_type<typename __deduced_common_simd<_T0>::type,
-                         typename __deduced_common_simd<_T1>::type>
+      struct __math_common_simd<_T0, _T1>
+      : std::common_type<typename __math_common_simd<_T0>::type,
+                         typename __math_common_simd<_T1>::type>
       {};
 
     template <typename _T0, typename _T1, typename _T2, typename... _Ts>
-      requires requires { typename __deduced_common_simd<_T0, _T1>::type; }
-      struct __deduced_common_simd<_T0, _T1, _T2, _Ts...>
-      : std::common_type<typename __deduced_common_simd<_T0, _T1>::type, _T2, _Ts...>
+      requires requires { typename __math_common_simd<_T0, _T1>::type; }
+      struct __math_common_simd<_T0, _T1, _T2, _Ts...>
+      : std::common_type<typename __math_common_simd<_T0, _T1>::type, _T2, _Ts...>
       {};
 
     template <typename _T0, typename _T1, typename _T2, typename... _Ts>
-      requires (not requires { typename __deduced_common_simd<_T0, _T1>::type; })
-      struct __deduced_common_simd<_T0, _T1, _T2, _Ts...>
-      : std::common_type<typename __deduced_common_simd<_T2, _Ts...>::type, _T0, _T1>
+      requires (not requires { typename __math_common_simd<_T0, _T1>::type; })
+      struct __math_common_simd<_T0, _T1, _T2, _Ts...>
+      : std::common_type<typename __math_common_simd<_T2, _Ts...>::type, _T0, _T1>
       {};
 
     template <typename _To, typename _From>
@@ -206,22 +206,20 @@ namespace SIMD_NSPC
     }
 
   template <typename _V0, typename _V1, auto = __detail::__build_flags()>
-    requires __detail::__math_floating_point<_V0, _V1>
-    constexpr __detail::__deduced_common_simd_t<_V0, _V1>
+    constexpr __detail::__math_common_simd_t<_V0, _V1>
     hypot(const _V0& __xx, const _V1& __yy)
     {
-      using _Vp = __detail::__deduced_common_simd_t<_V0, _V1>;
+      using _Vp = __detail::__math_common_simd_t<_V0, _V1>;
       const _Vp& __x = __xx;
       const _Vp& __y = __yy;
       return _Vp::_Impl::_S_hypot(__data(__x), __data(__y));
     }
 
   template <typename _V0, typename _V1, typename _V2, auto = __detail::__build_flags()>
-    requires __detail::__math_floating_point<_V0, _V1, _V2>
-    constexpr __detail::__deduced_common_simd_t<_V0, _V1, _V2>
+    constexpr __detail::__math_common_simd_t<_V0, _V1, _V2>
     hypot(const _V0& __xx, const _V1& __yy, const _V2& __zz)
     {
-      using _Vp = __detail::__deduced_common_simd_t<_V0, _V1, _V2>;
+      using _Vp = __detail::__math_common_simd_t<_V0, _V1, _V2>;
       const _Vp& __x = __xx;
       const _Vp& __y = __yy;
       const _Vp& __z = __zz;

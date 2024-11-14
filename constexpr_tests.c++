@@ -561,23 +561,23 @@ namespace math_tests
     };
 
   static_assert(std::same_as<simd::vec<float, 2>,
-                             simd::__detail::__deduced_common_simd_t<
+                             simd::__detail::__math_common_simd_t<
                                short, holder<float>, holder<simd::vec<float, 2>>>
                             >);
 
   static_assert(std::same_as<simd::vec<float, 3>,
-                             simd::__detail::__deduced_common_simd_t<
+                             simd::__detail::__math_common_simd_t<
                                holder<simd::vec<float, 3>>, float, holder<short>>
                             >);
 
   static_assert(std::same_as<simd::vec<float, 3>,
-                             simd::__detail::__deduced_common_simd_t<
+                             simd::__detail::__math_common_simd_t<
                                holder<simd::vec<float, 3>>, float, holder<short>,
                                simd::vec<char, 3>>
                             >);
 
   static_assert(std::same_as<simd::vec<float, 3>,
-                             simd::__detail::__deduced_common_simd_t<
+                             simd::__detail::__math_common_simd_t<
                                simd::vec<char, 3>,
                                holder<simd::vec<float, 3>>, float, holder<short>>
                             >);
