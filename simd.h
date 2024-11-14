@@ -54,8 +54,9 @@ namespace SIMD_NSPC
     {
       using _RV = __detail::__simd_load_return_t<_Tp, _Rg>;
 
+      constexpr bool __throw_on_out_of_bounds = (is_same_v<_Flags, __detail::_Throw> or ...);
       constexpr bool __allow_out_of_bounds
-        = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
+        = (__throw_on_out_of_bounds or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
       static_assert(__detail::__static_range_size<_Rg> >= _RV::size.value
                       or __allow_out_of_bounds
                       or __detail::__static_range_size<_Rg> == dynamic_extent,
@@ -71,6 +72,11 @@ namespace SIMD_NSPC
                                     "Input range is too small. "
                                     "Consider passing 'std::simd::flag_default_init'.");
 
+      if constexpr (__throw_on_out_of_bounds)
+        {
+          if (__rg_size < _RV::size())
+            throw std::out_of_range("std::simd::load Input range is too small.");
+        }
 #ifdef __AVX512F__
       if constexpr (__allow_out_of_bounds)
         {
@@ -91,12 +97,12 @@ namespace SIMD_NSPC
                  return __i < __rg_size ? __range[__i] : _Rp();
                });
       else
-        {
+        return [&] {
           _RV __ret {};
           const int __bytes_to_read = (_RV::size() - __rg_size) * sizeof(_Rp);
           __builtin_memcpy(&__data(__ret), __ptr, __bytes_to_read);
           return __ret;
-        }
+        }();
     }
 
   template <typename _Tp = void, contiguous_iterator _First, sentinel_for<_First> _Last,

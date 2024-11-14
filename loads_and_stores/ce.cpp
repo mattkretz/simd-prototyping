@@ -1,50 +1,52 @@
-#include "../simd.h"
+#include "../simd"
+
+namespace simd = SIMD_NSPC;
 
 auto f(std::vector<float>& data) {
-  using V = std::simd<float>;
+  using V = simd::vec<float>;
   const auto end = data.end();
   for (auto it = data.begin(); it + V::size() <= end; it += V::size()) {
-    std::simd<float> x(it);
+    simd::vec<float> x = simd::load(it, V::size(), simd::flag_default_init);
     x += 1.f;
-    x.copy_to(it, x > 0.f);
+    simd::store(x, it, V::size(), x > 0.f);
   }
 }
 
 auto runtime_sized(std::vector<float>& data) {
-  std::simd<float> x(data);
+  simd::vec<float> x = simd::load(data, simd::flag_throw);
   return x + 1.f;
 }
 
 auto compiletime_sized(std::array<float, 8>& data) {
-  std::simd<float> x(data);
+  simd::vec<float> x = simd::load(data, simd::flag_throw);
   return x + 1.f;
 }
 
-void naive_range_iteration(std::vector<float> &data) {
-  using V = std::simd<float>;
+  /*void naive_range_iteration(std::vector<float> &data) {
+  using V = simd::vec<float>;
   for (auto it = data.begin(); it < data.end(); it += V::size())
     {
       auto chunk = std::ranges::subrange(it, data.end());
-      static_assert(std::__detail::__static_range_size<decltype(chunk)> == std::dynamic_extent);
-      std::simd<float> x(chunk);
+      static_assert(simd::__detail::__static_range_size<decltype(chunk)> == std::dynamic_extent);
+      simd::vec<float> x = simd::load(chunk, simd::flag_default_init);
       x += 1.f;
-      x.copy_to(chunk);
+      simd::store(x, chunk);
     }
 }
 
 void smart_range_iteration(std::vector<float> &data) {
-  using V = std::simd<float>;
+  using V = simd::vec<float>;
   auto it = data.begin();
   auto simd_end = data.end() - V::size();
   for (; it <= simd_end; it += V::size())
     {
       auto chunk = std::ranges::subrange(it, it + V::size());
-      std::simd<float> x(chunk);
+      simd::vec<float> x = simd::load(chunk, simd::flag_default_init);
       x += 1.f;
-      x.copy_to(chunk);
+      simd::store(x, chunk);
     }
   auto chunk = std::ranges::subrange(it, data.end());
-  std::simd<float> x(chunk);
+  simd::vec<float> x = simd::load(chunk, simd::flag_default_init);
   x += 1.f;
-  x.copy_to(chunk);
-}
+  simd::store(x, chunk);
+}*/

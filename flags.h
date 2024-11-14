@@ -25,6 +25,10 @@ namespace SIMD_NSPC::__detail
   : _LoadStoreTag
   {};
 
+  struct _Throw
+  : _LoadStoreTag
+  {};
+
   struct _Convert
   : _LoadStoreTag
   {};
@@ -217,6 +221,8 @@ namespace SIMD_NSPC
   inline constexpr flags<__detail::_LoadDefaultInit> flag_default_init;
 
   inline constexpr flags<__detail::_AllowPartialStore> flag_allow_partial_store;
+
+  inline constexpr flags<__detail::_Throw> flag_throw;
 
   inline constexpr SIMD_NSPC::flags<__detail::_Streaming> __flag_streaming;
 
