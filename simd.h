@@ -119,7 +119,7 @@ namespace SIMD_NSPC
     store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags)
     {
       using _TV = basic_vec<_Tp, _Abi>;
-      static_assert(destructible<basic_vec<_TV>>);
+      static_assert(destructible<_TV>);
       static_assert(__detail::__loadstore_convertible_to<
                       _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
                     "The converting store is not value-preserving. "
