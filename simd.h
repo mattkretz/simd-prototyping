@@ -272,15 +272,20 @@ namespace SIMD_NSPC
 
 #if SIMD_IS_A_RANGE
       using iterator = __simd_iterator<basic_vec>;
+      using const_iterator = __simd_iterator<const basic_vec>;
 
       //static_assert(std::random_access_iterator<iterator>);
-      //static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
+      //static_assert(std::sentinel_for<std::default_sentinel_t, iterator>);
 
       constexpr iterator
-      begin() const
+      begin()
       { return iterator(*this, 0); }
 
-      constexpr __simd_iterator_sentinel
+      constexpr const_iterator
+      begin() const
+      { return const_iterator(*this, 0); }
+
+      constexpr std::default_sentinel_t
       end() const
       { return {}; }
 #endif
@@ -336,7 +341,7 @@ namespace SIMD_NSPC
 
       // generator constructor
       template <__detail::__simd_generator_invokable<value_type, size()> _Fp>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
+        constexpr explicit
         basic_vec(_Fp&& __gen) noexcept
         : _M_data(_Impl::template _S_generator<value_type>(static_cast<_Fp&&>(__gen)))
         {}
@@ -680,7 +685,7 @@ namespace SIMD_NSPC
 
 #if SIMD_HAS_SUBSCRIPT_GATHER
       template <std::integral _Up, typename _Ap>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
+        constexpr
         resize_simd_t<__simd_size_v<_Up, _Ap>, basic_vec>
         operator[](basic_vec<_Up, _Ap> const& __idx) const
         {

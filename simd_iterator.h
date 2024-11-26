@@ -11,13 +11,10 @@
 #if SIMD_IS_A_RANGE
 namespace SIMD_NSPC
 {
-  class __simd_iterator_sentinel
-  {};
-
   template <typename _Vp>
     class __simd_iterator
     {
-      const _Vp* _M_data = nullptr;
+      _Vp* _M_data = nullptr;
       int _M_offset = 0;
 
     public:
@@ -28,7 +25,7 @@ namespace SIMD_NSPC
       constexpr __simd_iterator() = default;
 
       constexpr
-      __simd_iterator(const _Vp& __d, int __x)
+      __simd_iterator(_Vp& __d, int __x)
       : _M_data(&__d), _M_offset(__x)
       {}
 
@@ -40,7 +37,7 @@ namespace SIMD_NSPC
 
       constexpr value_type
       operator*() const
-      { return (*_M_data)[_M_offset]; }
+      { return (*_M_data)[_M_offset]; } // checked in operator[]
 
       constexpr __simd_iterator&
       operator++()
@@ -77,11 +74,11 @@ namespace SIMD_NSPC
       { return _M_offset - __rhs._M_offset; }
 
       constexpr friend difference_type
-      operator-(__simd_iterator __it, __simd_iterator_sentinel)
+      operator-(__simd_iterator __it, std::default_sentinel_t)
       { return __it._M_offset - difference_type(_Vp::size.value); }
 
       constexpr friend difference_type
-      operator-(__simd_iterator_sentinel, __simd_iterator __it)
+      operator-(std::default_sentinel_t, __simd_iterator __it)
       { return difference_type(_Vp::size.value) - __it._M_offset; }
 
       constexpr friend __simd_iterator
@@ -112,14 +109,14 @@ namespace SIMD_NSPC
 
       constexpr value_type
       operator[](difference_type __i) const
-      { return (*_M_data)[_M_offset + __i]; }
+      { return (*_M_data)[_M_offset + __i]; } // checked in operator[]
 
       constexpr friend auto operator<=>(__simd_iterator __a, __simd_iterator __b)
       { return __a._M_offset <=> __b._M_offset; }
 
       constexpr friend bool operator==(__simd_iterator __a, __simd_iterator __b) = default;
 
-      constexpr friend bool operator==(__simd_iterator __a, __simd_iterator_sentinel)
+      constexpr friend bool operator==(__simd_iterator __a, std::default_sentinel_t)
       { return __a._M_offset == difference_type(_Vp::size.value); }
     };
 }

@@ -88,15 +88,20 @@ namespace SIMD_NSPC
 
 #if SIMD_IS_A_RANGE
       using iterator = __simd_iterator<basic_mask>;
+      using const_iterator = __simd_iterator<const basic_mask>;
 
       static_assert(std::random_access_iterator<iterator>);
-      static_assert(std::sentinel_for<__simd_iterator_sentinel, iterator>);
+      static_assert(std::sentinel_for<std::default_sentinel_t, iterator>);
 
       constexpr iterator
-      begin() const
+      begin()
       { return iterator(*this, 0); }
 
-      constexpr __simd_iterator_sentinel
+      constexpr const_iterator
+      begin() const
+      { return const_iterator(*this, 0); }
+
+      constexpr std::default_sentinel_t
       end() const
       { return {}; }
 #endif
