@@ -11,42 +11,37 @@
 #if __powerpc__
 namespace std::__detail
 {
-  struct _MachineFlags
+  struct _ArchFlags
   {
-    uint64_t _M_arch : 8
+    uint64_t _M_flags = 0
 #ifdef _ARCH_PWR10
-      = 5;
+                          + 5
 #elif defined __POWER9_VECTOR__
-      = 4;
+                          + 4
 #elif defined __POWER8_VECTOR__
-      = 3;
+                          + 3
 #elif defined __VSX__
-      = 2;
+                          + 2
 #elif defined __VMX__
-      = 1;
-#else
-      = 0;
+                          + 1
 #endif
+                        ;
 
     consteval bool _M_vmx()
-    { return _M_arch >= 1; }
+    { return (_M_flags & 0xf) >= 1; }
 
     consteval bool _M_vsx()
-    { return _M_arch >= 2; }
+    { return (_M_flags & 0xf) >= 2; }
 
     consteval bool _M_power8()
-    { return _M_arch >= 3; }
+    { return (_M_flags & 0xf) >= 3; }
 
     consteval bool _M_power9()
-    { return _M_arch >= 4; }
+    { return (_M_flags & 0xf) >= 4; }
 
     consteval bool _M_power10()
-    { return _M_arch >= 5; }
-
-    uint64_t _M_padding = 0;
+    { return (_M_flags & 0xf) >= 5; }
   };
-
-  static_assert(sizeof(_MachineFlags) == sizeof(uint64_t) * 2);
 }
 #endif
 

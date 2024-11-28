@@ -20,74 +20,173 @@
 
 namespace SIMD_NSPC::__detail
 {
-  struct _MachineFlags
+  struct _ArchFlags
   {
-    uint64_t _M_have_mmx : 1 = _GLIBCXX_SIMD_HAVE_MMX;
+    uint64_t _M_flags = (_GLIBCXX_SIMD_HAVE_MMX << 0)
+                          | (_GLIBCXX_SIMD_HAVE_SSE << 1)
+                          | (_GLIBCXX_SIMD_HAVE_SSE2 << 2)
+                          | (_GLIBCXX_SIMD_HAVE_SSE3 << 3)
+                          | (_GLIBCXX_SIMD_HAVE_SSSE3 << 4)
+                          | (_GLIBCXX_SIMD_HAVE_SSE4_1 << 5)
+                          | (_GLIBCXX_SIMD_HAVE_SSE4_2 << 6)
+                          | (_GLIBCXX_SIMD_HAVE_XOP << 7)
+                          | (_GLIBCXX_SIMD_HAVE_AVX << 8)
+                          | (_GLIBCXX_SIMD_HAVE_AVX2 << 9)
+                          | (_GLIBCXX_SIMD_HAVE_BMI << 10)
+                          | (_GLIBCXX_SIMD_HAVE_BMI2 << 11)
+                          | (_GLIBCXX_SIMD_HAVE_LZCNT << 12)
+                          | (_GLIBCXX_SIMD_HAVE_SSE4A << 13)
+                          | (_GLIBCXX_SIMD_HAVE_FMA << 14)
+                          | (_GLIBCXX_SIMD_HAVE_FMA4 << 15)
+                          | (_GLIBCXX_SIMD_HAVE_F16C << 16)
+                          | (_GLIBCXX_SIMD_HAVE_POPCNT << 17)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512F << 18)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512DQ << 19)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VL << 20)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512BW << 21)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512BITALG << 22)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VBMI << 23)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VBMI2 << 24)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512IFMA << 25)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512CD << 26)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VNNI << 27)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VPOPCNTDQ << 28)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512VP2INTERSECT << 29)
+                          | (_GLIBCXX_SIMD_HAVE_AVX512FP16 << 30)
+                          | (_GLIBCXX_SIMD_HAVE_AVXIFMA << 31)
+                          | (_GLIBCXX_SIMD_HAVE_AVXNECONVERT << 32)
+                          | (_GLIBCXX_SIMD_HAVE_AVXVNNI << 33)
+                          | (_GLIBCXX_SIMD_HAVE_AVXVNNIINT8 << 34)
+                          | (_GLIBCXX_SIMD_HAVE_AVXVNNIINT16 << 35);
 
-    uint64_t _M_have_sse : 1 = _GLIBCXX_SIMD_HAVE_SSE;
+    constexpr bool
+    _M_test(int __bit) const
+    { return ((_M_flags >> __bit) & 1) == 1; }
 
-    uint64_t _M_have_sse2 : 1 = _GLIBCXX_SIMD_HAVE_SSE2;
+    constexpr bool
+    _M_have_mmx() const
+    { return _M_test(0); }
 
-    uint64_t _M_have_sse3 : 1 = _GLIBCXX_SIMD_HAVE_SSE3;
+    constexpr bool
+    _M_have_sse() const
+    { return _M_test(1); }
 
-    uint64_t _M_have_ssse3 : 1 = _GLIBCXX_SIMD_HAVE_SSSE3;
+    constexpr bool
+    _M_have_sse2() const
+    { return _M_test(2); }
 
-    uint64_t _M_have_sse4_1 : 1 = _GLIBCXX_SIMD_HAVE_SSE4_1;
+    constexpr bool
+    _M_have_sse3() const
+    { return _M_test(3); }
 
-    uint64_t _M_have_sse4_2 : 1 = _GLIBCXX_SIMD_HAVE_SSE4_2;
+    constexpr bool
+    _M_have_ssse3() const
+    { return _M_test(4); }
 
-    uint64_t _M_have_xop : 1 = _GLIBCXX_SIMD_HAVE_XOP;
+    constexpr bool
+    _M_have_sse4_1() const
+    { return _M_test(5); }
 
-    uint64_t _M_have_avx : 1 = _GLIBCXX_SIMD_HAVE_AVX;
+    constexpr bool
+    _M_have_sse4_2() const
+    { return _M_test(6); }
 
-    uint64_t _M_have_avx2 : 1 = _GLIBCXX_SIMD_HAVE_AVX2;
+    constexpr bool
+    _M_have_xop() const
+    { return _M_test(7); }
 
-    uint64_t _M_have_bmi : 1 = _GLIBCXX_SIMD_HAVE_BMI;
+    constexpr bool
+    _M_have_avx() const
+    { return _M_test(8); }
 
-    uint64_t _M_have_bmi2 : 1 = _GLIBCXX_SIMD_HAVE_BMI2;
+    constexpr bool
+    _M_have_avx2() const
+    { return _M_test(9); }
 
-    uint64_t _M_have_lzcnt : 1 = _GLIBCXX_SIMD_HAVE_LZCNT;
+    constexpr bool
+    _M_have_bmi() const
+    { return _M_test(10); }
 
-    uint64_t _M_have_sse4a : 1 = _GLIBCXX_SIMD_HAVE_SSE4A;
+    constexpr bool
+    _M_have_bmi2() const
+    { return _M_test(11); }
 
-    uint64_t _M_have_fma : 1 = _GLIBCXX_SIMD_HAVE_FMA;
+    constexpr bool
+    _M_have_lzcnt() const
+    { return _M_test(12); }
 
-    uint64_t _M_have_fma4 : 1 = _GLIBCXX_SIMD_HAVE_FMA4;
+    constexpr bool
+    _M_have_sse4a() const
+    { return _M_test(13); }
 
-    uint64_t _M_have_f16c : 1 = _GLIBCXX_SIMD_HAVE_F16C;
+    constexpr bool
+    _M_have_fma() const
+    { return _M_test(14); }
 
-    uint64_t _M_have_popcnt : 1 = _GLIBCXX_SIMD_HAVE_POPCNT;
+    constexpr bool
+    _M_have_fma4() const
+    { return _M_test(15); }
 
-    uint64_t _M_have_avx512f : 1 = _GLIBCXX_SIMD_HAVE_AVX512F;
+    constexpr bool
+    _M_have_f16c() const
+    { return _M_test(16); }
 
-    uint64_t _M_have_avx512dq : 1 = _GLIBCXX_SIMD_HAVE_AVX512DQ;
+    constexpr bool
+    _M_have_popcnt() const
+    { return _M_test(17); }
 
-    uint64_t _M_have_avx512vl : 1 = _GLIBCXX_SIMD_HAVE_AVX512VL;
+    constexpr bool
+    _M_have_avx512f() const
+    { return _M_test(18); }
 
-    uint64_t _M_have_avx512bw : 1 = _GLIBCXX_SIMD_HAVE_AVX512BW;
+    constexpr bool
+    _M_have_avx512dq() const
+    { return _M_test(19); }
 
-    uint64_t _M_have_avx512bitalg : 1 = _GLIBCXX_SIMD_HAVE_AVX512BITALG;
+    constexpr bool
+    _M_have_avx512vl() const
+    { return _M_test(20); }
 
-    uint64_t _M_have_avx512vbmi : 1 = _GLIBCXX_SIMD_HAVE_AVX512VBMI;
+    constexpr bool
+    _M_have_avx512bw() const
+    { return _M_test(21); }
 
-    uint64_t _M_have_avx512vbmi2 : 1 = _GLIBCXX_SIMD_HAVE_AVX512VBMI2;
+    constexpr bool
+    _M_have_avx512bitalg() const
+    { return _M_test(22); }
 
-    uint64_t _M_have_avx512ifma : 1 = _GLIBCXX_SIMD_HAVE_AVX512IFMA;
+    constexpr bool
+    _M_have_avx512vbmi() const
+    { return _M_test(23); }
 
-    uint64_t _M_have_avx512cd : 1 = _GLIBCXX_SIMD_HAVE_AVX512CD;
+    constexpr bool
+    _M_have_avx512vbmi2() const
+    { return _M_test(24); }
 
-    uint64_t _M_have_avx512vnni : 1 = _GLIBCXX_SIMD_HAVE_AVX512VNNI;
+    constexpr bool
+    _M_have_avx512ifma() const
+    { return _M_test(25); }
 
-    uint64_t _M_have_avx512vpopcntdq : 1 = _GLIBCXX_SIMD_HAVE_AVX512VPOPCNTDQ;
+    constexpr bool
+    _M_have_avx512cd() const
+    { return _M_test(26); }
 
-    uint64_t _M_have_avx512vp2intersect : 1 = _GLIBCXX_SIMD_HAVE_AVX512VP2INTERSECT;
+    constexpr bool
+    _M_have_avx512vnni() const
+    { return _M_test(27); }
 
-    uint64_t _M_have_avx512fp16 : 1 = _GLIBCXX_SIMD_HAVE_AVX512FP16;
+    constexpr bool
+    _M_have_avx512vpopcntdq() const
+    { return _M_test(28); }
 
-    uint64_t _M_padding = 0;
+    constexpr bool
+    _M_have_avx512vp2intersect() const
+    { return _M_test(29); }
+
+    constexpr bool
+    _M_have_avx512fp16() const
+    { return _M_test(30); }
   };
-
-  static_assert(sizeof(_MachineFlags) == sizeof(uint64_t) * 2);
 
   template <__vectorizable _Tp>
     struct __x86_builtin_int;
@@ -196,7 +295,7 @@ namespace SIMD_NSPC::__detail
   __movmsk(__vec_builtin_sizeof<4, 32> auto __x) noexcept
   { return __builtin_ia32_movmskps256(reinterpret_cast<__v8float>(__x)); }
 
-  template <__vec_builtin _TV, auto _Flags = _MachineFlags()>
+  template <__vec_builtin _TV, auto _Flags = _ArchFlags()>
     requires (sizeof(__value_type_of<_TV>) <= 2)
     _GLIBCXX_SIMD_ALWAYS_INLINE inline int
     __movmsk(_TV __x) noexcept
@@ -216,7 +315,7 @@ namespace SIMD_NSPC::__detail
         }
       else if constexpr (sizeof(__x) == 4)
         {
-          if constexpr (_Flags._M_have_bmi2)
+          if constexpr (_Flags._M_have_bmi2())
             return __builtin_ia32_pext_si(__builtin_bit_cast(unsigned int, __x), 0x80808080u);
           using _Int1 [[gnu::vector_size(4)]] = int;
           const _Int1 __tmp = __builtin_bit_cast(_Int1, __x);
@@ -227,7 +326,7 @@ namespace SIMD_NSPC::__detail
       else if constexpr (sizeof(__x) == 2)
         {
           auto __bits = __builtin_bit_cast(unsigned short, __x);
-          if constexpr (_Flags._M_have_bmi2)
+          if constexpr (_Flags._M_have_bmi2())
             return __builtin_ia32_pext_si(__bits, 0x00008080u);
           else
             return ((__bits >> 7) & 1) | ((__bits & 0x8000) >> 14);

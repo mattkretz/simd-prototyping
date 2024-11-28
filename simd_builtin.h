@@ -50,14 +50,14 @@ namespace SIMD_NSPC
         // condition is always true.
 #ifdef _GLIBCXX_SIMD_HAVE_SSE
                           and (sizeof(_Vp<_Tp>) <= 16
-                                 or (_Flags._M_have_avx and sizeof(_Vp<_Tp>) <= 32)
-                                 or (_Flags._M_have_avx512f and sizeof(_Vp<_Tp>) <= 64))
+                                 or (_Flags._M_have_avx() and sizeof(_Vp<_Tp>) <= 32)
+                                 or (_Flags._M_have_avx512f() and sizeof(_Vp<_Tp>) <= 64))
 #else
                           and sizeof(_Vp<_Tp>) <= 16
 #endif
 #endif // __clang__
 #ifdef _GLIBCXX_SIMD_HAVE_SSE
-                          and (not _Flags._M_have_avx or _Flags._M_have_avx2
+                          and (not _Flags._M_have_avx() or _Flags._M_have_avx2()
                                  or sizeof(_Vp<_Tp>) <= 16 or is_floating_point_v<_Tp>)
 #endif
                        >

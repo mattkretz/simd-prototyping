@@ -78,84 +78,88 @@ namespace SIMD_NSPC::__detail
   { return true; }
 #endif
 
-  struct _FloatingPointFlags
+  struct _BuildFlags
+  : _ArchFlags
   {
-    std::uint_least64_t _M_handle_fp_exceptions : 1
+    constexpr bool
+    _M_test(int __bit) const
+    { return ((_M_build_flags >> __bit) & 1) == 1; }
+
+    constexpr bool
+    _M_handle_fp_exceptions() const
+    { return _M_test(0); }
+
+    constexpr bool
+    _M_fast_math() const
+    { return _M_test(1); }
+
+    constexpr bool
+    _M_finite_math_only() const
+    { return _M_test(2); }
+
+    constexpr bool
+    _M_no_signed_zeros() const
+    { return _M_test(3); }
+
+    constexpr bool
+    _M_signed_zeros() const
+    { return not _M_test(3); }
+
+    constexpr bool
+    _M_reciprocal_math() const
+    { return _M_test(4); }
+
+    constexpr bool
+    _M_no_math_errno() const
+    { return _M_test(5); }
+
+    constexpr bool
+    _M_math_errno() const
+    { return not _M_test(5); }
+
+    constexpr bool
+    _M_associative_math() const
+    { return _M_test(6); }
+
+    uint64_t _M_build_flags = 0
 #if __NO_TRAPPING_MATH__ or __FAST_MATH__
-      = 1;
+                          + (1 << 0)
 #elif defined math_errhandling
-      = __handle_fpexcept_impl(0);
-#else
-      = 0;
+                          + (__handle_fpexcept_impl(0) << 0)
 #endif
-
-    std::uint_least64_t _M_fast_math : 1
 #if __FAST_MATH__
-      = 1;
-#else
-      = 0;
+                          + (1 << 1)
 #endif
-
-    std::uint_least64_t _M_finite_math_only : 1
 #if __FINITE_MATH_ONLY__
-      = 1;
-#else
-      = 0;
+                          + (1 << 2)
 #endif
-
-    std::uint_least64_t _M_signed_zeros : 1
 #if __NO_SIGNED_ZEROS__
-      = 0;
-#else
-      = 1;
+                          + (1 << 3)
 #endif
-
-    std::uint_least64_t _M_reciprocal_math : 1
 #if __RECIPROCAL_MATH__
-      = 1;
-#else
-      = 0;
+                          + (1 << 4)
 #endif
-
-    std::uint_least64_t _M_math_errno : 1
 #if __NO_MATH_ERRNO__
-      = 0;
-#else
-      = 1;
+                          + (1 << 5)
 #endif
-
-    std::uint_least64_t _M_associative_math : 1
 #if __ASSOCIATIVE_MATH__
-      = 1;
-#else
-      = 0;
+                          + (1 << 6)
 #endif
-
-    std::uint_least64_t _M_float_eval_method : 2
-#if __FLT_EVAL_METHOD__ == 0
-      = 0;
-#elif __FLT_EVAL_METHOD__ == 1
-      = 1;
+#if __FLT_EVAL_METHOD__ == 1
+                          + (1 << 7)
 #elif __FLT_EVAL_METHOD__ == 2
-      = 2;
-#else
-      = 3;
+                          + (2 << 7)
+#elif __FLT_EVAL_METHOD__ != 0
+                          + (3 << 7)
 #endif
+                        ;
   };
-
-  static_assert(sizeof(_FloatingPointFlags) == sizeof(std::uint_least64_t));
-
-  struct _MachineFlags;
-
-  template <typename... _Flags>
-    struct _BuildFlags : _Flags...
-    {};
 
   /**@internal
    * You must use this type as template argument to function templates that are not declared
    * always_inline (to avoid issues when linking code compiled with different compiler flags).
    */
-  using __build_flags = _BuildFlags<_FloatingPointFlags, _MachineFlags>;
+  using __build_flags = _BuildFlags;
 }
 
 #define _GLIBCXX_SIMD_TOSTRING_IMPL(x) #x

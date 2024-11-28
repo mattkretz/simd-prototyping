@@ -11,22 +11,33 @@
 #if _GLIBCXX_SIMD_HAVE_NEON or _GLIBCXX_SIMD_HAVE_SVE
 namespace std::__detail
 {
-  struct _MachineFlags
+  struct _ArchFlags
   {
-    uint64_t _M_have_neon : 1 = _GLIBCXX_SIMD_HAVE_NEON;
+    uint64_t _M_flags = (_GLIBCXX_SIMD_HAVE_NEON << 0)
+                          | (_GLIBCXX_SIMD_HAVE_NEON_A32 << 1)
+                          | (_GLIBCXX_SIMD_HAVE_NEON_A64 << 2)
+                          | (_GLIBCXX_SIMD_HAVE_SVE << 3);
 
-    uint64_t _M_have_neon_a32 : 1 = _GLIBCXX_SIMD_HAVE_NEON_A32;
+    constexpr bool
+    _M_test(int __bit) const
+    { return ((_M_flags >> __bit) & 1) == 1; }
 
-    uint64_t _M_have_neon_a64 : 1 = _GLIBCXX_SIMD_HAVE_NEON_A64;
+    constexpr bool
+    _M_have_neon() const
+    { return _M_test(0); }
 
-    uint64_t _M_have_sve : 1 = _GLIBCXX_SIMD_HAVE_SVE;
+    constexpr bool
+    _M_have_neon_a32() const
+    { return _M_test(1); }
 
-    //uint64_t _M_have_sve2 : 1 = __pv2::__have_sve2;
+    constexpr bool
+    _M_have_neon_a64() const
+    { return _M_test(2); }
 
-    uint64_t _M_padding = 0;
+    constexpr bool
+    _M_have_sve() const
+    { return _M_test(3); }
   };
-
-  static_assert(sizeof(_MachineFlags) == sizeof(uint64_t) * 2);
 }
 #endif
 

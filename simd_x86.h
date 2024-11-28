@@ -182,13 +182,13 @@ namespace SIMD_NSPC::__detail
 {
   template <typename _Abi, auto _Flags>
     struct _SimdMaskTraits<sizeof(float), _Abi, _Flags>
-    : _SimdTraits<conditional_t<_Flags._M_have_avx and not _Flags._M_have_avx2,
+    : _SimdTraits<conditional_t<_Flags._M_have_avx() and not _Flags._M_have_avx2(),
                                 float, __mask_integer_from<sizeof(float)>>, _Abi, _Flags>
     {};
 
   template <typename _Abi, auto _Flags>
     struct _SimdMaskTraits<sizeof(double), _Abi, _Flags>
-    : _SimdTraits<conditional_t<_Flags._M_have_avx and not _Flags._M_have_avx2,
+    : _SimdTraits<conditional_t<_Flags._M_have_avx() and not _Flags._M_have_avx2(),
                                 double, __mask_integer_from<sizeof(double)>>, _Abi, _Flags>
     {};
 
@@ -294,7 +294,7 @@ namespace SIMD_NSPC::__detail
               reinterpret_cast<const type2*>(__mem),                                               \
               reinterpret_cast<__vec_builtin_type<type2, bits / 8>>(__merge), __kk))
 
-              if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
+              if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                               and sizeof(_Tp) == 1)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -306,7 +306,7 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
+              else if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                                    and sizeof(_Tp) == 2)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -318,7 +318,7 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx512vl and sizeof(_Tp) == 4
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
                                    and is_integral_v<_Up>)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -330,7 +330,7 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx512vl and sizeof(_Tp) == 4
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
                                    and is_floating_point_v<_Up>)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -342,20 +342,20 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx2 and sizeof(_Tp) == 4 and is_integral_v<_Up>)
+              else if constexpr (_Flags._M_have_avx2() and sizeof(_Tp) == 4 and is_integral_v<_Up>)
                 {
                   static_assert(_S_use_bitmasks == false);
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
                                      reinterpret_cast<_TV>(__maskload_epi32(__mem, __k)));
                 }
-              else if constexpr (_Flags._M_have_avx and sizeof(_Tp) == 4)
+              else if constexpr (_Flags._M_have_avx() and sizeof(_Tp) == 4)
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
                                      reinterpret_cast<_TV>(__maskload_ps(__mem, __k)));
                 }
-              else if constexpr (_Flags._M_have_avx512vl and sizeof(_Tp) == 8
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 8
                                    and is_integral_v<_Up>)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -367,7 +367,7 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx512vl and sizeof(_Tp) == 8
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 8
                                    and is_floating_point_v<_Up>)
                 {
                   if constexpr (sizeof(__intrin) == 16)
@@ -379,13 +379,13 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_Tp>();
                 }
-              else if constexpr (_Flags._M_have_avx2 and sizeof(_Tp) == 8 and is_integral_v<_Up>)
+              else if constexpr (_Flags._M_have_avx2() and sizeof(_Tp) == 8 and is_integral_v<_Up>)
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
                                      reinterpret_cast<_TV>(__maskload_epi64( __mem, __k)));
                 }
-              else if constexpr (_Flags._M_have_avx and sizeof(_Tp) == 8)
+              else if constexpr (_Flags._M_have_avx() and sizeof(_Tp) == 8)
                 {
                   static_assert(sizeof(__intrin) == 16 or sizeof(__intrin) == 32);
                   __merge = __vec_or(__vec_andnot(reinterpret_cast<_TV>(__k), __merge),
@@ -527,7 +527,7 @@ namespace SIMD_NSPC::__detail
         _S_select_on_msb(const _MaskMember<_TV> __k, const _TV __a, const _TV __b)
         {
           using _Tp = __value_type_of<_TV>;
-          static_assert(not _Flags._M_have_avx512f, "really? If yes, you need to implement it.");
+          static_assert(not _Flags._M_have_avx512f(), "really? If yes, you need to implement it.");
           static_assert(sizeof(_TV) <= 32);
           static_assert(is_signed_v<__value_type_of<_MaskMember<_TV>>>);
           const auto __ia = reinterpret_cast<_MaskMember<_TV>>(__a);
@@ -544,22 +544,22 @@ namespace SIMD_NSPC::__detail
                                                     return ((__ib[_Is] == 0) and ...);
                                                   }))
             return __vec_and(reinterpret_cast<_TV>(__k), __a);
-          else if constexpr (_Flags._M_have_sse4_1) // for vblend
+          else if constexpr (_Flags._M_have_sse4_1()) // for vblend
             {
               using _IV = __vec_builtin_type_bytes<char, sizeof(_TV)>;
               // duplicate msb to high bit of low byte for sizeof(_Tp) == 2 (or rather to all bits)
               const _IV __ki = reinterpret_cast<_IV>(sizeof(_Tp) == 2 ? __k < 0 : __k);
               const _IV __ai = reinterpret_cast<_IV>(__a);
               const _IV __bi = reinterpret_cast<_IV>(__b);
-              if constexpr (sizeof(_Tp) == 4 and sizeof(_TV) == 32 and _Flags._M_have_avx)
+              if constexpr (sizeof(_Tp) == 4 and sizeof(_TV) == 32 and _Flags._M_have_avx())
                 return __builtin_ia32_blendvps256(__b, __a, __k);
-              else if constexpr (sizeof(_Tp) == 8 and sizeof(_TV) == 32 and _Flags._M_have_avx)
+              else if constexpr (sizeof(_Tp) == 8 and sizeof(_TV) == 32 and _Flags._M_have_avx())
                 return __builtin_ia32_blendvpd256(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 4 and sizeof(_TV) == 16)
                 return __builtin_ia32_blendvps(__b, __a, __k);
               else if constexpr (sizeof(_Tp) == 8 and sizeof(_TV) == 16)
                 return __builtin_ia32_blendvpd(__b, __a, __k);
-              else if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2)
+              else if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2())
                 return reinterpret_cast<_TV>(__builtin_ia32_pblendvb256(__bi, __ai, __ki));
               else if constexpr (sizeof(_TV) == 16)
                 return reinterpret_cast<_TV>(__builtin_ia32_pblendvb128(__bi, __ai, __ki));
@@ -591,7 +591,7 @@ namespace SIMD_NSPC::__detail
                                                     return ((__ib[_Is] == 0) and ...);
                                                   }))
             return __vec_and(reinterpret_cast<_TV>(__k), __a);
-          else if constexpr (_Flags._M_have_sse4_1)
+          else if constexpr (_Flags._M_have_sse4_1())
             {
               static_assert(sizeof(_TV) == 16 or sizeof(_TV) == 32);
               if constexpr (is_integral_v<_Tp>)
@@ -604,7 +604,7 @@ namespace SIMD_NSPC::__detail
                                              return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
                                            }))
                     __invoke_ub("Undefined behavior: invalid mask value(s)");
-                  else if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2)
+                  else if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2())
                     return reinterpret_cast<_TV>(__builtin_ia32_pblendvb256(__bi, __ai, __ki));
                   else if constexpr (sizeof(_TV) == 16)
                     return reinterpret_cast<_TV>(__builtin_ia32_pblendvb128(__bi, __ai, __ki));
@@ -659,8 +659,8 @@ namespace SIMD_NSPC::__detail
               // single `and`, instead of calling the _Base impl which shifts.
               if (_Base::_S_is_constprop_all_equal(__lhs, 0))
                 {
-                  if constexpr ((_Flags._M_have_ssse3 and sizeof(_TV) <= 16)
-                                  or (_Flags._M_have_avx2 and sizeof(_TV) == 32))
+                  if constexpr ((_Flags._M_have_ssse3() and sizeof(_TV) <= 16)
+                                  or (_Flags._M_have_avx2() and sizeof(_TV) == 32))
                     {
                       if (__builtin_constant_p(__rhs) and __rhs == 1)
                         {
@@ -705,8 +705,8 @@ namespace SIMD_NSPC::__detail
           using _Tp = __value_type_of<_TV>;
           static_assert(is_same_v<_Tp, __mask_integer_from<sizeof(_Tp)>>);
           const _MaskInteger __k = __x._M_to_unsanitized_bits();
-          constexpr bool __bwvl = _Flags._M_have_avx512bw and _Flags._M_have_avx512vl;
-          constexpr bool __dqvl = _Flags._M_have_avx512dq and _Flags._M_have_avx512vl;
+          constexpr bool __bwvl = _Flags._M_have_avx512bw() and _Flags._M_have_avx512vl();
+          constexpr bool __dqvl = _Flags._M_have_avx512dq() and _Flags._M_have_avx512vl();
 
           if (__builtin_is_constant_evaluated() or __builtin_constant_p(__k))
             {
@@ -715,7 +715,7 @@ namespace SIMD_NSPC::__detail
                 return __r;
             }
 
-          if constexpr (__vec_builtin_sizeof<_TV, 1, 64> and _Flags._M_have_avx512bw)
+          if constexpr (__vec_builtin_sizeof<_TV, 1, 64> and _Flags._M_have_avx512bw())
             return __builtin_ia32_cvtmask2b512(__k);
 
           else if constexpr (__vec_builtin_sizeof<_TV, 1, 32> and __bwvl)
@@ -724,7 +724,7 @@ namespace SIMD_NSPC::__detail
           else if constexpr (__vec_builtin_sizeof<_TV, 1> and __bwvl)
             return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2b128(__k));
 
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw())
             return __builtin_ia32_cvtmask2w512(__k);
 
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and __bwvl)
@@ -733,7 +733,7 @@ namespace SIMD_NSPC::__detail
           else if constexpr (__vec_builtin_sizeof<_TV, 2> and __bwvl)
             return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2w128(__k));
 
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq())
             return __builtin_ia32_cvtmask2d512(__k);
 
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and __dqvl)
@@ -742,7 +742,7 @@ namespace SIMD_NSPC::__detail
           else if constexpr (__vec_builtin_sizeof<_TV, 4> and __dqvl)
             return __vec_bitcast_trunc<_TV>(__builtin_ia32_cvtmask2d128(__k));
 
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq())
             return __builtin_ia32_cvtmask2q512(__k);
 
           else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and __dqvl)
@@ -794,7 +794,7 @@ namespace SIMD_NSPC::__detail
                              | (((__xi >> 16) * (__yi & 0xff0000)) & 0xff0000)
                              | ((__xi >> 24) * (__yi & 0xff000000u)));
                 }
-              else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1 and is_signed_v<_Tp>)
+              else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1() and is_signed_v<_Tp>)
                 {
                   auto __x16 = __builtin_ia32_pmovsxbw128(reinterpret_cast<__v16char>(
                                                             __vec_zero_pad_to_16(__x)));
@@ -803,7 +803,7 @@ namespace SIMD_NSPC::__detail
                   static_assert(same_as<decltype(__x16), __vec_builtin_type<short, 8>>);
                   return __vec_convert<_TV>(__x16 * __y16);
                 }
-              else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1 and is_unsigned_v<_Tp>)
+              else if constexpr (sizeof(_TV) == 8 and _Flags._M_have_sse4_1() and is_unsigned_v<_Tp>)
                 {
                   auto __x16 = __builtin_ia32_pmovzxbw128(reinterpret_cast<__v16char>(
                                                             __vec_zero_pad_to_16(__x)));
@@ -823,10 +823,10 @@ namespace SIMD_NSPC::__detail
                   const _ShortW __odd
                     = (__vec_bitcast<short, _Np>(__x) >> 8)
                         * (__vec_bitcast<short, _Np>(__y) & __high_byte);
-                  if constexpr (_Flags._M_have_avx512bw and sizeof(_TV) > 2)
+                  if constexpr (_Flags._M_have_avx512bw() and sizeof(_TV) > 2)
                     return _S_select_bitmask(0xaaaa'aaaa'aaaa'aaaaLL,
                                              __vec_bitcast<_Tp>(__odd), __vec_bitcast<_Tp>(__even));
-                  else if constexpr (_Flags._M_have_sse4_1 and sizeof(_TV) > 2)
+                  else if constexpr (_Flags._M_have_sse4_1() and sizeof(_TV) > 2)
                     return reinterpret_cast<_TV>(__high_byte ? __odd : __even);
                   else
                     return reinterpret_cast<_TV>(__vec_or(__vec_andnot(__high_byte, __even), __odd));
@@ -851,7 +851,7 @@ namespace SIMD_NSPC::__detail
           using _Tp = __value_type_of<_TV>;
           static_assert(is_floating_point_v<_Tp>);
           _TV __r;
-          if constexpr (_Flags._M_have_avx) // -mno-sse2avx is irrelevant because once -mavx is given, GCC
+          if constexpr (_Flags._M_have_avx()) // -mno-sse2avx is irrelevant because once -mavx is given, GCC
             { // emits VEX encoded vdivp[sd]
               if constexpr (sizeof(_Tp) == 8)
                 asm("vdivpd\t{%2, %1, %0|%0, %1, %2}" : "=x"(__r) : "x"(__x), "x"(__y));
@@ -898,8 +898,8 @@ namespace SIMD_NSPC::__detail
 
                   using _Float = conditional_t<sizeof(_Tp) == 4, double, float>;
                   constexpr int __n_intermediate
-                    = std::min(_S_full_size, (_Flags._M_have_avx512f
-                                                ? 64 : _Flags._M_have_avx ? 32 : 16)
+                    = std::min(_S_full_size, (_Flags._M_have_avx512f()
+                                                ? 64 : _Flags._M_have_avx() ? 32 : 16)
                                  / int(sizeof(_Float)));
                   using _FloatV = __vec_builtin_type<_Float, __n_intermediate>;
                   constexpr int __n_floatv = __div_roundup(_S_size, __n_intermediate);
@@ -915,7 +915,7 @@ namespace SIMD_NSPC::__detail
                * int<->double is efficient enough:
               else if constexpr (is_integral_v<_Tp> and is_unsigned_v<_Tp> and sizeof(_Tp) == 8)
                 {
-                  if constexpr (_Flags._M_have_sse4_1 and sizeof(__x) == 16)
+                  if constexpr (_Flags._M_have_sse4_1() and sizeof(__x) == 16)
                     {
                       if (_mm_test_all_zeros(__x, __m128i{0xffe0'0000'0000'0000ull,
                                                           0xffe0'0000'0000'0000ull}))
@@ -1047,7 +1047,7 @@ namespace SIMD_NSPC::__detail
 
               // general strategy in the following: use an sllv instead of sll
               // instruction, because it's 2 to 4 times faster:
-              else if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
+              else if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                                    and sizeof(__x) == 16)
                 return reinterpret_cast<_TV>(
                          __builtin_ia32_pmovwb256_mask(
@@ -1056,7 +1056,7 @@ namespace SIMD_NSPC::__detail
                              __vec_broadcast<16, short>(__y), __v16int16(), -1),
                            __v16char(), -1));
 
-              else if constexpr (_Flags._M_have_avx512bw and sizeof(__x) == 32)
+              else if constexpr (_Flags._M_have_avx512bw() and sizeof(__x) == 32)
                 {
                   const auto __y32 = __vec_broadcast<32, short>(__y);
                   auto __x0 = __builtin_ia32_pmovsxbw512_mask(
@@ -1065,7 +1065,7 @@ namespace SIMD_NSPC::__detail
                   return reinterpret_cast<_TV>(__builtin_ia32_pmovwb512_mask(__x0, __v32char{}, -1));
                 }
 
-              else if constexpr (_Flags._M_have_avx512bw and sizeof(__x) == 64)
+              else if constexpr (_Flags._M_have_avx512bw() and sizeof(__x) == 64)
                 {
                   const auto __y16 = __vec_broadcast<32, short>(__y);
                   auto __x0 = __builtin_ia32_pmovsxbw512_mask(
@@ -1079,7 +1079,7 @@ namespace SIMD_NSPC::__detail
                                         __builtin_ia32_pmovwb512_mask(__x1, __v32char{}, -1)));
                 }
 
-              else if constexpr (_Flags._M_have_avx2 and sizeof(__x) == 32)
+              else if constexpr (_Flags._M_have_avx2() and sizeof(__x) == 32)
                 {
                   if (__y >= 8)
                     return _TV();
@@ -1177,7 +1177,7 @@ namespace SIMD_NSPC::__detail
 
           else if constexpr (sizeof(_Tp) == 1)
             {
-              if constexpr (sizeof __ix == 64 and _Flags._M_have_avx512bw)
+              if constexpr (sizeof __ix == 64 and _Flags._M_have_avx512bw())
                 return __vec_bitcast<_Tp>(__vec_concat(
                                             _mm512_cvtepi16_epi8(
                                               _mm512_sllv_epi16(_mm512_cvtepu8_epi16(__vec_lo256(__ix)),
@@ -1185,27 +1185,27 @@ namespace SIMD_NSPC::__detail
                                             _mm512_cvtepi16_epi8(
                                               _mm512_sllv_epi16(_mm512_cvtepu8_epi16(__vec_hi256(__ix)),
                                                                 _mm512_cvtepu8_epi16(__vec_hi256(__iy))))));
-              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw())
                 return __vec_bitcast<_Tp>(_mm512_cvtepi16_epi8(
                                             _mm512_sllv_epi16(_mm512_cvtepu8_epi16(__ix),
                                                               _mm512_cvtepu8_epi16(__iy))));
-              else if constexpr (sizeof __x <= 8 and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (sizeof __x <= 8 and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return __vec_bitcast_trunc<_TV>(
                          _mm_cvtepi16_epi8(_mm_sllv_epi16(_mm_cvtepu8_epi16(__ix),
                                                           _mm_cvtepu8_epi16(__iy))));
-              else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return reinterpret_cast<_TV>(_mm256_cvtepi16_epi8(
                                                _mm256_sllv_epi16(_mm256_cvtepu8_epi16(__ix),
                                                                  _mm256_cvtepu8_epi16(__iy))));
-              else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof __ix == 16 and _Flags._M_have_avx512bw())
                 return reinterpret_cast<_TV>(
                          __vec_lo128(_mm512_cvtepi16_epi8(
                                        _mm512_sllv_epi16(
                                          _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__ix)),
                                          _mm512_cvtepu8_epi16(_mm256_castsi128_si256(__iy))))));
-              else if constexpr (_Flags._M_have_sse4_1 and sizeof(__x) == 16)
+              else if constexpr (_Flags._M_have_sse4_1() and sizeof(__x) == 16)
                 {
                   using _MV = __mask_vec_from<_TV>;
                   auto __mask = reinterpret_cast<_TV>(__vec_bitcast<short>(__y) << 5);
@@ -1242,16 +1242,16 @@ namespace SIMD_NSPC::__detail
 
           else if constexpr (sizeof(_Tp) == 2)
             {
-              if constexpr (sizeof __ix == 64 and _Flags._M_have_avx512bw)
+              if constexpr (sizeof __ix == 64 and _Flags._M_have_avx512bw())
                 return __vec_bitcast<_Tp>(_mm512_sllv_epi16(__ix, __iy));
-              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return __vec_bitcast<_Tp>(_mm256_sllv_epi16(__ix, __iy));
-              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx512bw())
                 return __vec_bitcast<_Tp>(
                          __vec_lo256(_mm512_sllv_epi16(_mm512_castsi256_si512(__ix),
                                                        _mm512_castsi256_si512(__iy))));
-              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx2)
+              else if constexpr (sizeof __ix == 32 and _Flags._M_have_avx2())
                 {
                   const auto __ux = __vec_bitcast<unsigned>(__x);
                   const auto __uy = __vec_bitcast<unsigned>(__y);
@@ -1260,14 +1260,14 @@ namespace SIMD_NSPC::__detail
                              __to_x86_intrin(__ux << (__uy & 0x0000ffffu)),
                              __to_x86_intrin((__ux & 0xffff0000u) << (__uy >> 16)), 0xaa));
                 }
-              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return __vec_bitcast_trunc<_TV>(_mm_sllv_epi16(__ix, __iy));
-              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx512bw())
                 return __vec_bitcast_trunc<_TV>(
                          __vec_lo128(_mm512_sllv_epi16(_mm512_castsi128_si512(__ix),
                                                        _mm512_castsi128_si512(__iy))));
-              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx2)
+              else if constexpr (sizeof __ix <= 16 and _Flags._M_have_avx2())
                 {
                   const auto __ux = __vec_bitcast<unsigned>(__ix);
                   const auto __uy = __vec_bitcast<unsigned>(__iy);
@@ -1305,7 +1305,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_Tp>();
             }
-          else if constexpr (sizeof(_Tp) == 4 and sizeof __ix == 16 and not _Flags._M_have_avx2)
+          else if constexpr (sizeof(_Tp) == 4 and sizeof __ix == 16 and not _Flags._M_have_avx2())
             {
               if (__builtin_constant_p(__y))
                 {
@@ -1330,11 +1330,11 @@ namespace SIMD_NSPC::__detail
               return __x << __y;
 #endif
             }
-          else if constexpr (sizeof(_Tp) == 8 and sizeof __ix == 16 and not _Flags._M_have_avx2)
+          else if constexpr (sizeof(_Tp) == 8 and sizeof __ix == 16 and not _Flags._M_have_avx2())
             {
               const auto __lo = _mm_sll_epi64(__ix, __iy);
               const auto __hi = _mm_sll_epi64(__ix, _mm_unpackhi_epi64(__iy, __iy));
-              if constexpr (_Flags._M_have_sse4_1)
+              if constexpr (_Flags._M_have_sse4_1())
                 return __vec_bitcast<_Tp>(_mm_blend_epi16(__lo, __hi, 0xf0));
               else
                 return __vec_bitcast<_Tp>(_mm_move_sd(__vec_bitcast<double>(__hi),
@@ -1414,16 +1414,16 @@ namespace SIMD_NSPC::__detail
 
           else if constexpr (sizeof(_Tp) == 1)
             {
-              if constexpr (sizeof(__x) <= 8 and _Flags._M_have_avx512bw
-                              and _Flags._M_have_avx512vl)
+              if constexpr (sizeof(__x) <= 8 and _Flags._M_have_avx512bw()
+                              and _Flags._M_have_avx512vl())
                 return __vec_bitcast_trunc<_TV>(
                          _mm_cvtepi16_epi8(is_signed_v<_Tp> ? _mm_srav_epi16(_mm_cvtepi8_epi16(__ix),
                                                                              _mm_cvtepi8_epi16(__iy))
                                                             : _mm_srlv_epi16(_mm_cvtepu8_epi16(__ix),
                                                                              _mm_cvtepu8_epi16(__iy))));
 
-              else if constexpr (sizeof(__x) == 16 and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (sizeof(__x) == 16 and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return reinterpret_cast<_TV>(
                          _mm256_cvtepi16_epi8(is_signed_v<_Tp>
                                                 ? _mm256_srav_epi16(_mm256_cvtepi8_epi16(__ix),
@@ -1431,7 +1431,7 @@ namespace SIMD_NSPC::__detail
                                                 : _mm256_srlv_epi16(_mm256_cvtepu8_epi16(__ix),
                                                                     _mm256_cvtepu8_epi16(__iy))));
 
-              else if constexpr (sizeof(__x) == 32 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof(__x) == 32 and _Flags._M_have_avx512bw())
                 return reinterpret_cast<_TV>(
                          _mm512_cvtepi16_epi8(is_signed_v<_Tp>
                                                 ? _mm512_srav_epi16(_mm512_cvtepi8_epi16(__ix),
@@ -1457,7 +1457,7 @@ namespace SIMD_NSPC::__detail
                                              _mm512_maskz_mov_epi8(0x5555'5555'5555'5555ull, __iy))));
 
               /* This has better throughput but higher latency than the impl below
-                 else if constexpr (_Flags._M_have_avx2 and sizeof(__x) == 16 and is_unsigned_v<_Tp>)
+                 else if constexpr (_Flags._M_have_avx2() and sizeof(__x) == 16 and is_unsigned_v<_Tp>)
               {
               const auto __shorts = __to_x86_intrin(_S_bit_shift_right(
               __vec_bitcast<unsigned short>(_mm256_cvtepu8_epi16(__ix)),
@@ -1466,7 +1466,7 @@ namespace SIMD_NSPC::__detail
               _mm_packus_epi16(__vec_lo128(__shorts), __vec_hi128(__shorts)));
               }
                */
-              else if constexpr (_Flags._M_have_avx2 and sizeof(__x) > 8)
+              else if constexpr (_Flags._M_have_avx2() and sizeof(__x) > 8)
                 {
                   // the following uses vpsr[al]vd, which requires AVX2
                   if constexpr (is_signed_v<_Tp>)
@@ -1508,7 +1508,7 @@ namespace SIMD_NSPC::__detail
                       return __vec_bitcast<_Tp>(__r3 | (__r2 >> 8) | (__r1 >> 16) | (__r0 >> 24));
                     }
                 }
-              else if constexpr (_Flags._M_have_sse4_1 and is_unsigned_v<_Tp> and sizeof(__x) > 2)
+              else if constexpr (_Flags._M_have_sse4_1() and is_unsigned_v<_Tp> and sizeof(__x) > 2)
                 {
                   using _Impl16 = _VecAbi<16>::_Impl;
                   using _MV = __vec_builtin_type_bytes<__mask_integer_from<1>, 16>;
@@ -1532,7 +1532,7 @@ namespace SIMD_NSPC::__detail
                   return __vec_bitcast_trunc<_TV>(__x128 & ((__vec_zero_pad_to_16(__y)
                                                                & char(0xf8)) == 0));
                 }
-              else if constexpr (_Flags._M_have_sse4_1 and is_signed_v<_Tp> and sizeof(__x) > 2)
+              else if constexpr (_Flags._M_have_sse4_1() and is_signed_v<_Tp> and sizeof(__x) > 2)
                 {
                   using _Impl8 = _VecAbi<8>::_Impl;
                   using _MV = __v8int16;
@@ -1626,34 +1626,34 @@ namespace SIMD_NSPC::__detail
                 else
                   __assert_unreachable<decltype(__a)>();
               };
-              if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
+              if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                               and sizeof(_TV) <= 16)
                 return __vec_bitcast_trunc<_TV>(is_signed_v<_Tp>
                                                   ? _mm_srav_epi16(__ix, __iy)
                                                   : _mm_srlv_epi16(__ix, __iy));
-              else if constexpr (_Flags._M_have_avx512bw and _Flags._M_have_avx512vl
+              else if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                                    and sizeof(_TV) == 32)
                 return __vec_bitcast<_Tp>(is_signed_v<_Tp>
                                             ? _mm256_srav_epi16(__ix, __iy)
                                             : _mm256_srlv_epi16(__ix, __iy));
-              else if constexpr (_Flags._M_have_avx512bw and sizeof(_TV) == 64)
+              else if constexpr (_Flags._M_have_avx512bw() and sizeof(_TV) == 64)
                 return __vec_bitcast<_Tp>(is_signed_v<_Tp>
                                             ? _mm512_srav_epi16(__ix, __iy)
                                             : _mm512_srlv_epi16(__ix, __iy));
-              else if constexpr (_Flags._M_have_avx2 and is_signed_v<_Tp>)
+              else if constexpr (_Flags._M_have_avx2() and is_signed_v<_Tp>)
                 return __vec_bitcast_trunc<_TV>(
                          __blend_0xaa(((__vec_bitcast<int>(__ix) << 16)
                          >> (__vec_bitcast<int>(__iy) & 0xffffu))
                          >> 16,
                                       __vec_bitcast<int>(__ix)
                          >> (__vec_bitcast<int>(__iy) >> 16)));
-              else if constexpr (_Flags._M_have_avx2 and is_unsigned_v<_Tp>)
+              else if constexpr (_Flags._M_have_avx2() and is_unsigned_v<_Tp>)
                 return __vec_bitcast_trunc<_TV>(
                          __blend_0xaa((__vec_bitcast<unsigned>(__ix) & 0xffffu)
                          >> (__vec_bitcast<unsigned>(__iy) & 0xffffu),
                                       __vec_bitcast<unsigned>(__ix)
                          >> (__vec_bitcast<unsigned>(__iy) >> 16)));
-              else if constexpr (_Flags._M_have_sse4_1)
+              else if constexpr (_Flags._M_have_sse4_1())
                 {
                   auto __mask = __vec_bitcast<unsigned short>(__iy);
                   auto __x128 = __vec_bitcast<_Tp>(__ix);
@@ -1705,7 +1705,7 @@ namespace SIMD_NSPC::__detail
                   return __vec_bitcast_trunc<_TV>(__mask(__k + __k) ? __x128 >> 1 : __x128);
                 }
             }
-          else if constexpr (sizeof(_Tp) == 4 and not _Flags._M_have_avx2)
+          else if constexpr (sizeof(_Tp) == 4 and not _Flags._M_have_avx2())
             {
               static_assert(sizeof(__ix) == 16);
               if constexpr (is_unsigned_v<_Tp> and false)
@@ -1723,7 +1723,7 @@ namespace SIMD_NSPC::__detail
                   const auto __r02 = _mm_srli_epi64(_mm_mul_epu32(__ix, __factor), 31);
                   const auto __r13 = _mm_mul_epu32(_mm_srli_si128(__ix, 4),
                                                    _mm_srli_si128(__factor, 4));
-                  if constexpr (_Flags._M_have_sse4_1)
+                  if constexpr (_Flags._M_have_sse4_1())
                     return reinterpret_cast<_TV>(
                              _mm_blend_epi16(_mm_slli_epi64(__r13, 1), __r02, 0x33));
                   else
@@ -1746,7 +1746,7 @@ namespace SIMD_NSPC::__detail
                   const auto __r3 = _S_size == 4
                                       ? __shift(__ix, _mm_srli_si128(__iy, 12))
                                       : __m128i();
-                  if constexpr (_Flags._M_have_sse4_1)
+                  if constexpr (_Flags._M_have_sse4_1())
                     return __vec_bitcast_trunc<_TV>(
                              _mm_blend_epi16(_mm_blend_epi16(__r1, __r0, 0x3),
                                              _mm_blend_epi16(__r3, __r2, 0x30), 0xf0));
@@ -2143,19 +2143,19 @@ namespace SIMD_NSPC::__detail
         _S_sqrt(_TV __x)
         {
           using _Tp = __value_type_of<_TV>;
-          if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+          if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
             return __builtin_ia32_sqrtph512_mask_round(__x, _TV(), -1, _X86Round::_CurDirection);
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
             return __builtin_ia32_sqrtps512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
           else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
             return __builtin_ia32_sqrtpd512_mask(__x, _TV(), -1, _X86Round::_CurDirection);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16())
             return __builtin_ia32_sqrtph256_mask(__x, _TV(), -1);
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
             return __builtin_ia32_sqrtps256(__x);
           else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
             return __builtin_ia32_sqrtpd256(__x);
-          else if constexpr (__vec_builtin_sizeof<_TV, 2> and _Flags._M_have_avx512fp16)
+          else if constexpr (__vec_builtin_sizeof<_TV, 2> and _Flags._M_have_avx512fp16())
             return __builtin_ia32_sqrtph128_mask(__x, _TV(), -1);
           else if constexpr (__vec_builtin_sizeof<_TV, 4>)
             return __builtin_ia32_sqrtps(__x);
@@ -2174,7 +2174,7 @@ namespace SIMD_NSPC::__detail
           using _ExpAbi = typename _Abi::template _Rebind<int>;
           using _Tp = __value_type_of<_TV>;
           constexpr int _Np = _S_size;
-          if constexpr (sizeof(__x) == 64 or _Flags._M_have_avx512vl)
+          if constexpr (sizeof(__x) == 64 or _Flags._M_have_avx512vl())
             {
               const auto __xi = __to_x86_intrin(__x);
               constexpr _SimdConverter<int, _ExpAbi, _Tp, _Abi> __cvt;
@@ -2225,9 +2225,9 @@ namespace SIMD_NSPC::__detail
                 return _mm256_round_ps(__x, 0xb);
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                 return _mm256_round_ph(__x, 0xb);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1())
                 return _mm_round_pd(__x, 0xb);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1())
                 return _mm_round_ps(__x, 0xb);
               else if constexpr (__vec_builtin_sizeof<_TV, 2>)
                 return _mm_round_ph(__x, 0xb);
@@ -2265,9 +2265,9 @@ namespace SIMD_NSPC::__detail
             __truncated = _mm256_round_ps(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             __truncated = _mm256_round_ph(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1())
             __truncated = _mm_round_pd(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1())
             __truncated = _mm_round_ps(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             __truncated = _mm_round_ph(__x, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
@@ -2283,7 +2283,7 @@ namespace SIMD_NSPC::__detail
           const _TV __rounded = __truncated + (__vec_and(_S_absmask<_TV>, __x - __truncated) >= _Tp(.5)
                                                  ? __vec_or(__vec_and(_S_signmask<_TV>, __x), _TV() + 1)
                                                  : _TV());
-          if constexpr (_Flags._M_have_sse4_1)
+          if constexpr (_Flags._M_have_sse4_1())
             return __rounded;
           else // adjust for missing range in cvttps_epi32
             return __vec_and(_S_absmask<_TV>, __x) < 0x1p23f ? __rounded : __x;
@@ -2306,9 +2306,9 @@ namespace SIMD_NSPC::__detail
             return _mm256_round_ps(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1())
             return _mm_round_pd(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1())
             return _mm_round_ps(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
           else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, _MM_FROUND_CUR_DIRECTION | _MM_FROUND_NO_EXC);
@@ -2333,9 +2333,9 @@ namespace SIMD_NSPC::__detail
             return _mm256_round_ps(__x, _MM_FROUND_CUR_DIRECTION);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, _MM_FROUND_CUR_DIRECTION);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1())
             return _mm_round_pd(__x, _MM_FROUND_CUR_DIRECTION);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1())
             return _mm_round_ps(__x, _MM_FROUND_CUR_DIRECTION);
           else if constexpr (__vec_builtin_sizeof<_TV, 2>)
             return _mm_round_ph(__x, _MM_FROUND_CUR_DIRECTION);
@@ -2362,9 +2362,9 @@ namespace SIMD_NSPC::__detail
                 return _mm256_round_ps(__x, 0x09);
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
                 return _mm256_round_ph(__x, 0x09);
-              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8> and _Flags._M_have_sse4_1())
                 return _mm_round_pd(__x, 0x09);
-              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4> and _Flags._M_have_sse4_1())
                 return _mm_round_ps(__x, 0x09);
               else if constexpr (__vec_builtin_sizeof<_TV, 2>)
                 return _mm_round_ph(__x, 0x09);
@@ -2389,9 +2389,9 @@ namespace SIMD_NSPC::__detail
             return _mm256_round_ps(__x, 0x0a);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 32>)
             return _mm256_round_ph(__x, 0x0a);
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse4_1())
             return _mm_round_pd(__x, 0x0a);
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse4_1())
             return _mm_round_ps(__x, 0x0a);
           else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
             return _mm_round_ph(__x, 0x0a);
@@ -2408,29 +2408,29 @@ namespace SIMD_NSPC::__detail
             {
               const auto __xi = __to_x86_intrin(__x);
               [[maybe_unused]] constexpr auto __k1 = _Abi::template _S_implicit_mask<__value_type_of<_TV>>;
-              if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq)
+              if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq())
                 return _mm512_movepi64_mask(reinterpret_cast<__m512i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq())
                 return _mm512_movepi32_mask(reinterpret_cast<__m512i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw())
                 return _mm512_movepi16_mask(reinterpret_cast<__m512i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and _Flags._M_have_avx512dq
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and _Flags._M_have_avx512dq()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_movepi64_mask(reinterpret_cast<__m256i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and _Flags._M_have_avx512dq
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and _Flags._M_have_avx512dq()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_movepi32_mask(reinterpret_cast<__m256i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_movepi16_mask(reinterpret_cast<__m256i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_avx512dq
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_avx512dq()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_movepi64_mask(reinterpret_cast<__m128i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_avx512dq
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_avx512dq()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_movepi32_mask(reinterpret_cast<__m128i>(__x));
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512bw
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512bw()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_movepi16_mask(reinterpret_cast<__m128i>(__x));
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_movemask_pd(__xi);
@@ -2458,7 +2458,7 @@ namespace SIMD_NSPC::__detail
         _S_isnonzerovalue_mask(_TV __x)
         {
           using _Tp = __value_type_of<_TV>;
-          if constexpr (_Flags._M_have_avx512dq and _Flags._M_have_avx512vl)
+          if constexpr (_Flags._M_have_avx512dq() and _Flags._M_have_avx512vl())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 4, 16> or __vec_builtin_sizeof<_TV, 4, 8>)
                 return _knot_mask8(_mm_fpclass_ps_mask(__to_x86_intrin(__x), 0x9f));
@@ -2475,26 +2475,26 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_Tp>();
             }
-          else if constexpr (_Flags._M_have_avx512f)
+          else if constexpr (_Flags._M_have_avx512f())
             {
               const auto __a = __x * __infinity_v<_Tp>; // NaN if __x == 0
               const auto __b = __x * _Tp();             // NaN if __x == inf
-              if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 4, 16>)
+              if constexpr (_Flags._M_have_avx512vl() and __vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps_mask(__to_x86_intrin(__a), __to_x86_intrin(__b), _CMP_ORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return __mmask8(0xf & _mm512_cmp_ps_mask(__to_x86_intrin(__a), __to_x86_intrin(__b),
                                                          _CMP_ORD_Q));
-              else if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 8, 16>)
+              else if constexpr (_Flags._M_have_avx512vl() and __vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_cmp_pd_mask(__a, __b, _CMP_ORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return __mmask8(0x3 & _mm512_cmp_pd_mask(__to_x86_intrin(__a), __to_x86_intrin(__b),
                                                          _CMP_ORD_Q));
-              else if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 4, 32>)
+              else if constexpr (_Flags._M_have_avx512vl() and __vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_cmp_ps_mask(__a, __b, _CMP_ORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return __mmask8(_mm512_cmp_ps_mask(__to_x86_intrin(__a), __to_x86_intrin(__b),
                                                    _CMP_ORD_Q));
-              else if constexpr (_Flags._M_have_avx512vl and __vec_builtin_sizeof<_TV, 8, 32>)
+              else if constexpr (_Flags._M_have_avx512vl() and __vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd_mask(__a, __b, _CMP_ORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return __mmask8(0xf & _mm512_cmp_pd_mask(__to_x86_intrin(__a), __to_x86_intrin(__b),
@@ -2517,7 +2517,7 @@ namespace SIMD_NSPC::__detail
         {
 #if not __FINITE_MATH_ONLY__
           using _Tp = __value_type_of<_TV>;
-          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq)
+          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq())
             {
               const auto __xi = __to_x86_intrin(__x);
               constexpr auto __k1 = _Abi::template _S_implicit_mask<_Tp>;
@@ -2553,7 +2553,7 @@ namespace SIMD_NSPC::__detail
         _S_isinf(_TV __x)
         {
 #if !__FINITE_MATH_ONLY__
-          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq)
+          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq())
             {
               const auto __xi = __to_x86_intrin(__x);
               if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
@@ -2577,7 +2577,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx512dq and _Flags._M_have_avx512vl)
+          else if constexpr (_Flags._M_have_avx512dq() and _Flags._M_have_avx512vl())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_movm_epi64(_mm_fpclass_pd_mask(__x, 0x18));
@@ -2606,7 +2606,7 @@ namespace SIMD_NSPC::__detail
           [[maybe_unused]] constexpr int __mode = 0xbf;
 #endif
           using _Tp = __value_type_of<_TV>;
-          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq)
+          if constexpr (_S_use_bitmasks and _Flags._M_have_avx512dq())
             {
               const auto __xi = __to_x86_intrin(__x);
               const auto __k1 = __to_x86_intrin(_Abi::template _S_implicit_mask<_Tp>);
@@ -2614,21 +2614,21 @@ namespace SIMD_NSPC::__detail
                 return __k1 ^ _mm_mask_fpclass_pd_mask(__k1, __xi, __mode);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return __k1 ^ _mm_mask_fpclass_ps_mask(__k1, __xi, __mode);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return __k1 ^ _mm_mask_fpclass_ph_mask(__k1, __xi, __mode);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return __k1 ^ _mm256_mask_fpclass_pd_mask(__k1, __xi, __mode);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return __k1 ^ _mm256_mask_fpclass_ps_mask(__k1, __xi, __mode);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return __k1 ^ _mm256_mask_fpclass_ph_mask(__k1, __xi, __mode);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return __k1 ^ _mm512_mask_fpclass_pd_mask(__k1, __xi, __mode);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return __k1 ^ _mm512_mask_fpclass_ps_mask(__k1, __xi, __mode);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return __k1 ^ _mm512_mask_fpclass_ph_mask(__k1, __xi, __mode);
               else
                 __assert_unreachable<_Tp>();
@@ -2646,19 +2646,19 @@ namespace SIMD_NSPC::__detail
               return _S_less_equal(__minn, __absn) & _S_less(__absn, __infn);
 #endif
             }
-          else if constexpr (_Flags._M_have_avx512dq)
+          else if constexpr (_Flags._M_have_avx512dq())
             {
-              if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_avx512vl)
+              if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_avx512vl())
                 return _mm_movm_epi64(_knot_mask8(_mm_fpclass_pd_mask(__x, __mode)));
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_avx512vl())
                 return _mm_movm_epi32(_knot_mask8(_mm_fpclass_ps_mask(__to_x86_intrin(__x), __mode)));
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512vl())
                 return _mm_movm_epi16(_knot_mask8(_mm_fpclass_ph_mask(__to_x86_intrin(__x), __mode)));
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and _Flags._M_have_avx512vl())
                 return _mm256_movm_epi64(_knot_mask8(_mm256_fpclass_pd_mask(__x, __mode)));
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and _Flags._M_have_avx512vl())
                 return _mm256_movm_epi32(_knot_mask8(_mm256_fpclass_ps_mask(__x, __mode)));
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512vl())
                 return _mm256_movm_epi16(_knot_mask16(_mm256_fpclass_ph_mask(__x, __mode)));
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_movm_epi64(_knot_mask8(_mm512_fpclass_pd_mask(__x, __mode)));
@@ -2697,21 +2697,21 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else
                 __assert_unreachable<_Tp>();
@@ -2743,26 +2743,26 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx)
+          else if constexpr (_Flags._M_have_avx())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd(__xi, __yi, _CMP_GT_OQ);
@@ -2775,7 +2775,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
               using _IV = __vec_builtin_type<int, 4>;
               const auto __xn = reinterpret_cast<_IV>(__xi);
@@ -2784,7 +2784,7 @@ namespace SIMD_NSPC::__detail
               const auto __yp = __yn < 0 ? -(__yn & 0x7fff'ffff) : __yn;
               return reinterpret_cast<_IV>(_mm_cmpord_ps(__xi, __yi)) & (__xp > __yp);
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 8, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 8, 16>)
             return __vec_builtin_type<long long, 2>{
               -_mm_ucomigt_sd(__xi, __yi),
               -_mm_ucomigt_sd(_mm_unpackhi_pd(__xi, __xi), _mm_unpackhi_pd(__yi, __yi))};
@@ -2806,26 +2806,26 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_GE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx)
+          else if constexpr (_Flags._M_have_avx())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd(__xi, __yi, _CMP_GE_OQ);
@@ -2838,7 +2838,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
               using _IV = __vec_builtin_type<int, 4>;
               const auto __xn = reinterpret_cast<_IV>(__xi);
@@ -2847,7 +2847,7 @@ namespace SIMD_NSPC::__detail
               const auto __yp = __yn < 0 ? -(__yn & 0x7fff'ffff) : __yn;
               return reinterpret_cast<_IV>(_mm_cmpord_ps(__xi, __yi)) & (__xp >= __yp);
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 8, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 8, 16>)
             return __vec_builtin_type<long long, 2>{
               -_mm_ucomige_sd(__xi, __yi),
               -_mm_ucomige_sd(_mm_unpackhi_pd(__xi, __xi), _mm_unpackhi_pd(__yi, __yi))};
@@ -2869,26 +2869,26 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LT_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx)
+          else if constexpr (_Flags._M_have_avx())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd(__xi, __yi, _CMP_LT_OQ);
@@ -2901,7 +2901,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
               using _IV = __vec_builtin_type<int, 4>;
               const auto __xn = reinterpret_cast<_IV>(__xi);
@@ -2910,7 +2910,7 @@ namespace SIMD_NSPC::__detail
               const auto __yp = __yn < 0 ? -(__yn & 0x7fff'ffff) : __yn;
               return reinterpret_cast<_IV>(_mm_cmpord_ps(__xi, __yi)) & (__xp < __yp);
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 8, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 8, 16>)
             return __vec_builtin_type<long long, 2>{
               -_mm_ucomigt_sd(__yi, __xi),
               -_mm_ucomigt_sd(_mm_unpackhi_pd(__yi, __yi), _mm_unpackhi_pd(__xi, __xi))};
@@ -2932,26 +2932,26 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_LE_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx)
+          else if constexpr (_Flags._M_have_avx())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd(__xi, __yi, _CMP_LE_OQ);
@@ -2964,7 +2964,7 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 4, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
               using _IV = __vec_builtin_type<int, 4>;
               const auto __xn = reinterpret_cast<_IV>(__xi);
@@ -2973,7 +2973,7 @@ namespace SIMD_NSPC::__detail
               const auto __yp = __yn < 0 ? -(__yn & 0x7fff'ffff) : __yn;
               return reinterpret_cast<_IV>(_mm_cmpord_ps(__xi, __yi)) & (__xp <= __yp);
             }
-          else if constexpr (_Flags._M_have_sse2 and __vec_builtin_sizeof<_TV, 8, 16>)
+          else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 8, 16>)
             return __vec_builtin_type<long long, 2>{
               -_mm_ucomige_sd(__yi, __xi),
               -_mm_ucomige_sd(_mm_unpackhi_pd(__yi, __yi), _mm_unpackhi_pd(__xi, __xi))};
@@ -2995,26 +2995,26 @@ namespace SIMD_NSPC::__detail
                 return _mm512_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
                 return _mm512_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return _mm512_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm256_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 16>)
                 return _mm_mask_cmp_pd_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_mask_cmp_ps_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16
-                                   and _Flags._M_have_avx512vl)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 16> and _Flags._M_have_avx512fp16()
+                                   and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (_Flags._M_have_avx)
+          else if constexpr (_Flags._M_have_avx())
             {
               if constexpr (__vec_builtin_sizeof<_TV, 8, 32>)
                 return _mm256_cmp_pd(__xi, __yi, _CMP_NEQ_OQ);
@@ -3027,9 +3027,9 @@ namespace SIMD_NSPC::__detail
               else
                 __assert_unreachable<_TV>();
             }
-          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse2)
+          else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse2())
             return __vec_and(_mm_cmpord_pd(__xi, __yi), _mm_cmpneq_pd(__xi, __yi));
-          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse)
+          else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse())
             return __vec_and(_mm_cmpord_ps(__xi, __yi), _mm_cmpneq_ps(__xi, __yi));
           else
             __assert_unreachable<_TV>();
@@ -3055,9 +3055,9 @@ namespace SIMD_NSPC::__detail
 
       using _Base::_S_set;
 
-      static constexpr bool _S_have_sse3 = _Flags._M_have_sse3;
+      static constexpr bool _S_have_sse3 = _Flags._M_have_sse3();
 
-      static constexpr bool _S_have_ssse3 = _Flags._M_have_ssse3;
+      static constexpr bool _S_have_ssse3 = _Flags._M_have_ssse3();
 
 #ifndef __clang__
       template <typename _Tp>
@@ -3195,11 +3195,11 @@ namespace SIMD_NSPC::__detail
             {
               using _Tp = __value_type_of<_TV>;
               const auto __k = reinterpret_cast<__x86_builtin_int_t<_Tp>>(__x);
-              constexpr bool __bwvl = _Flags._M_have_avx512bw and _Flags._M_have_avx512vl;
-              constexpr bool __dqvl = _Flags._M_have_avx512dq and _Flags._M_have_avx512vl;
+              constexpr bool __bwvl = _Flags._M_have_avx512bw() and _Flags._M_have_avx512vl();
+              constexpr bool __dqvl = _Flags._M_have_avx512dq() and _Flags._M_have_avx512vl();
               _BitMask<_S_size> __m; // not sanitized
 
-              if constexpr (__vec_builtin_sizeof<_TV, 1, 64> and _Flags._M_have_avx512bw)
+              if constexpr (__vec_builtin_sizeof<_TV, 1, 64> and _Flags._M_have_avx512bw())
                 __m = __builtin_ia32_cvtb2mask512(__k);
 
               else if constexpr (__vec_builtin_sizeof<_TV, 1, 32> and __bwvl)
@@ -3208,7 +3208,7 @@ namespace SIMD_NSPC::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 1> and __bwvl)
                 __m = __builtin_ia32_cvtb2mask128(__vec_zero_pad_to_16(__k));
 
-              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw)
+              else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512bw())
                 __m = __builtin_ia32_cvtw2mask512(__k);
 
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 32> and __bwvl)
@@ -3217,7 +3217,7 @@ namespace SIMD_NSPC::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2> and __bwvl)
                 __m = __builtin_ia32_cvtw2mask128(__vec_zero_pad_to_16(__k));
 
-              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq)
+              else if constexpr (__vec_builtin_sizeof<_TV, 4, 64> and _Flags._M_have_avx512dq())
                 __m = __builtin_ia32_cvtd2mask512(__k);
 
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32> and __dqvl)
@@ -3226,7 +3226,7 @@ namespace SIMD_NSPC::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4> and __dqvl)
                 __m = __builtin_ia32_cvtd2mask128(__vec_zero_pad_to_16(__k));
 
-              else if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq)
+              else if constexpr (__vec_builtin_sizeof<_TV, 8, 64> and _Flags._M_have_avx512dq())
                 __m = __builtin_ia32_cvtq2mask512(__k);
 
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 32> and __dqvl)
@@ -3277,7 +3277,7 @@ namespace SIMD_NSPC::__detail
               const auto __kk = __data(__k);
               if constexpr (sizeof(__kk) == 1)
                 {
-                  if constexpr (_Flags._M_have_avx512dq)
+                  if constexpr (_Flags._M_have_avx512dq())
                     return __builtin_ia32_kortestcqi(
                              __kk, __sizemask == 0xff ? __kk : uint8_t(~__sizemask));
                   else
@@ -3286,10 +3286,10 @@ namespace SIMD_NSPC::__detail
               else if constexpr (sizeof(__kk) == 2)
                 return __builtin_ia32_kortestchi(
                          __kk, __sizemask == 0xffff ? __kk : uint16_t(~__sizemask));
-              else if constexpr (sizeof(__kk) == 4 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof(__kk) == 4 and _Flags._M_have_avx512bw())
                 return __builtin_ia32_kortestcsi(
                          __kk, __sizemask == 0xffffffffU ? __kk : uint32_t(~__sizemask));
-              else if constexpr (sizeof(__kk) == 8 and _Flags._M_have_avx512bw)
+              else if constexpr (sizeof(__kk) == 8 and _Flags._M_have_avx512bw())
                 return __builtin_ia32_kortestcdi(
                          __kk, __sizemask == 0xffffffffffffffffULL ? __kk : uint64_t(~__sizemask));
               else
@@ -3298,7 +3298,7 @@ namespace SIMD_NSPC::__detail
           else
             {
               static_assert(sizeof(__k) <= 32);
-              if constexpr (_Flags._M_have_sse4_1)
+              if constexpr (_Flags._M_have_sse4_1())
                 return 0 != _S_testc(__data(__k), _Abi::template _S_implicit_mask<_Tp>);
               else
                 {
@@ -3318,7 +3318,7 @@ namespace SIMD_NSPC::__detail
           else
             {
               static_assert(sizeof(__k) <= 32);
-              if constexpr (_Flags._M_have_sse4_1)
+              if constexpr (_Flags._M_have_sse4_1())
                 {
                   if constexpr (_Abi::_S_is_partial || sizeof(__k) < 16)
                     return 0 == _S_testz(__data(__k), _Abi::template _S_implicit_mask<_Tp>);
@@ -3343,7 +3343,7 @@ namespace SIMD_NSPC::__detail
           else
             {
               using _Tp = __mask_integer_from<_Bs>;
-              if constexpr (_Flags._M_have_sse4_1)
+              if constexpr (_Flags._M_have_sse4_1())
                 {
                   if constexpr (_Abi::_S_is_partial || sizeof(__k) < 16)
                     return 0 != _S_testz(__data(__k), _Abi::template _S_implicit_mask<_Tp>);
@@ -3373,7 +3373,7 @@ namespace SIMD_NSPC::__detail
           else
             {
               const int __bits = __movmsk(__kk);
-              if constexpr (_Flags._M_have_popcnt)
+              if constexpr (_Flags._M_have_popcnt())
                 {
                   const int __count = __builtin_popcount(__bits);
                   return _Bs == 2 ? __count / 2 : __count;
@@ -3455,7 +3455,7 @@ namespace SIMD_NSPC::__detail
                   return __i32;
                 }
 
-              else if constexpr (_Flags._M_have_sse2)
+              else if constexpr (_Flags._M_have_sse2())
                 return -SIMD_NSPC::reduce(-__k);
 
               else
@@ -3517,7 +3517,7 @@ namespace SIMD_NSPC::__detail
           if (not __builtin_is_constant_evaluated())
             {
               const auto __ai = __to_x86_intrin(__a);
-              if constexpr (_Flags._M_have_avx)
+              if constexpr (_Flags._M_have_avx())
                 {
                   if constexpr (sizeof(_TV) == 32)
                     {
@@ -3544,7 +3544,7 @@ namespace SIMD_NSPC::__detail
                   else
                     __assert_unreachable<_TV>();
                 }
-              else if constexpr (_Flags._M_have_sse4_1)
+              else if constexpr (_Flags._M_have_sse4_1())
                 return _mm_testz_si128(reinterpret_cast<__m128i>(__ai),
                                        reinterpret_cast<__m128i>(__ai));
               else
@@ -3589,7 +3589,7 @@ namespace SIMD_NSPC::__detail
                   else // TODO:ph
                     __assert_unreachable<_TV>();
                 }
-              else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx)
+              else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx())
                 {
                   if constexpr (sizeof(_Tp) == 8)
                     return _mm_testz_pd(__ai, __bi);
@@ -3598,7 +3598,7 @@ namespace SIMD_NSPC::__detail
                   else // TODO:ph
                     __assert_unreachable<_TV>();
                 }
-              else if constexpr (_Flags._M_have_sse4_1)
+              else if constexpr (_Flags._M_have_sse4_1())
                 return _mm_testz_si128(reinterpret_cast<__m128i>(__ai),
                                        reinterpret_cast<__m128i>(__bi));
               else
@@ -3610,7 +3610,7 @@ namespace SIMD_NSPC::__detail
         _GLIBCXX_SIMD_INTRINSIC static constexpr int
         _S_testc(_TV __a, _TV __b)
         {
-          static_assert(_Flags._M_have_sse4_1);
+          static_assert(_Flags._M_have_sse4_1());
 
           if (__builtin_is_constant_evaluated())
             return _S_is_zero(__vec_andnot(__a, __b));
@@ -3631,7 +3631,7 @@ namespace SIMD_NSPC::__detail
                   else // TODO:ph
                     __assert_unreachable<_TV>();
                 }
-              else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx)
+              else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx())
                 {
                   if constexpr (sizeof(_Tp) == 8)
                     return _mm_testc_pd(__ai, __bi);
