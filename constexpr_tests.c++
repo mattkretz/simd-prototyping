@@ -120,10 +120,10 @@ template <typename V, typename T = typename V::value_type>
         and std::ranges::random_access_range<V&>
         and not std::ranges::output_range<V&, T>
         and std::constructible_from<V, V> // broadcast
-        and simd::integral<V> == std::integral<T>
-        and simd::floating_point<V> == std::floating_point<T>
-        and simd::regular<V>
-        and simd::equality_comparable<V>
+        and ext::simd_integral<V> == std::integral<T>
+        and ext::simd_floating_point<V> == std::floating_point<T>
+        and ext::simd_regular<V>
+        and ext::simd_equality_comparable<V>
         and has_static_size<V>
       ;
 
@@ -133,8 +133,8 @@ template <typename V, typename T = typename V::value_type>
         and std::convertible_to<V, std::array<T, V::size()>>
         and std::convertible_to<std::array<T, V::size()>, V>
       // Not for masks because no implicit conversion from bool -> mask
-        and simd::equality_comparable_with<V, T>
-        and simd::equality_comparable_with<T, V>
+        and ext::simd_equality_comparable_with<V, T>
+        and ext::simd_equality_comparable_with<T, V>
       ;
 
 template <typename T>
@@ -229,44 +229,44 @@ namespace test_generator
 
 // mask generator ctor ///////////////
 
-namespace dp = std::simd_generic;
+static_assert(
+  all_of(std::mask<float, 4>([](int) { return true; }) == std::mask<float, 4>(true)));
+static_assert(
+  all_of(std::mask<float, 4>([](int) { return false; }) == std::mask<float, 4>(false)));
+static_assert(
+  all_of(std::mask<float, 4>([](int i) { return i < 2; })
+           == std::mask<float, 4>([](int i) {
+                return std::array{true, true, false, false}[i];
+              })));
 
-static_assert(
-  all_of(dp::mask<float, 4>([](int) { return true; }) == dp::mask<float, 4>(true)));
-static_assert(
-  all_of(dp::mask<float, 4>([](int) { return false; }) == dp::mask<float, 4>(false)));
-static_assert(
-  all_of(dp::mask<float, 4>([](int i) { return i < 2; })
-           == dp::mask<float, 4>(std::array{true, true, false, false}.begin())));
-
-static_assert(all_of((dp::generate<dp::simd<int, 4>>([](int i) { return i << 10; }) >> 10)
-                == dp::iota_v<dp::simd<int, 4>>));
+static_assert(all_of((std::generate<std::simd<int, 4>>([](int i) { return i << 10; }) >> 10)
+                == std::iota_v<std::simd<int, 4>>));
 
 // mask to simd ///////////////////////
 
 static_assert([] constexpr {
-  constexpr dp::mask<float, 7> a([](int i) -> bool { return i < 3; });
-  constexpr dp::basic_simd b = -a;
+  constexpr std::mask<float, 7> a([](int i) -> bool { return i < 3; });
+  constexpr std::basic_simd b = -a;
   static_assert(b[0] == -(0 < 3));
   static_assert(b[1] == -(1 < 3));
   static_assert(b[2] == -(2 < 3));
   static_assert(b[3] == -(3 < 3));
-  return all_of(b == dp::generate<dp::simd<int, 7>>([](int i) { return -int(i < 3); }));
+  return all_of(b == std::generate<std::simd<int, 7>>([](int i) { return -int(i < 3); }));
 }());
 
 static_assert([] constexpr {
-  constexpr dp::mask<float, 7> a([](int i) -> bool { return i < 3; });
-  constexpr dp::basic_simd b = ~a;
+  constexpr std::mask<float, 7> a([](int i) -> bool { return i < 3; });
+  constexpr std::basic_simd b = ~a;
   static_assert(b[0] == ~int(0 < 3));
   static_assert(b[1] == ~int(1 < 3));
   static_assert(b[2] == ~int(2 < 3));
   static_assert(b[3] == ~int(3 < 3));
-  return all_of(b == dp::generate<dp::simd<int, 7>>([](int i) { return ~int(i < 3); }));
+  return all_of(b == std::generate<std::simd<int, 7>>([](int i) { return ~int(i < 3); }));
 }());
 
 static_assert([] constexpr {
-  constexpr dp::mask<float, 4> a([](int i) -> bool { return i < 2; });
-  constexpr dp::basic_simd b = a;
+  constexpr std::mask<float, 4> a([](int i) -> bool { return i < 2; });
+  constexpr std::basic_simd b = a;
   static_assert(b[0] == 1);
   static_assert(b[1] == 1);
   static_assert(b[2] == 0);
@@ -276,16 +276,16 @@ static_assert([] constexpr {
 static_assert([] constexpr {
   // Corner case on AVX w/o AVX2 systems. <float, 5> is an AVX register;
   // <int, 5> is deduced as SSE + scalar.
-  constexpr dp::mask<float, 5> a([](int i) -> bool { return i >= 2; });
-  constexpr dp::basic_simd b = a;
+  constexpr std::mask<float, 5> a([](int i) -> bool { return i >= 2; });
+  constexpr std::basic_simd b = a;
   static_assert(b[0] == 0);
   static_assert(b[1] == 0);
   static_assert(b[2] == 1);
   static_assert(b[3] == 1);
   static_assert(b[4] == 1);
   static_assert(all_of((b == 1) == a));
-  constexpr dp::mask<float, 8> a8([](int i) -> bool { return i <= 4; });
-  constexpr dp::basic_simd b8 = a8;
+  constexpr std::mask<float, 8> a8([](int i) -> bool { return i <= 4; });
+  constexpr std::basic_simd b8 = a8;
   static_assert(b8[0] == 1);
   static_assert(b8[1] == 1);
   static_assert(b8[2] == 1);
@@ -295,8 +295,8 @@ static_assert([] constexpr {
   static_assert(b8[6] == 0);
   static_assert(b8[7] == 0);
   static_assert(all_of((b8 == 1) == a8));
-  constexpr dp::mask<float, 15> a15([](int i) -> bool { return i <= 4; });
-  constexpr dp::basic_simd b15 = a15;
+  constexpr std::mask<float, 15> a15([](int i) -> bool { return i <= 4; });
+  constexpr std::basic_simd b15 = a15;
   static_assert(b15[0] == 1);
   static_assert(b15[4] == 1);
   static_assert(b15[5] == 0);
@@ -307,9 +307,9 @@ static_assert([] constexpr {
 }());
 
 static_assert([] constexpr {
-  constexpr dp::mask<float, 4> a([](int i) -> bool { return i < 2; });
-  constexpr dp::basic_simd b = ~a;
-  constexpr dp::basic_simd c = a;
+  constexpr std::mask<float, 4> a([](int i) -> bool { return i < 2; });
+  constexpr std::basic_simd b = ~a;
+  constexpr std::basic_simd c = a;
   static_assert(c[0] == int(a[0]));
   static_assert(c[1] == int(a[1]));
   static_assert(c[2] == int(a[2]));
@@ -318,27 +318,27 @@ static_assert([] constexpr {
   static_assert(b[1] == ~int(1 < 2));
   static_assert(b[2] == ~int(2 < 2));
   static_assert(b[3] == ~int(3 < 2));
-  return all_of(b == dp::generate<dp::simd<int, 4>>([](int i) { return ~int(i < 2); }));
+  return all_of(b == std::generate<std::simd<int, 4>>([](int i) { return ~int(i < 2); }));
 }());
 
 // simd reductions ///////////////////
 
 namespace simd_reduction_tests
 {
-  static_assert(reduce(dp::simd<int, 7>(1)) == 7);
-  static_assert(reduce(dp::simd<int, 7>(2), std::multiplies<>()) == 128);
-  static_assert(reduce(dp::simd<int, 8>(2), std::bit_and<>()) == 2);
-  static_assert(reduce(dp::simd<int, 8>(2), std::bit_or<>()) == 2);
-  static_assert(reduce(dp::simd<int, 8>(2), std::bit_xor<>()) == 0);
-  static_assert(reduce(dp::simd<int, 3>(2), std::bit_and<>()) == 2);
-  static_assert(reduce(dp::simd<int, 6>(2), std::bit_and<>()) == 2);
-  static_assert(reduce(dp::simd<int, 7>(2), std::bit_and<>()) == 2);
-  static_assert(reduce(dp::simd<int, 7>(2), std::bit_or<>()) == 2);
-  static_assert(reduce(dp::simd<int, 7>(2), std::bit_xor<>()) == 2);
-  static_assert(reduce(dp::simd<int, 4>(2), dp::mask<int, 4>(false)) == 0);
-  static_assert(reduce(dp::simd<int, 4>(2), dp::mask<int, 4>(false), std::multiplies<>()) == 1);
-  static_assert(reduce(dp::simd<int, 4>(2), dp::mask<int, 4>(false), std::bit_and<>()) == ~0);
-  static_assert(reduce(dp::simd<int, 4>(2), dp::mask<int, 4>(false), [](auto a, auto b) {
+  static_assert(reduce(std::simd<int, 7>(1)) == 7);
+  static_assert(reduce(std::simd<int, 7>(2), std::multiplies<>()) == 128);
+  static_assert(reduce(std::simd<int, 8>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(std::simd<int, 8>(2), std::bit_or<>()) == 2);
+  static_assert(reduce(std::simd<int, 8>(2), std::bit_xor<>()) == 0);
+  static_assert(reduce(std::simd<int, 3>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(std::simd<int, 6>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(std::simd<int, 7>(2), std::bit_and<>()) == 2);
+  static_assert(reduce(std::simd<int, 7>(2), std::bit_or<>()) == 2);
+  static_assert(reduce(std::simd<int, 7>(2), std::bit_xor<>()) == 2);
+  static_assert(reduce(std::simd<int, 4>(2), std::mask<int, 4>(false)) == 0);
+  static_assert(reduce(std::simd<int, 4>(2), std::mask<int, 4>(false), std::multiplies<>()) == 1);
+  static_assert(reduce(std::simd<int, 4>(2), std::mask<int, 4>(false), std::bit_and<>()) == ~0);
+  static_assert(reduce(std::simd<int, 4>(2), std::mask<int, 4>(false), [](auto a, auto b) {
                   return select(a < b, a, b);
                 }, INT_MAX) == INT_MAX);
 
@@ -352,37 +352,37 @@ namespace simd_reduction_tests
 
 // mask reductions ///////////////////
 
-static_assert(all_of(dp::simd<float>() == dp::simd<float>()));
-static_assert(any_of(dp::simd<float>() == dp::simd<float>()));
-static_assert(not none_of(dp::simd<float>() == dp::simd<float>()));
-static_assert(reduce_count(dp::simd<float>() == dp::simd<float>()) == dp::simd<float>::size);
-static_assert(reduce_min_index(dp::simd<float>() == dp::simd<float>()) == 0);
-static_assert(reduce_max_index(dp::simd<float>() == dp::simd<float>()) == dp::simd<float>::size - 1);
+static_assert(all_of(std::simd<float>() == std::simd<float>()));
+static_assert(any_of(std::simd<float>() == std::simd<float>()));
+static_assert(not none_of(std::simd<float>() == std::simd<float>()));
+static_assert(reduce_count(std::simd<float>() == std::simd<float>()) == std::simd<float>::size);
+static_assert(reduce_min_index(std::simd<float>() == std::simd<float>()) == 0);
+static_assert(reduce_max_index(std::simd<float>() == std::simd<float>()) == std::simd<float>::size - 1);
 
 // split ////////////////////////
 
 static_assert([] {
-  constexpr auto a = dp::generate<dp::simd<int, 8>>([] (int i) { return i; });
-  auto a4 = split<dp::simd<int, 4>>(a);
-  auto a3 = split<dp::simd<int, 3>>(a);
-  return a4.size() == 2 and std::same_as<decltype(a4), std::array<dp::simd<int, 4>, 2>>
+  constexpr auto a = std::generate<std::simd<int, 8>>([] (int i) { return i; });
+  auto a4 = split<std::simd<int, 4>>(a);
+  auto a3 = split<std::simd<int, 3>>(a);
+  return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
-           and all_of(std::get<0>(a3) == dp::generate<dp::simd<int, 3>>([] (int i) { return i; }))
-           and all_of(std::get<1>(a3) == dp::generate<dp::simd<int, 3>>([] (int i) { return i + 3; }))
-           and all_of(std::get<2>(a3) == dp::generate<dp::simd<int, 2>>([] (int i) { return i + 6; }));
+           and all_of(std::get<0>(a3) == std::generate<std::simd<int, 3>>([] (int i) { return i; }))
+           and all_of(std::get<1>(a3) == std::generate<std::simd<int, 3>>([] (int i) { return i + 3; }))
+           and all_of(std::get<2>(a3) == std::generate<std::simd<int, 2>>([] (int i) { return i + 6; }));
 }());
 
 static_assert([] {
-  constexpr dp::mask<int, 8> a([] (int i) -> bool { return i & 1; });
-  auto a4 = split<dp::mask<int, 4>>(a);
-  auto a3 = split<dp::mask<int, 3>>(a);
-  return a4.size() == 2 and std::same_as<decltype(a4), std::array<dp::mask<int, 4>, 2>>
+  constexpr std::mask<int, 8> a([] (int i) -> bool { return i & 1; });
+  auto a4 = split<std::mask<int, 4>>(a);
+  auto a3 = split<std::mask<int, 3>>(a);
+  return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::mask<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
-           and all_of(std::get<0>(a3) == dp::mask<int, 3>(
+           and all_of(std::get<0>(a3) == std::mask<int, 3>(
                                            [] (int i) -> bool { return i & 1; }))
-           and all_of(std::get<1>(a3) == dp::mask<int, 3>(
+           and all_of(std::get<1>(a3) == std::mask<int, 3>(
                                            [] (int i) -> bool { return (i + 3) & 1; }))
-           and all_of(std::get<2>(a3) == dp::mask<int, 2>(
+           and all_of(std::get<2>(a3) == std::mask<int, 2>(
                                            [] (int i) -> bool { return (i + 6) & 1; }));
 }());
 
@@ -437,7 +437,7 @@ static_assert(
 
 static_assert(
   all_of(simd::permute(simd::iota_v<simd::simd<int>>, simd::permutations::swap_neighbors<1>)
-           == dp::generate<simd::simd<int>>([](int i) { return i ^ 1; })));
+           == std::generate<simd::simd<int>>([](int i) { return i ^ 1; })));
 
 static_assert(
   all_of(simd::permute(simd::iota_v<simd::simd<int, 8>>,
@@ -464,7 +464,7 @@ static_assert(
 
 static_assert(
   all_of(simd::permute(simd::iota_v<simd::simd<int>>, simd::permutations::reverse)
-           == dp::generate<simd::simd<int>>([](int i) { return int(simd::simd<int>::size()) - 1 - i; })));
+           == std::generate<simd::simd<int>>([](int i) { return int(simd::simd<int>::size()) - 1 - i; })));
 
 static_assert(
   all_of(simd::permute(simd::iota_v<simd::simd<int>>, simd::permutations::rotate<1>)
@@ -518,13 +518,9 @@ static_assert(not simd::flag_default._M_test(simd::flag_aligned));
 
 // simd concepts ///////////////////////////////////
 
-static_assert(std::simd_generic::integral<int>);
-static_assert(std::simd_generic::integral<simd::simd<int>>);
-static_assert(std::simd_generic::integral<simd::mask<int>>);
-
-static_assert(simd::regular<int>);
-static_assert(simd::regular<simd::simd<int>>);
-static_assert(simd::regular<simd::mask<int>>);
+static_assert(ext::simd_regular<int>);
+static_assert(ext::simd_regular<simd::simd<int>>);
+static_assert(ext::simd_regular<simd::mask<int>>);
 
 // simd.math ///////////////////////////////////////
 
@@ -583,12 +579,12 @@ namespace math_tests
                             >);
 
   static_assert(simd::floor(1.1_f1)[0] == std::floor(1.1f));
-  static_assert(simd::floor(std::array{1.1f, 1.2f, 2.f, 3.f})[0] == std::floor(1.1f));
+  static_assert(simd::floor(std::basic_simd(std::array{1.1f, 1.2f, 2.f, 3.f}))[0] == std::floor(1.1f));
   static_assert(simd::floor(holder {1.1_f1})[0] == std::floor(1.1f));
   static_assert(simd::hypot(1.1_f1, 1.2_f1)[0] == std::hypot(1.1f, 1.2f));
   static_assert(simd::hypot(1.1_f1, 1.2f)[0] == std::hypot(1.1f, 1.2f));
   // the next doesn't work with the P1928 spec, but it can be made to work
-  static_assert(simd::hypot(std::array{1.1f}, 1.2f)[0] == std::hypot(1.1f, 1.2f));
+  static_assert(simd::hypot(std::basic_simd(std::array{1.1f}), 1.2f)[0] == std::hypot(1.1f, 1.2f));
   static_assert(simd::hypot(1.1f, 1.2_f1)[0] == std::hypot(1.1f, 1.2f));
   static_assert(simd::hypot(1_cw, 1.2_f1)[0] == std::hypot(1.f, 1.2f));
   static_assert(simd::hypot(1.2_f1, 1_cw)[0] == std::hypot(1.f, 1.2f));

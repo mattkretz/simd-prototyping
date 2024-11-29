@@ -47,6 +47,18 @@ namespace std::__detail
           and bool_constant<T() == T::value>::value
           and bool_constant<static_cast<decltype(T::value)>(T()) == T::value>::value;
 
+  template <typename _Tp, size_t _Np = 0>
+    concept __static_sized_range
+      = ranges::contiguous_range<_Tp> and ranges::sized_range<_Tp>
+          and requires(_Tp&& __r) {
+#if 0 // PR117849
+            typename integral_constant<size_t, ranges::size(__r)>;
+#else
+            requires (decltype(std::span(__r))::extent != dynamic_extent);
+#endif
+            requires (_Np == 0 or ranges::size(__r) == _Np);
+          };
+
   template <typename _From, typename _To>
     concept __value_preserving_convertible_to
       = convertible_to<_From, _To>
@@ -160,12 +172,12 @@ namespace std::__detail
   template <typename T>
     concept __boolean_reducable_impl = requires(T&& x)
       {
-        { std::simd_generic::all_of(x) } -> std::same_as<bool>;
-        { std::simd_generic::none_of(x) } -> std::same_as<bool>;
-        { std::simd_generic::any_of(x) } -> std::same_as<bool>;
-        { std::simd_generic::reduce_count(x) } -> std::signed_integral;
-        { std::simd_generic::reduce_min_index(x) } -> std::signed_integral;
-        { std::simd_generic::reduce_max_index(x) } -> std::signed_integral;
+        { std::all_of(x) } -> std::same_as<bool>;
+        { std::none_of(x) } -> std::same_as<bool>;
+        { std::any_of(x) } -> std::same_as<bool>;
+        { std::reduce_count(x) } -> std::signed_integral;
+        { std::reduce_min_index(x) } -> std::signed_integral;
+        { std::reduce_max_index(x) } -> std::signed_integral;
       };
 
   template <typename T>
@@ -215,10 +227,10 @@ namespace std::__detail
 // simd_generic concepts. But doing this properly requires a split of generic non-member functions
 // into different namespaces.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace std
+namespace ext
 {
   template <typename _Tp>
-    concept simd_integral = (__detail::__valid_simd<_Tp> or __detail::__valid_mask<_Tp>)
+    concept simd_integral = (std::__detail::__valid_simd<_Tp> or std::__detail::__valid_mask<_Tp>)
                               and std::integral<typename _Tp::value_type>;
 
   template <typename _Tp>
@@ -231,25 +243,26 @@ namespace std
 
   template <typename _Tp>
     concept simd_floating_point
-      = __detail::__valid_simd<_Tp> and std::floating_point<typename _Tp::value_type>;
+      = std::__detail::__valid_simd<_Tp> and std::floating_point<typename _Tp::value_type>;
 
   template <typename _Tp>
     concept simd_arithmetic = simd_integral<_Tp> or simd_floating_point<_Tp>;
 
   template <typename _Tp>
-    concept simd_equality_comparable = __detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
+    concept simd_equality_comparable
+      = std::__detail::__simd_weakly_equality_comparable_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
     concept simd_equality_comparable_with
       = simd_equality_comparable<_Tp> and simd_equality_comparable<_Up>
-          and __detail::__simd_comparison_common_type_with<_Tp, _Up>
+          and std::__detail::__simd_comparison_common_type_with<_Tp, _Up>
           and simd_equality_comparable<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                                const std::remove_reference_t<_Up>&>>
-          and __detail::__simd_weakly_equality_comparable_with<_Tp, _Up>;
+          and std::__detail::__simd_weakly_equality_comparable_with<_Tp, _Up>;
 
   template <typename _Tp>
     concept simd_totally_ordered
-      = simd_equality_comparable<_Tp> and __detail::__simd_partially_ordered_with<_Tp, _Tp>;
+      = simd_equality_comparable<_Tp> and std::__detail::__simd_partially_ordered_with<_Tp, _Tp>;
 
   template <typename _Tp, typename _Up>
     concept simd_totally_ordered_with
@@ -257,7 +270,7 @@ namespace std
           and simd_equality_comparable_with<_Tp, _Up>
           and simd_totally_ordered<std::common_reference_t<const std::remove_reference_t<_Tp>&,
                                                            const std::remove_reference_t<_Up>&>>
-          and __detail::__simd_partially_ordered_with<_Tp, _Up>;
+          and std::__detail::__simd_partially_ordered_with<_Tp, _Up>;
 
   template <typename _Tp>
     concept simd_regular = std::semiregular<_Tp> and simd_equality_comparable<_Tp>;

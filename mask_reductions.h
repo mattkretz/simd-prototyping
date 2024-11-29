@@ -217,5 +217,35 @@ namespace std
         return __detail::__highest_bit(
                  _Abi::_MaskImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits());
     }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  all_of(same_as<bool> auto __x) noexcept
+  { return __x; }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  any_of(same_as<bool> auto __x) noexcept
+  { return __x; }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  none_of(same_as<bool> auto __x) noexcept
+  { return not __x; }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_count(same_as<bool> auto __x) noexcept
+  { return static_cast<__detail::_SimdSizeType>(__x); }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_min_index(same_as<bool> auto __x) noexcept
+  {
+    __glibcxx_simd_precondition(__x, "any_of(x) must be true");
+    return 0;
+  }
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_max_index(same_as<bool> auto __x) noexcept
+  {
+    __glibcxx_simd_precondition(__x, "any_of(x) must be true");
+    return 0;
+  }
 }
 #endif  // PROTOTYPE_MASK_REDUCTIONS_H_

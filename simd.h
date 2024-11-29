@@ -359,25 +359,26 @@ namespace std
       // Note that simd::simd is not a match, because it's not a contiguous range. Thus, if the
       // constraint were to be relaxed to a random-access range, I'd expect ambiguities with the
       // conversion constructor.
-      template <std::ranges::contiguous_range _Rg, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                      value_type, _Flags...>
-          and (__detail::__static_range_size<_Rg> == size.value)
+      template <__detail::__static_sized_range<size.value> _Rg, typename... _Flags>
         constexpr // implicit!
         basic_simd(_Rg&& __range, flags<_Flags...> __flags = {})
         : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
                                    std::ranges::data(__range)), _S_type_tag))
-        {}
+        {
+          static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                             value_type, _Flags...>);
+        }
 
 #if RANGES_TO_SIMD
       // optimize the contiguous_range case
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
-        requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
-                                                      value_type, _Flags...>
+        requires std::ranges::sized_range<_Rg>
         constexpr explicit
         basic_simd(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
         : _M_data(__data(std::load<basic_simd>(__range, __flags)))
         {
+          static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
+                                                             value_type, _Flags...>);
           __glibcxx_simd_precondition(std::ranges::size(__range) <= unsigned(size),
                                       "Input range is too large. "
                                       "Consider using std::views::take(N) or something similar "
@@ -722,17 +723,15 @@ namespace std
     : is_default_constructible<basic_simd<_Tp, _Abi>>
     {};
 
-  template <std::ranges::contiguous_range _Rg>
-    basic_simd(_Rg&&)
-      -> basic_simd<std::ranges::range_value_t<_Rg>,
-                   __detail::__deduce_t<std::ranges::range_value_t<_Rg>,
-                                        __detail::__static_range_size<_Rg>>>;
-
-  template <std::ranges::contiguous_range _Rg, typename... _Flags>
-    basic_simd(_Rg&&, flags<_Flags...>)
-      -> basic_simd<std::ranges::range_value_t<_Rg>,
-                   __detail::__deduce_t<std::ranges::range_value_t<_Rg>,
-                                        __detail::__static_range_size<_Rg>>>;
+  template <__detail::__static_sized_range _Rg, typename... _Other>
+    basic_simd(_Rg&& __r, _Other...)
+      -> basic_simd<ranges::range_value_t<_Rg>,
+                   __detail::__deduce_t<ranges::range_value_t<_Rg>,
+#if 0 // PR117849
+                                        ranges::size(__r)>>;
+#else
+                                        decltype(std::span(__r))::extent>>;
+#endif
 
 #if RANGES_TO_SIMD
     template <std::ranges::input_range _Rg>

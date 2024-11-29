@@ -42,12 +42,12 @@ std::ostream& operator<<(std::ostream& s, std::byte b)
 { return s << std::hex << static_cast<unsigned>(b) << std::dec; }
 
 template <typename T, typename Abi>
-std::ostream& operator<<(std::ostream& s, simd::basic_vec<T, Abi> const& v)
+std::ostream& operator<<(std::ostream& s, std::basic_simd<T, Abi> const& v)
 {
   using U = std::conditional_t<
               sizeof(T) == 1, int, std::conditional_t<
                                      is_character_type_v<T>,
-                                     simd::__detail::__make_unsigned_int_t<T>, T>>;
+                                     std::__detail::__make_unsigned_int_t<T>, T>>;
   s << '[' << U(v[0]);
   for (int i = 1; i < v.size(); ++i)
     s << ", " << U(v[i]);
@@ -55,7 +55,7 @@ std::ostream& operator<<(std::ostream& s, simd::basic_vec<T, Abi> const& v)
 }
 
 template <std::size_t B, typename Abi>
-std::ostream& operator<<(std::ostream& s, simd::basic_mask<B, Abi> const& v)
+std::ostream& operator<<(std::ostream& s, std::basic_mask<B, Abi> const& v)
 {
   s << '<';
   for (int i = 0; i < v.size(); ++i)
@@ -63,12 +63,9 @@ std::ostream& operator<<(std::ostream& s, simd::basic_mask<B, Abi> const& v)
   return s << '>';
 }
 
-template <simd::__detail::__vec_builtin V>
+template <std::__detail::__vec_builtin V>
   std::ostream& operator<<(std::ostream& s, V v)
-  {
-    return s << simd::vec<simd::__detail::__value_type_of<V>,
-                          simd::__detail::__width_of<V>>(v);
-  }
+  { return s << std::simd<std::__detail::__value_type_of<V>, std::__detail::__width_of<V>>(v); }
 
 static std::int64_t passed_tests = 0;
 static std::int64_t failed_tests = 0;
@@ -123,7 +120,7 @@ template <typename X, typename Y>
 additional_info
 verify(auto&& k, std::source_location loc = std::source_location::current())
 {
-  if (std::simd_generic::all_of(k))
+  if (std::all_of(k))
     {
       ++passed_tests;
       return {};
@@ -137,7 +134,7 @@ additional_info
 verify_equal(auto&& x, auto&& y,
              std::source_location loc = std::source_location::current())
 {
-  if (std::simd_generic::all_of(x == y) and std::simd_generic::none_of(x != y))
+  if (std::all_of(x == y) and std::none_of(x != y))
     {
       ++passed_tests;
       return {};
@@ -151,7 +148,7 @@ additional_info
 verify_not_equal(auto&& x, auto&& y,
                  std::source_location loc = std::source_location::current())
 {
-  if (std::simd_generic::all_of(x != y) and std::simd_generic::none_of(x == y))
+  if (std::all_of(x != y) and std::none_of(x == y))
     {
       ++passed_tests;
       return {};

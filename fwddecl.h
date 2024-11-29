@@ -252,6 +252,24 @@ namespace std
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
     reduce_max_index(const basic_mask<_Bs, _Abi>& __k);
 
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  all_of(same_as<bool> auto __x) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  any_of(same_as<bool> auto __x) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+  none_of(same_as<bool> auto __x) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_count(same_as<bool> auto __x) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_min_index(same_as<bool> auto __x) noexcept;
+
+  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
+  reduce_max_index(same_as<bool> auto __x) noexcept;
+
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
     split(const basic_simd<_Tp, _Abi>& __x) noexcept;
@@ -368,87 +386,6 @@ namespace std
     store(const basic_simd<_Tp, _Abi>& __v, _First __first, size_t __size,
           const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __size), __k, __flags); }
-}
-
-namespace std::simd_generic
-{
-  namespace scalar
-  {
-    namespace __detail = std::__detail;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    all_of(same_as<bool> auto __x) noexcept;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    any_of(same_as<bool> auto __x) noexcept;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    none_of(same_as<bool> auto __x) noexcept;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_count(same_as<bool> auto __x) noexcept;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_min_index(same_as<bool> auto __x) noexcept;
-
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_max_index(same_as<bool> auto __x) noexcept;
-
-    template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
-      constexpr _Tp
-      reduce(const _Tp& __x, _BinaryOperation);
-
-    template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, __type_identity_t<_Tp> __identity_element, _BinaryOperation);
-
-    template <__detail::__vectorizable _Tp>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, plus<>) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, multiplies<>) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::integral<_Tp>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, bit_and<>) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::integral<_Tp>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, bit_or<>) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::integral<_Tp>
-      constexpr _Tp
-      reduce(const _Tp& __x, bool __k, bit_xor<>) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::totally_ordered<_Tp>
-      constexpr _Tp
-      reduce_min(_Tp __x) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::totally_ordered<_Tp>
-      constexpr _Tp
-      reduce_min(_Tp __x, bool __k) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::totally_ordered<_Tp>
-      constexpr _Tp
-      reduce_max(_Tp __x) noexcept;
-
-    template <__detail::__vectorizable _Tp>
-      requires std::totally_ordered<_Tp>
-      constexpr _Tp
-      reduce_max(_Tp __x, bool __k) noexcept;
-  }
-
-  using namespace std;
-
-  using namespace std::simd_generic::scalar;
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

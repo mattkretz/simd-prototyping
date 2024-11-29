@@ -11,98 +11,6 @@
 
 namespace std::simd_generic::scalar
 {
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  all_of(same_as<bool> auto __x) noexcept
-  { return __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  any_of(same_as<bool> auto __x) noexcept
-  { return __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-  none_of(same_as<bool> auto __x) noexcept
-  { return not __x; }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_count(same_as<bool> auto __x) noexcept
-  { return static_cast<__detail::_SimdSizeType>(__x); }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_min_index(same_as<bool> auto __x) noexcept
-  {
-    __glibcxx_simd_precondition(__x, "any_of(x) must be true");
-    return 0;
-  }
-
-  _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-  reduce_max_index(same_as<bool> auto __x) noexcept
-  {
-    __glibcxx_simd_precondition(__x, "any_of(x) must be true");
-    return 0;
-  }
-
-  template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
-    constexpr _Tp
-    reduce(const _Tp& __x, _BinaryOperation)
-    { return __x; }
-
-  template <__detail::__vectorizable _Tp, std::invocable<_Tp, _Tp> _BinaryOperation>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, __type_identity_t<_Tp> __identity_element, _BinaryOperation)
-    { return __k ? __x : __identity_element; }
-
-  template <__detail::__vectorizable _Tp>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, plus<>) noexcept
-    { return __k ? __x : _Tp(); }
-
-  template <__detail::__vectorizable _Tp>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, multiplies<>) noexcept
-    { return __k ? __x : _Tp(1); }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::integral<_Tp>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, bit_and<>) noexcept
-    { return __k ? __x : _Tp(~_Tp()); }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::integral<_Tp>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, bit_or<>) noexcept
-    { return __k ? __x : _Tp(); }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::integral<_Tp>
-    constexpr _Tp
-    reduce(const _Tp& __x, bool __k, bit_xor<>) noexcept
-    { return __k ? __x : _Tp(); }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::totally_ordered<_Tp>
-    constexpr _Tp
-    reduce_min(_Tp __x) noexcept
-    { return __x; }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::totally_ordered<_Tp>
-    constexpr _Tp
-    reduce_min(_Tp __x, bool __k) noexcept
-    { return __k ? __x : std::__finite_max_v<_Tp>; }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::totally_ordered<_Tp>
-    constexpr _Tp
-    reduce_max(_Tp __x) noexcept
-    { return __x; }
-
-  template <__detail::__vectorizable _Tp>
-    requires std::totally_ordered<_Tp>
-    constexpr _Tp
-    reduce_max(_Tp __x, bool __k) noexcept
-    { return __k ? __x : std::__finite_min_v<_Tp>; }
-
   template <__detail::__vectorizable _Tp, ranges::contiguous_range _Rg, typename... _Flags>
     constexpr _Tp
     load(_Rg&& __range, flags<_Flags...> __flags = {})
@@ -250,22 +158,22 @@ namespace std::simd_generic
 
 
   template <typename _Tp>
-    concept integral = std::integral<_Tp> or std::integral<_Tp>;
+    concept integral = std::integral<_Tp> or ext::simd_integral<_Tp>;
 
   template <typename _Tp>
-    concept signed_integral = std::signed_integral<_Tp> or std::signed_integral<_Tp>;
+    concept signed_integral = std::signed_integral<_Tp> or ext::simd_signed_integral<_Tp>;
 
   template <typename _Tp>
-    concept unsigned_integral = std::unsigned_integral<_Tp> or std::unsigned_integral<_Tp>;
+    concept unsigned_integral = std::unsigned_integral<_Tp> or ext::simd_unsigned_integral<_Tp>;
 
   template <typename _Tp>
-    concept floating_point = std::floating_point<_Tp> or std::floating_point<_Tp>;
+    concept floating_point = std::floating_point<_Tp> or ext::simd_floating_point<_Tp>;
 
   template <typename _Tp>
     concept arithmetic = integral<_Tp> or floating_point<_Tp>;
 
   template <typename _Tp>
-    concept regular = std::regular<_Tp> or std::regular<_Tp>;
+    concept regular = std::regular<_Tp> or ext::simd_regular<_Tp>;
 }
 
 #endif  // PROTOTYPE_SIMD_GENERIC_H_
