@@ -9,141 +9,28 @@
 #include "simd.h"
 #include <cmath>
 
-#define _GLIBCXX_SIMD_HAVE_VECTORMATH_ABI 1
-
-#if _GLIBCXX_SIMD_HAVE_VECTORMATH_ABI
-#if _GLIBCXX_SIMD_HAVE_AVX512F
-#define _GLIBCXX_SIMD_VECTORABI_ISA e
-#elif _GLIBCXX_SIMD_HAVE_AVX2
-#define _GLIBCXX_SIMD_VECTORABI_ISA d
-#elif _GLIBCXX_SIMD_HAVE_AVX
-#define _GLIBCXX_SIMD_VECTORABI_ISA c
-#elif _GLIBCXX_SIMD_HAVE_SSE
-#define _GLIBCXX_SIMD_VECTORABI_ISA b
-#endif
-
-#define _GLIBCXX_SIMD_VECMATH_NAME_IMPL2(a, b, c, d, e) \
-  _ZGV ## a ## N ## b ## c ## d ## e
-
-#define _GLIBCXX_SIMD_VECMATH_NAME_IMPL(a, b, c, d, e) \
-  _GLIBCXX_SIMD_VECMATH_NAME_IMPL2(a, b, c, d, e)
-
-#define _GLIBCXX_SIMD_VECMATH_NAME(vlen, vparms, name, suffix) \
-  _GLIBCXX_SIMD_VECMATH_NAME_IMPL(_GLIBCXX_SIMD_VECTORABI_ISA, vlen, vparms, name, suffix)
-
-extern "C" {
-#define _GLIBCXX_SIMD_VECMATH_DECL_1ARG(name)                                                      \
-  extern SIMD_NSPC::__detail::__v16float                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(16, v, name, f)(SIMD_NSPC::__detail::__v16float);                     \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v8float                                                            \
-  _GLIBCXX_SIMD_VECMATH_NAME(8, v, name, f)(SIMD_NSPC::__detail::__v8float);                       \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v4float                                                            \
-  _GLIBCXX_SIMD_VECMATH_NAME(4, v, name, f)(SIMD_NSPC::__detail::__v4float);                       \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v8double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(8, v, name, )(SIMD_NSPC::__detail::__v8double);                       \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v4double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(4, v, name, )(SIMD_NSPC::__detail::__v4double);                       \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v2double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(2, v, name, )(SIMD_NSPC::__detail::__v2double)
-
-#define _GLIBCXX_SIMD_VECMATH_DECL_2ARG(name)                                                      \
-  extern SIMD_NSPC::__detail::__v16float                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(16, vv, name, f)(SIMD_NSPC::__detail::__v16float,                     \
-                                              SIMD_NSPC::__detail::__v16float);                    \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v8float                                                            \
-  _GLIBCXX_SIMD_VECMATH_NAME(8, vv, name, f)(SIMD_NSPC::__detail::__v8float,                       \
-                                             SIMD_NSPC::__detail::__v8float);                      \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v4float                                                            \
-  _GLIBCXX_SIMD_VECMATH_NAME(4, vv, name, f)(SIMD_NSPC::__detail::__v4float,                       \
-                                             SIMD_NSPC::__detail::__v4float);                      \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v8double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(8, vv, name, )(SIMD_NSPC::__detail::__v8double,                       \
-                                            SIMD_NSPC::__detail::__v8double);                      \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v4double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(4, vv, name, )(SIMD_NSPC::__detail::__v4double,                       \
-                                            SIMD_NSPC::__detail::__v4double);                      \
-                                                                                                   \
-  extern SIMD_NSPC::__detail::__v2double                                                           \
-  _GLIBCXX_SIMD_VECMATH_NAME(2, vv, name, )(SIMD_NSPC::__detail::__v2double,                       \
-                                            SIMD_NSPC::__detail::__v2double)
-
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(exp);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(sin);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(cos);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(tan);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(log);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(log2);
-  _GLIBCXX_SIMD_VECMATH_DECL_1ARG(log10);
-
-  _GLIBCXX_SIMD_VECMATH_DECL_2ARG(pow);
-}
-#endif
-
 namespace SIMD_NSPC
 {
   namespace __detail
   {
-    /* If we add our own common_type we can make 'hypot(holder<simd<float>>, float)' work.
+    template <typename _Tp>
+      constexpr bool __is_simd_specialization = false;
 
-    template <typename...>
-      struct common_type;
-
-    template <typename... _Ts>
-      using common_type_t = typename common_type<_Ts...>::type;
-
-    template <typename _T0>
-      struct common_type<_T0>
-      { using type = _T0; };
-
-    template <typename _T0>
-      struct common_type<_T0, _T0>
-      { using type = _T0; };
-
-    template <typename _T0>
-      struct common_type<_T0, _T0, _T0>
-      { using type = _T0; };
-
-    template <typename _T0, typename _T1>
-      requires requires(_T0 __a, _T1 __b) { select(__a == __b, __a, __b); }
-      struct common_type<_T0, _T1>
-      { using type = decltype(select(std::declval<_T0>() == std::declval<_T1>(),
-                                     std::declval<_T0>(), std::declval<_T1>())); };
-
-    template <typename _T0, typename _T1, typename... _Ts>
-      requires requires { typename common_type<typename common_type<_T0, _T1>::type,
-                                               typename common_type<_Ts...>::type>::type; }
-      struct common_type<_T0, _T1, _Ts...>
-      : common_type<typename common_type<_T0, _T1>::type, typename common_type<_Ts...>::type>
-      {};
-    */
+    template <typename _Tp, typename _Abi>
+      constexpr bool __is_simd_specialization<basic_vec<_Tp, _Abi>> = true;
 
     template <typename _Tp>
-      concept __can_deduce_simd = requires(const _Tp& __x) {
-        basic_vec(std::declval<_Tp>());
-      };
+      using __plus_result_t = decltype(declval<const _Tp&>() + declval<const _Tp&>());
 
     template <typename _Tp>
       struct __deduced_simd
       { using type = void; };
 
     template <typename _Tp>
-      requires requires(const _Tp& __x) { { __x + __x } -> floating_point; }
-        and (not __can_deduce_simd<_Tp>)
+      requires __is_simd_specialization<__plus_result_t<_Tp>>
+        and is_destructible_v<__plus_result_t<_Tp>>
       struct __deduced_simd<_Tp>
-      { using type = decltype(std::declval<const _Tp&>() + std::declval<const _Tp&>()); };
-
-    template <__can_deduce_simd _Tp>
-      struct __deduced_simd<_Tp>
-      { using type = decltype(basic_vec(std::declval<const _Tp&>())); };
+      { using type = __plus_result_t<_Tp>; };
 
     template <typename _Tp>
       using __deduced_simd_t = typename __deduced_simd<_Tp>::type;
@@ -187,118 +74,378 @@ namespace SIMD_NSPC
       struct __math_common_simd<_T0, _T1, _T2, _Ts...>
       : std::common_type<typename __math_common_simd<_T2, _Ts...>::type, _T0, _T1>
       {};
-
-    template <typename _To, typename _From>
-      constexpr
-      conditional_t<convertible_to<_From&, _To&> and convertible_to<const _From&, const _To&>,
-                    const _To&, _To>
-      __cast_if_needed(const _From& __x)
-      { return __x; }
   }
-
-  template <__detail::__math_floating_point _V0, auto = __detail::__build_flags()>
-    constexpr __detail::__deduced_simd_t<_V0>
-    floor(const _V0& __xx)
-    {
-      using _Vp = __detail::__deduced_simd_t<_V0>;
-      const _Vp& __x = __xx;
-      return _Vp::_Impl::_S_floor(__data(__x));
-    }
-
-  template <typename _V0, typename _V1, auto = __detail::__build_flags()>
-    constexpr __detail::__math_common_simd_t<_V0, _V1>
-    hypot(const _V0& __xx, const _V1& __yy)
-    {
-      using _Vp = __detail::__math_common_simd_t<_V0, _V1>;
-      const _Vp& __x = __xx;
-      const _Vp& __y = __yy;
-      return _Vp::_Impl::_S_hypot(__data(__x), __data(__y));
-    }
-
-  template <typename _V0, typename _V1, typename _V2, auto = __detail::__build_flags()>
-    constexpr __detail::__math_common_simd_t<_V0, _V1, _V2>
-    hypot(const _V0& __xx, const _V1& __yy, const _V2& __zz)
-    {
-      using _Vp = __detail::__math_common_simd_t<_V0, _V1, _V2>;
-      const _Vp& __x = __xx;
-      const _Vp& __y = __yy;
-      const _Vp& __z = __zz;
-      return _Vp::_Impl::_S_hypot(__data(__x), __data(__y), __data(__z));
-    }
 }
-
 
 #define _GLIBCXX_SIMD_MATH_1ARG(name)                                                              \
 namespace SIMD_NSPC                                                                                \
 {                                                                                                  \
   namespace __detail                                                                               \
   {                                                                                                \
-    template <__vec_builtin _Vp>                                                                   \
-      [[gnu::optimize("-O3", "-fno-math-errno")]] _Vp                                              \
-      __##name##_loop(_Vp __v)                                                                     \
+    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
+      [[gnu::flatten,                                                                              \
+        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
+      __##name(_Vp __v)                                                                            \
       {                                                                                            \
+        _Vp __ret;                                                                                 \
+        _Pragma("GCC ivdep")                                                                       \
         for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
-          __v[__i] = std::name(__v[__i]);                                                          \
-        return __v;                                                                                \
+          {                                                                                        \
+            if constexpr (sizeof(__v[0]) == sizeof(float))                                         \
+              __ret[__i] = __builtin_##name##f(__v[__i]);                                          \
+            else if constexpr (sizeof(__v[0]) == sizeof(double))                                   \
+              __ret[__i] = __builtin_##name(__v[__i]);                                             \
+            else                                                                                   \
+              static_assert(false);                                                                \
+          }                                                                                        \
+        return __ret;                                                                              \
       }                                                                                            \
   }                                                                                                \
                                                                                                    \
-  template <SIMD_NSPC::__detail::__math_floating_point _Up>                                        \
-    _GLIBCXX_ALWAYS_INLINE constexpr _Up                                                           \
+  template <__detail::__math_floating_point _Up>                                                   \
+    _GLIBCXX_ALWAYS_INLINE constexpr __detail::__deduced_simd_t<_Up>                               \
     name(const _Up& __xx)                                                                          \
     {                                                                                              \
-      using _Vp = __detail::__deduced_simd_t<_Up>;                                                   \
-      const _Vp& __x = __detail::__cast_if_needed<_Vp>(__xx);                                      \
+      using _Vp = __detail::__deduced_simd_t<_Up>;                                                 \
       using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
-      if (__builtin_is_constant_evaluated() or __x._M_is_constprop())                              \
-        return _Vp([&] (int __i) { return std::name(__x[__i]); });                                 \
-      else if constexpr (sizeof(_Vp) == 64 and sizeof(_Tp) == 4)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(16, v, name, f)(__data(__x)));                     \
-      else if constexpr (sizeof(_Vp) == 32 and sizeof(_Tp) == 4)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(8, v, name, f)(__data(__x)));                      \
-      else if constexpr (sizeof(_Vp) == 16 and sizeof(_Tp) == 4)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(4, v, name, f)(__data(__x)));                      \
-      else if constexpr (sizeof(_Vp) == 64 and sizeof(_Tp) == 8)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(8, v, name,)(__data(__x)));                        \
-      else if constexpr (sizeof(_Vp) == 32 and sizeof(_Tp) == 8)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(4, v, name,)(__data(__x)));                        \
-      else if constexpr (sizeof(_Vp) == 16 and sizeof(_Tp) == 8)                                   \
-        return _Vp(::_GLIBCXX_SIMD_VECMATH_NAME(2, v, name,)(__data(__x)));                        \
+      const _Vp& __x = __xx;                                                                       \
+      auto __gen = [&] (int __i) {                                                                 \
+        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
+          return __builtin_##name##f(__x[__i]);                                                    \
+        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
+          return __builtin_##name(__x[__i]);                                                       \
+        else                                                                                       \
+          static_assert(false);                                                                    \
+      };                                                                                           \
+      if consteval                                                                                 \
+        { return _Vp(__gen); }                                                                     \
       else                                                                                         \
-        return _Vp(__detail::__##name##_loop(__data(__x)));                                        \
-    }                                                                                              \
-                                                                                                   \
-  template <std::floating_point _Tp, __detail::__simd_abi_tag _Abi0, __detail::_SimdSizeType _Np>  \
-    requires __detail::__vectorizable<_Tp>                                                         \
-    constexpr basic_vec<_Tp, _AbiArray<_Abi0, _Np>>                                                \
-    name(const basic_vec<_Tp, _AbiArray<_Abi0, _Np>>& __x)                                         \
-    {                                                                                              \
-      basic_vec<_Tp, _AbiArray<_Abi0, _Np>> __r;                                                   \
-      const auto& __arr = __data(__x);                                                             \
-      std::transform(__arr.begin(), __arr.end(), __data(__r).begin(),                              \
-                     [] [[gnu::always_inline]] (auto __v) {                                        \
-                       return __data(name(basic_vec<_Tp, _Abi0>(__v)));                            \
-                     });                                                                           \
-      return __r;                                                                                  \
-    }                                                                                              \
-                                                                                                   \
-  template <std::floating_point _Tp, __detail::_SimdSizeType _Np, typename _Tag>                   \
-    requires __detail::__vectorizable<_Tp>                                                         \
-    constexpr basic_vec<_Tp, _AbiCombine<_Np, _Tag>>                                               \
-    name(const basic_vec<_Tp, _AbiCombine<_Np, _Tag>>& __x)                                        \
-    {                                                                                              \
-      using _Tup = typename _AbiCombine<_Np, _Tag>::template _SimdMember<_Tp>;                     \
-      return _Tup::_S_generate_pervec([&] [[gnu::always_inline]] (vir::constexpr_value auto __i) { \
-               return __data(name(__data(__x)._M_simd_at(__i)));                                   \
-             });                                                                                   \
+        {                                                                                          \
+          if (__x._M_is_constprop())                                                               \
+            return _Vp(__gen);                                                                     \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+            {                                                                                      \
+              using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
+              return _Vp(__detail::__private_init,                                                 \
+                         _Tup::_S_generate_pervec(                                                 \
+                           [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
+                             return __data(name(__x._M_data._M_simd_at(__i)));                     \
+                           }));                                                                    \
+            }                                                                                      \
+          else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
+            {                                                                                      \
+              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              _Vp __r;                                                                             \
+              const auto& __arr0 = __x._M_data;                                                    \
+              _GLIBCXX_SIMD_INT_PACK(__arr0.size(), _Is, {                                         \
+                ((__r._M_data[_Is] = name(_VPart(__arr0[_Is]))._M_data), ...);                     \
+              });                                                                                  \
+              return __r;                                                                          \
+            }                                                                                      \
+          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data); })                     \
+            return _Vp::_Impl::_S_##name(__x._M_data);                                             \
+          else                                                                                     \
+            return _Vp(__detail::__##name(__x._M_data));                                           \
+        }                                                                                          \
     }                                                                                              \
 }                                                                                                  \
                                                                                                    \
-namespace std                                                                                      \
+namespace SIMD_TOPLEVEL_NSPC                                                                       \
 {                                                                                                  \
   using SIMD_NSPC::name;                                                                           \
 }
 
+#define _GLIBCXX_SIMD_MATH_2ARG(name)                                                              \
+namespace SIMD_NSPC                                                                                \
+{                                                                                                  \
+  namespace __detail                                                                               \
+  {                                                                                                \
+    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
+      [[gnu::flatten,                                                                              \
+        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
+      __##name(_Vp __v0, _Vp __v1)                                                                 \
+      {                                                                                            \
+        _Vp __ret;                                                                                 \
+        _Pragma("GCC ivdep")                                                                       \
+        for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
+          {                                                                                        \
+            if constexpr (sizeof(__v0[0]) == sizeof(float))                                        \
+              __ret[__i] = __builtin_##name##f(__v0[__i], __v1[__i]);                              \
+            else if constexpr (sizeof(__v0[0]) == sizeof(double))                                  \
+              __ret[__i] = __builtin_##name(__v0[__i], __v1[__i]);                                 \
+            else                                                                                   \
+              static_assert(false);                                                                \
+          }                                                                                        \
+        return __ret;                                                                              \
+      }                                                                                            \
+  }                                                                                                \
+                                                                                                   \
+  template <typename _V0, typename _V1>                                                            \
+    _GLIBCXX_ALWAYS_INLINE constexpr __detail::__math_common_simd_t<_V0, _V1>                      \
+    name(const _V0& __x0, const _V1& __x1)                                                         \
+    {                                                                                              \
+      using _Vp = __detail::__math_common_simd_t<_V0, _V1>;                                        \
+      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      const _Vp& __x = __x0;                                                                       \
+      const _Vp& __y = __x1;                                                                       \
+      auto __gen = [&] (int __i) {                                                                 \
+        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
+          return __builtin_##name##f(__x[__i], __y[__i]);                                          \
+        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
+          return __builtin_##name(__x[__i], __y[__i]);                                             \
+        else                                                                                       \
+          static_assert(false);                                                                    \
+      };                                                                                           \
+      if consteval                                                                                 \
+        { return _Vp(__gen); }                                                                     \
+      else                                                                                         \
+        {                                                                                          \
+          if (__x._M_is_constprop() and __y._M_is_constprop())                                     \
+            return _Vp(__gen);                                                                     \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+            {                                                                                      \
+              using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
+              return _Vp(__detail::__private_init,                                                 \
+                         _Tup::_S_generate_pervec(                                                 \
+                           [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
+                             return __data(name(__x._M_data._M_simd_at(__i),                       \
+                                                __y._M_data._M_simd_at(__i)));                     \
+                           }));                                                                    \
+            }                                                                                      \
+          else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
+            {                                                                                      \
+              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              _Vp __r;                                                                             \
+              const auto& __arr0 = __x._M_data;                                                    \
+              const auto& __arr1 = __y._M_data;                                                    \
+              _GLIBCXX_SIMD_INT_PACK(__arr0.size(), _Is, {                                         \
+                ((__r._M_data[_Is] = name(_VPart(__arr0[_Is]), _VPart(__arr1[_Is]))._M_data), ...);\
+              });                                                                                  \
+              return __r;                                                                          \
+            }                                                                                      \
+          else                                                                                     \
+            return _Vp(__detail::__##name(__x._M_data, __y._M_data));                              \
+        }                                                                                          \
+    }                                                                                              \
+}                                                                                                  \
+                                                                                                   \
+namespace SIMD_TOPLEVEL_NSPC                                                                       \
+{                                                                                                  \
+  using SIMD_NSPC::name;                                                                           \
+}
+
+#define _GLIBCXX_SIMD_MATH_3ARG(name)                                                              \
+namespace SIMD_NSPC                                                                                \
+{                                                                                                  \
+  namespace __detail                                                                               \
+  {                                                                                                \
+    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
+      [[gnu::flatten,                                                                              \
+        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
+      __##name(_Vp __v0, _Vp __v1, _Vp __v2)                                                       \
+      {                                                                                            \
+        _Vp __ret;                                                                                 \
+        _Pragma("GCC ivdep")                                                                       \
+        for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
+          {                                                                                        \
+            if constexpr (sizeof(__v0[0]) == sizeof(float))                                        \
+              __ret[__i] = __builtin_##name##f(__v0[__i], __v1[__i], __v2[__i]);                   \
+            else if constexpr (sizeof(__v0[0]) == sizeof(double))                                  \
+              __ret[__i] = __builtin_##name(__v0[__i], __v1[__i], __v2[__i]);                      \
+            else                                                                                   \
+              static_assert(false);                                                                \
+          }                                                                                        \
+        return __ret;                                                                              \
+      }                                                                                            \
+  }                                                                                                \
+                                                                                                   \
+  template <typename _V0, typename _V1, typename _V2>                                              \
+    _GLIBCXX_ALWAYS_INLINE constexpr __detail::__math_common_simd_t<_V0, _V1, _V2>                 \
+    name(const _V0& __x0, const _V1& __x1, const _V2& __x2)                                        \
+    {                                                                                              \
+      using _Vp = __detail::__math_common_simd_t<_V0, _V1, _V2>;                                   \
+      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      const _Vp& __x = __x0;                                                                       \
+      const _Vp& __y = __x1;                                                                       \
+      const _Vp& __z = __x2;                                                                       \
+      auto __gen = [&] (int __i) {                                                                 \
+        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
+          return __builtin_##name##f(__x[__i], __y[__i], __z[__i]);                                \
+        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
+          return __builtin_##name(__x[__i], __y[__i], __z[__i]);                                   \
+        else                                                                                       \
+          static_assert(false);                                                                    \
+      };                                                                                           \
+      if consteval                                                                                 \
+        { return _Vp(__gen); }                                                                     \
+      else                                                                                         \
+        {                                                                                          \
+          if (__x._M_is_constprop() and __y._M_is_constprop())                                     \
+            return _Vp(__gen);                                                                     \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+            {                                                                                      \
+              using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
+              return _Vp(__detail::__private_init,                                                 \
+                         _Tup::_S_generate_pervec(                                                 \
+                           [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
+                             return __data(name(__x._M_data._M_simd_at(__i),                       \
+                                                __y._M_data._M_simd_at(__i),                       \
+                                                __z._M_data._M_simd_at(__i)));                     \
+                           }));                                                                    \
+            }                                                                                      \
+          else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
+            {                                                                                      \
+              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              _Vp __r;                                                                             \
+              const auto& __arr0 = __x._M_data;                                                    \
+              const auto& __arr1 = __y._M_data;                                                    \
+              const auto& __arr2 = __z._M_data;                                                    \
+              _GLIBCXX_SIMD_INT_PACK(__arr0.size(), _Is, {                                         \
+                ((__r._M_data[_Is] = name(_VPart(__arr0[_Is]), _VPart(__arr1[_Is]),                \
+                                          _VPart(__arr2[_Is]))._M_data), ...);          \
+              });                                                                                  \
+              for (size_t __i = 0; __i < __arr0.size(); ++__i)                                     \
+                __r._M_data[__i] = name(_VPart(__arr0[__i]), _VPart(__arr1[__i]),                  \
+                                               _VPart(__arr2[__i]))._M_data;                       \
+              return __r;                                                                          \
+            }                                                                                      \
+          else                                                                                     \
+            return _Vp(__detail::__##name(__x._M_data, __y._M_data, __z._M_data));                 \
+        }                                                                                          \
+    }                                                                                              \
+}                                                                                                  \
+                                                                                                   \
+namespace SIMD_TOPLEVEL_NSPC                                                                       \
+{                                                                                                  \
+  using SIMD_NSPC::name;                                                                           \
+}
+
+_GLIBCXX_SIMD_MATH_1ARG(acos)
+_GLIBCXX_SIMD_MATH_1ARG(asin)
+_GLIBCXX_SIMD_MATH_1ARG(atan)
+_GLIBCXX_SIMD_MATH_2ARG(atan2)
+_GLIBCXX_SIMD_MATH_1ARG(cos)
+_GLIBCXX_SIMD_MATH_1ARG(sin)
+_GLIBCXX_SIMD_MATH_1ARG(tan)
+_GLIBCXX_SIMD_MATH_1ARG(acosh)
+_GLIBCXX_SIMD_MATH_1ARG(asinh)
+_GLIBCXX_SIMD_MATH_1ARG(atanh)
+_GLIBCXX_SIMD_MATH_1ARG(cosh)
+_GLIBCXX_SIMD_MATH_1ARG(sinh)
+_GLIBCXX_SIMD_MATH_1ARG(tanh)
 _GLIBCXX_SIMD_MATH_1ARG(exp)
+_GLIBCXX_SIMD_MATH_1ARG(exp2)
+_GLIBCXX_SIMD_MATH_1ARG(expm1)
+_GLIBCXX_SIMD_MATH_1ARG(log)
+_GLIBCXX_SIMD_MATH_1ARG(log10)
+_GLIBCXX_SIMD_MATH_1ARG(log1p)
+_GLIBCXX_SIMD_MATH_1ARG(log2)
+_GLIBCXX_SIMD_MATH_1ARG(logb)
+_GLIBCXX_SIMD_MATH_1ARG(cbrt)
+_GLIBCXX_SIMD_MATH_1ARG(sqrt)
+_GLIBCXX_SIMD_MATH_1ARG(abs)
+_GLIBCXX_SIMD_MATH_1ARG(fabs)
+_GLIBCXX_SIMD_MATH_2ARG(hypot)
+_GLIBCXX_SIMD_MATH_3ARG(hypot)
+_GLIBCXX_SIMD_MATH_2ARG(pow)
+_GLIBCXX_SIMD_MATH_1ARG(erf)
+_GLIBCXX_SIMD_MATH_1ARG(erfc)
+_GLIBCXX_SIMD_MATH_1ARG(lgamma)
+_GLIBCXX_SIMD_MATH_1ARG(tgamma)
+_GLIBCXX_SIMD_MATH_1ARG(ceil)
+_GLIBCXX_SIMD_MATH_1ARG(floor)
+_GLIBCXX_SIMD_MATH_1ARG(round)
+_GLIBCXX_SIMD_MATH_1ARG(trunc)
+_GLIBCXX_SIMD_MATH_2ARG(fmod)
+_GLIBCXX_SIMD_MATH_2ARG(remainder)
+_GLIBCXX_SIMD_MATH_2ARG(copysign)
+_GLIBCXX_SIMD_MATH_2ARG(nextafter)
+_GLIBCXX_SIMD_MATH_2ARG(fdim)
+_GLIBCXX_SIMD_MATH_2ARG(fmax)
+_GLIBCXX_SIMD_MATH_2ARG(fmin)
+_GLIBCXX_SIMD_MATH_3ARG(fma)
+_GLIBCXX_SIMD_MATH_3ARG(lerp) // missing noexcept
+
+#undef _GLIBCXX_SIMD_MATH_1ARG
+#undef _GLIBCXX_SIMD_MATH_2ARG
+#undef _GLIBCXX_SIMD_MATH_3ARG
+
+// the following depend on the global rounding mode (not constexpr):
+//template<@\mathfloatingpoint@ V> @\deducedsimd@<V> nearbyint(const V& x);
+//template<@\mathfloatingpoint@ V> @\deducedsimd@<V> rint(const V& x);
+//template<@\mathfloatingpoint@ V> rebind_simd_t<long int, @\deducedsimd@<V>> lrint(const V& x);
+//template<@\mathfloatingpoint@ V> rebind_simd_t<long long int, V> llrint(const @\deducedsimd@<V>& x);
+
+#if 0
+frexp(const V& value, rebind_simd_t<int, @\deducedsimd@<V>>* exp);
+constexpr rebind_simd_t<int, @\deducedsimd@<V>> ilogb(const V& x);
+constexpr @\deducedsimd@<V> ldexp(const V& x, const rebind_simd_t<int, @\deducedsimd@<V>>& exp);
+constexpr basic_simd<T, Abi> modf(const type_identity_t<basic_simd<T, Abi>>& value, basic_simd<T, Abi>* iptr);
+constexpr @\deducedsimd@<V> scalbn(const V& x, const rebind_simd_t<int, @\deducedsimd@<V>>& n);
+constexpr @\deducedsimd@<V> scalbln(const V& x, const rebind_simd_t<long int, @\deducedsimd@<V>>& n);
+template<signed_integral T, class Abi> constexpr basic_simd<T, Abi> abs(const basic_simd<T, Abi>& j);
+
+  template<@\mathfloatingpoint@ V> constexpr rebind_simd_t<long int, @\deducedsimd@<V>> lround(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr rebind_simd_t<long long int, @\deducedsimd@<V>> llround(const V& x);
+  template<class V0, class V1> constexpr @\mathcommonsimd@<V0, V1> remquo(const V0& x, const V1& y, rebind_simd_t<int, @\mathcommonsimd@<V0, V1>>* quo);
+  template<@\mathfloatingpoint@ V> constexpr rebind_simd_t<int, @\deducedsimd@<V>> fpclassify(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isfinite(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isinf(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isnan(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isnormal(const V& x);
+  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type signbit(const V& x);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isgreater(const V0& x, const V1& y);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isgreaterequal(const V0& x, const V1& y);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isless(const V0& x, const V1& y);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type islessequal(const V0& x, const V1& y);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type islessgreater(const V0& x, const V1& y);
+  template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isunordered(const V0& x, const V1& y);
+
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> assoc_laguerre(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& n, const
+      rebind_simd_t<unsigned, @\deducedsimd@<V>>& m,
+                     const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> assoc_legendre(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& l, const
+      rebind_simd_t<unsigned, @\deducedsimd@<V>>& m,
+                     const V& x);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> beta(const V0& x, const V1& y);
+  template<@\mathfloatingpoint@ V> @\deducedsimd@<V> comp_ellint_1(const V& k);
+  template<@\mathfloatingpoint@ V> @\deducedsimd@<V> comp_ellint_2(const V& k);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> comp_ellint_3(const V0& k, const V1& nu);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> cyl_bessel_i(const V0& nu, const V1& x);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> cyl_bessel_j(const V0& nu, const V1& x);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> cyl_bessel_k(const V0& nu, const V1& x);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> cyl_neumann(const V0& nu, const V1& x);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> ellint_1(const V0& k, const V1& phi);
+  template<class V0, class V1>
+    @\mathcommonsimd@<V0, V1> ellint_2(const V0& k, const V1& phi);
+  template<class V0, class V1, class V2>
+    @\mathcommonsimd@<V0, V1, V2> ellint_3(const V0& k, const V1& nu, const V2& phi);
+  template<@\mathfloatingpoint@ V> @\deducedsimd@<V> expint(const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> hermite(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& n, const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> laguerre(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& n, const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> legendre(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& l, const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> riemann_zeta(const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> sph_bessel(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& n, const V& x);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V> sph_legendre(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& l,
+      const rebind_simd_t<unsigned, @\deducedsimd@<V>>& m, const V& theta);
+  template<@\mathfloatingpoint@ V>
+    @\deducedsimd@<V>
+      sph_neumann(const rebind_simd_t<unsigned, @\deducedsimd@<V>>& n, const V& x);
+#endif
 
 #endif  // PROTOTYPE_SIMD_MATH_H_

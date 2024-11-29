@@ -68,10 +68,10 @@ namespace SIMD_NSPC
 
       using _SimdType = SIMD_NSPC::basic_vec<_Tp, __detail::__simd_abi_for_mask_t<_Bytes, _Abi>>;
 
+    public:
       // the only non-static data member
       alignas(_Traits::_S_mask_align) _MemberType _M_data;
 
-    public:
       using _Impl = typename _Traits::_MaskImpl;
 
       static constexpr bool _S_is_bitmask = sizeof(_MemberType) < _Traits::_S_size;

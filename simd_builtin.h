@@ -483,100 +483,6 @@ namespace SIMD_NSPC::__detail
         _S_minmax(_TV __x, _TV __y)
         { return {__x < __y ? __x : __y, __x < __y ? __y : __x}; }
 
-      // frexp, modf and copysign implemented in simd_math.h
-#define _GLIBCXX_SIMD_MATH_FALLBACK(__name)                                                        \
-      template <__vec_builtin _TV, __vec_builtin... _More>                                         \
-        static constexpr _TV                                                                       \
-        _S_##__name(_TV __x, _More... __more)                                                      \
-        { return _GLIBCXX_SIMD_VEC_GEN(_TV, _S_size, _Is, {__name(__x[_Is], __more[_Is])...}); }
-
-#define _GLIBCXX_SIMD_MATH_FALLBACK_MASKRET(__name)                                                \
-      template <__vec_builtin _TV, __vec_builtin... _More>                                         \
-        static constexpr _MaskMember<_TV>                                                          \
-        _S_##__name(_TV __x, _More... __more)                                                      \
-        {                                                                                          \
-          return _GLIBCXX_SIMD_VEC_GEN(_MaskMember<_TV>, _S_size, _Is,                             \
-                                       {(__name(__x[_Is], __more[_Is]) ? -1 : 0)...});             \
-        }
-
-#define _GLIBCXX_SIMD_MATH_FALLBACK_RET(_RetTp, __name)                                            \
-      template <__vec_builtin _TV, __vec_builtin... _More>                                         \
-        static constexpr auto                                                                      \
-        _S_##__name(_TV __x, _More... __more)                                                      \
-        {                                                                                          \
-          using _RAbi = typename _Abi::template _Rebind<_RetTp>;                                   \
-          return _RAbi::_Impl::template _S_generator<_RetTp>([&] [[__gnu__::__always_inline__]]    \
-                                                               (auto __i) {                        \
-                   return __name(__x[__i], __more[__i]...);                                        \
-                 });                                                           \
-        }
-
-      _GLIBCXX_SIMD_MATH_FALLBACK(acos)
-      _GLIBCXX_SIMD_MATH_FALLBACK(asin)
-      _GLIBCXX_SIMD_MATH_FALLBACK(atan)
-      _GLIBCXX_SIMD_MATH_FALLBACK(atan2)
-      _GLIBCXX_SIMD_MATH_FALLBACK(cos)
-      _GLIBCXX_SIMD_MATH_FALLBACK(sin)
-      _GLIBCXX_SIMD_MATH_FALLBACK(tan)
-      _GLIBCXX_SIMD_MATH_FALLBACK(acosh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(asinh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(atanh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(cosh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(sinh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(tanh)
-      _GLIBCXX_SIMD_MATH_FALLBACK(exp)
-      _GLIBCXX_SIMD_MATH_FALLBACK(exp2)
-      _GLIBCXX_SIMD_MATH_FALLBACK(expm1)
-      _GLIBCXX_SIMD_MATH_FALLBACK(ldexp)
-      _GLIBCXX_SIMD_MATH_FALLBACK_RET(int, ilogb)
-      _GLIBCXX_SIMD_MATH_FALLBACK(log)
-      _GLIBCXX_SIMD_MATH_FALLBACK(log10)
-      _GLIBCXX_SIMD_MATH_FALLBACK(log1p)
-      _GLIBCXX_SIMD_MATH_FALLBACK(log2)
-      _GLIBCXX_SIMD_MATH_FALLBACK(logb)
-      // modf implemented in simd_math.h
-      _GLIBCXX_SIMD_MATH_FALLBACK(scalbn)
-      _GLIBCXX_SIMD_MATH_FALLBACK(scalbln)
-      _GLIBCXX_SIMD_MATH_FALLBACK(cbrt)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fabs)
-      _GLIBCXX_SIMD_MATH_FALLBACK(pow)
-      _GLIBCXX_SIMD_MATH_FALLBACK(sqrt)
-      _GLIBCXX_SIMD_MATH_FALLBACK(erf)
-      _GLIBCXX_SIMD_MATH_FALLBACK(erfc)
-      _GLIBCXX_SIMD_MATH_FALLBACK(lgamma)
-      _GLIBCXX_SIMD_MATH_FALLBACK(tgamma)
-      _GLIBCXX_SIMD_MATH_FALLBACK_RET(long, lrint)
-      _GLIBCXX_SIMD_MATH_FALLBACK_RET(long long, llrint)
-      _GLIBCXX_SIMD_MATH_FALLBACK_RET(long, lround)
-      _GLIBCXX_SIMD_MATH_FALLBACK_RET(long long, llround)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fmod)
-      _GLIBCXX_SIMD_MATH_FALLBACK(remainder)
-#if 0
-      template <__vec_builtin _TV>
-        static constexpr _TV
-        _S_remquo(const _TV __x, const _TV __y,
-                  basic_vec<int, typename _Abi::template _Rebind<int>>
-                 __fixed_size_storage_t<int, _TVT::_S_partial_width>* __z)
-        {
-          return __vec_generate<_TV>([&] [[__gnu__::__always_inline__]] (auto __i) {
-                   int __tmp;
-                   auto __r = remquo(__x[__i], __y[__i], &__tmp);
-                   __z->_M_set(__i, __tmp);
-                   return __r;
-                 });
-        }
-#endif
-      // copysign in simd_math.h
-      _GLIBCXX_SIMD_MATH_FALLBACK(nextafter)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fdim)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fmax)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fmin)
-      _GLIBCXX_SIMD_MATH_FALLBACK(fma)
-
-#undef _GLIBCXX_SIMD_MATH_FALLBACK
-#undef _GLIBCXX_SIMD_MATH_FALLBACK_MASKRET
-#undef _GLIBCXX_SIMD_MATH_FALLBACK_FIXEDRET
-
       template <__vec_builtin _TV>
         static constexpr _MaskMember<_TV>
         _S_isgreater(_TV __x, _TV __y)
@@ -645,17 +551,18 @@ namespace SIMD_NSPC::__detail
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_abs(_TV __x)
         {
-          // if (__builtin_is_constant_evaluated())
-          //  {
-          //    return __x < 0 ? -__x : __x;
-          //  }
           if constexpr (is_floating_point_v<__value_type_of<_TV>>)
-            // `v < 0 ? -v : v` cannot compile to the efficient implementation of
-            // masking the signbit off because it must consider v == -0
-            // ~(-0.) & v would be easy, but breaks with fno-signed-zeros
-            return __vec_and(_S_absmask<_TV>, __x);
+            return _S_fabs(__x);
           else
             return __x < 0 ? -__x : __x;
+        }
+
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
+        _S_fabs(_TV __x)
+        {
+          static_assert(is_floating_point_v<__value_type_of<_TV>>);
+          return __vec_and(_S_absmask<_TV>, __x);
         }
 
       // Returns __x + __y - __y without -fassociative-math optimizing to __x.

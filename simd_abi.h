@@ -151,6 +151,8 @@ namespace SIMD_NSPC
   template <typename _Abi0, __detail::_SimdSizeType _Np>
     struct _AbiArray
     {
+      using _Abi0Type = _Abi0;
+
       using _SimdSizeType = __detail::_SimdSizeType;
 
       static constexpr _SimdSizeType _S_abiarray_size = _Np;
@@ -236,6 +238,8 @@ namespace SIMD_NSPC
   template <__detail::_SimdSizeType _Np, typename _Tag>
     struct _AbiCombine
     {
+      using _AbiCombineTag = void;
+
       static constexpr __detail::_SimdSizeType _S_size = _Np;
 
       static constexpr __detail::_SimdSizeType _S_full_size = _Np;
@@ -1010,9 +1014,25 @@ namespace SIMD_NSPC
         constexpr
         _SimdTuple() = default;
 
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdTuple
+        _S_forall(auto &&__fun)
+        {
+          _SimdTuple __r;
+          __r._M_forall(__fun);
+          return __r;
+        }
+
         _GLIBCXX_SIMD_INTRINSIC constexpr explicit
-        _SimdTuple(auto &&__fun)
-        { _M_forall(__fun); }
+        _SimdTuple(const decltype(_M_x)& __x, const decltype(_M_tail)& __tail)
+        requires (sizeof...(_As) != 0)
+        : _Base {__x, __tail}
+        {}
+
+        _GLIBCXX_SIMD_INTRINSIC constexpr explicit
+        _SimdTuple(const decltype(_M_x)& __x)
+        requires (sizeof...(_As) == 0)
+        : _Base {__x}
+        {}
       };
 
     template <_SimdSizeType _Np, typename _Tag, auto>
@@ -1035,7 +1055,7 @@ namespace SIMD_NSPC
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_broadcast(_Tp __x) noexcept
           {
-            return _SimdMember<_Tp>([&__x] [[__gnu__::__always_inline__]]
+            return _SimdMember<_Tp>::_S_forall([&__x] [[__gnu__::__always_inline__]]
                    (auto __meta, auto& __chunk) {
                      __chunk = __meta._S_broadcast(__x);
                    });
@@ -1045,7 +1065,7 @@ namespace SIMD_NSPC
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_generator(_Fp&& __gen)
           {
-            return _SimdMember<_Tp>([&__gen] [[__gnu__::__always_inline__]]
+            return _SimdMember<_Tp>::_S_forall([&__gen] [[__gnu__::__always_inline__]]
                    (auto __meta, auto& __chunk) {
                      __chunk = __meta.template _S_generator<_Tp>(
                                  [&] [[__gnu__::__always_inline__]]
@@ -1059,9 +1079,10 @@ namespace SIMD_NSPC
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_load(const _Up* __mem, _TypeTag<_Tp>)
           {
-            return _SimdMember<_Tp>([&] [[__gnu__::__always_inline__]] (auto __meta, auto& __chunk) {
-                     __chunk = __meta._S_load(__mem + __meta._S_offset, _TypeTag<_Tp>());
-                   });
+            return _SimdMember<_Tp>::_S_forall(
+                     [&] [[__gnu__::__always_inline__]] (auto __meta, auto& __chunk) {
+                       __chunk = __meta._S_load(__mem + __meta._S_offset, _TypeTag<_Tp>());
+                     });
           }
 
         template <typename _Tp, typename... _As, typename _Up>

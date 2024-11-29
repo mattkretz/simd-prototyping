@@ -255,9 +255,9 @@ namespace SIMD_NSPC
 
       static constexpr _Tp* _S_type_tag = nullptr;
 
+    public:
       alignas(_Traits::_S_simd_align) _MemberType _M_data;
 
-    public:
       using _Impl = typename _Traits::_SimdImpl;
 
       using reference = __detail::_SmartReference<_MemberType, _Impl, _Tp>;
