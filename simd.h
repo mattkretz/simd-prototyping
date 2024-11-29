@@ -251,11 +251,11 @@ namespace SIMD_NSPC
 
       using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
 
-      using _MemberType = typename _Traits::_SimdMember;
-
       static constexpr _Tp* _S_type_tag = nullptr;
 
     public:
+      using _MemberType = typename _Traits::_SimdMember;
+
       alignas(_Traits::_S_simd_align) _MemberType _M_data;
 
       using _Impl = typename _Traits::_SimdImpl;

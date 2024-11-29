@@ -80,28 +80,6 @@ namespace SIMD_NSPC
 #define _GLIBCXX_SIMD_MATH_1ARG(name)                                                              \
 namespace SIMD_NSPC                                                                                \
 {                                                                                                  \
-  namespace __detail                                                                               \
-  {                                                                                                \
-    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
-      [[gnu::flatten,                                                                              \
-        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
-      __##name(_Vp __v)                                                                            \
-      {                                                                                            \
-        _Vp __ret;                                                                                 \
-        _Pragma("GCC ivdep")                                                                       \
-        for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
-          {                                                                                        \
-            if constexpr (sizeof(__v[0]) == sizeof(float))                                         \
-              __ret[__i] = __builtin_##name##f(__v[__i]);                                          \
-            else if constexpr (sizeof(__v[0]) == sizeof(double))                                   \
-              __ret[__i] = __builtin_##name(__v[__i]);                                             \
-            else                                                                                   \
-              static_assert(false);                                                                \
-          }                                                                                        \
-        return __ret;                                                                              \
-      }                                                                                            \
-  }                                                                                                \
-                                                                                                   \
   template <__detail::__math_floating_point _Up>                                                   \
     _GLIBCXX_ALWAYS_INLINE constexpr __detail::__deduced_simd_t<_Up>                               \
     name(const _Up& __xx)                                                                          \
@@ -109,21 +87,20 @@ namespace SIMD_NSPC                                                             
       using _Vp = __detail::__deduced_simd_t<_Up>;                                                 \
       using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
       const _Vp& __x = __xx;                                                                       \
-      auto __gen = [&] (int __i) {                                                                 \
-        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
-          return __builtin_##name##f(__x[__i]);                                                    \
-        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
-          return __builtin_##name(__x[__i]);                                                       \
-        else                                                                                       \
-          static_assert(false);                                                                    \
-      };                                                                                           \
       if consteval                                                                                 \
-        { return _Vp(__gen); }                                                                     \
+        {                                                                                          \
+          return _Vp([&] (int __i) {                                                               \
+                   if constexpr (sizeof(__x[0]) == sizeof(float))                                  \
+                     return __builtin_##name##f(__x[__i]);                                         \
+                   else if constexpr (sizeof(__x[0]) == sizeof(double))                            \
+                     return __builtin_##name(__x[__i]);                                            \
+                   else                                                                            \
+                     static_assert(false);                                                         \
+                 });                                                                               \
+        }                                                                                          \
       else                                                                                         \
         {                                                                                          \
-          if (__x._M_is_constprop())                                                               \
-            return _Vp(__gen);                                                                     \
-          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -145,7 +122,17 @@ namespace SIMD_NSPC                                                             
           else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data); })                     \
             return _Vp::_Impl::_S_##name(__x._M_data);                                             \
           else                                                                                     \
-            return _Vp(__detail::__##name(__x._M_data));                                           \
+            {                                                                                      \
+              using _VB = typename _Vp::_MemberType;                                               \
+              return _GLIBCXX_SIMD_INT_PACK(_Vp::size(), _Is, {                                    \
+                     if constexpr (sizeof(_Tp) == sizeof(float))                                   \
+                       return _VB{__builtin_##name##f(__x[_Is])...};                               \
+                     else if constexpr (sizeof(_Tp) == sizeof(double))                             \
+                       return _VB{__builtin_##name(__x[_Is])...};                                  \
+                     else                                                                          \
+                       static_assert(false);                                                       \
+                   });                                                                             \
+            }                                                                                      \
         }                                                                                          \
     }                                                                                              \
 }                                                                                                  \
@@ -158,28 +145,6 @@ namespace SIMD_TOPLEVEL_NSPC                                                    
 #define _GLIBCXX_SIMD_MATH_2ARG(name)                                                              \
 namespace SIMD_NSPC                                                                                \
 {                                                                                                  \
-  namespace __detail                                                                               \
-  {                                                                                                \
-    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
-      [[gnu::flatten,                                                                              \
-        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
-      __##name(_Vp __v0, _Vp __v1)                                                                 \
-      {                                                                                            \
-        _Vp __ret;                                                                                 \
-        _Pragma("GCC ivdep")                                                                       \
-        for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
-          {                                                                                        \
-            if constexpr (sizeof(__v0[0]) == sizeof(float))                                        \
-              __ret[__i] = __builtin_##name##f(__v0[__i], __v1[__i]);                              \
-            else if constexpr (sizeof(__v0[0]) == sizeof(double))                                  \
-              __ret[__i] = __builtin_##name(__v0[__i], __v1[__i]);                                 \
-            else                                                                                   \
-              static_assert(false);                                                                \
-          }                                                                                        \
-        return __ret;                                                                              \
-      }                                                                                            \
-  }                                                                                                \
-                                                                                                   \
   template <typename _V0, typename _V1>                                                            \
     _GLIBCXX_ALWAYS_INLINE constexpr __detail::__math_common_simd_t<_V0, _V1>                      \
     name(const _V0& __x0, const _V1& __x1)                                                         \
@@ -188,21 +153,20 @@ namespace SIMD_NSPC                                                             
       using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
       const _Vp& __x = __x0;                                                                       \
       const _Vp& __y = __x1;                                                                       \
-      auto __gen = [&] (int __i) {                                                                 \
-        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
-          return __builtin_##name##f(__x[__i], __y[__i]);                                          \
-        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
-          return __builtin_##name(__x[__i], __y[__i]);                                             \
-        else                                                                                       \
-          static_assert(false);                                                                    \
-      };                                                                                           \
       if consteval                                                                                 \
-        { return _Vp(__gen); }                                                                     \
+        {                                                                                          \
+          return _Vp([&] (int __i) {                                                               \
+                   if constexpr (sizeof(__x[0]) == sizeof(float))                                  \
+                     return __builtin_##name##f(__x[__i], __y[__i]);                               \
+                   else if constexpr (sizeof(__x[0]) == sizeof(double))                            \
+                     return __builtin_##name(__x[__i], __y[__i]);                                  \
+                   else                                                                            \
+                     static_assert(false);                                                         \
+                 });                                                                               \
+        }                                                                                          \
       else                                                                                         \
         {                                                                                          \
-          if (__x._M_is_constprop() and __y._M_is_constprop())                                     \
-            return _Vp(__gen);                                                                     \
-          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -223,8 +187,20 @@ namespace SIMD_NSPC                                                             
               });                                                                                  \
               return __r;                                                                          \
             }                                                                                      \
+          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data); })        \
+            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data);                                \
           else                                                                                     \
-            return _Vp(__detail::__##name(__x._M_data, __y._M_data));                              \
+            {                                                                                      \
+              using _VB = typename _Vp::_MemberType;                                               \
+              return _GLIBCXX_SIMD_INT_PACK(_Vp::size(), _Is, {                                    \
+                     if constexpr (sizeof(_Tp) == sizeof(float))                                   \
+                       return _VB{__builtin_##name##f(__x[_Is], __y[_Is])...};                     \
+                     else if constexpr (sizeof(_Tp) == sizeof(double))                             \
+                       return _VB{__builtin_##name(__x[_Is], __y[_Is])...};                        \
+                     else                                                                          \
+                       static_assert(false);                                                       \
+                   });                                                                             \
+            }                                                                                      \
         }                                                                                          \
     }                                                                                              \
 }                                                                                                  \
@@ -268,21 +244,20 @@ namespace SIMD_NSPC                                                             
       const _Vp& __x = __x0;                                                                       \
       const _Vp& __y = __x1;                                                                       \
       const _Vp& __z = __x2;                                                                       \
-      auto __gen = [&] (int __i) {                                                                 \
-        if constexpr (sizeof(__x[0]) == sizeof(float))                                             \
-          return __builtin_##name##f(__x[__i], __y[__i], __z[__i]);                                \
-        else if constexpr (sizeof(__x[0]) == sizeof(double))                                       \
-          return __builtin_##name(__x[__i], __y[__i], __z[__i]);                                   \
-        else                                                                                       \
-          static_assert(false);                                                                    \
-      };                                                                                           \
       if consteval                                                                                 \
-        { return _Vp(__gen); }                                                                     \
+        {                                                                                          \
+           return _Vp([&] (int __i) {                                                              \
+                    if constexpr (sizeof(__x[0]) == sizeof(float))                                 \
+                      return __builtin_##name##f(__x[__i], __y[__i], __z[__i]);                    \
+                    else if constexpr (sizeof(__x[0]) == sizeof(double))                           \
+                      return __builtin_##name(__x[__i], __y[__i], __z[__i]);                       \
+                    else                                                                           \
+                      static_assert(false);                                                        \
+                  });                                                                              \
+         }                                                                                         \
       else                                                                                         \
         {                                                                                          \
-          if (__x._M_is_constprop() and __y._M_is_constprop())                                     \
-            return _Vp(__gen);                                                                     \
-          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
+          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -302,15 +277,28 @@ namespace SIMD_NSPC                                                             
               const auto& __arr2 = __z._M_data;                                                    \
               _GLIBCXX_SIMD_INT_PACK(__arr0.size(), _Is, {                                         \
                 ((__r._M_data[_Is] = name(_VPart(__arr0[_Is]), _VPart(__arr1[_Is]),                \
-                                          _VPart(__arr2[_Is]))._M_data), ...);          \
+                                          _VPart(__arr2[_Is]))._M_data), ...);                     \
               });                                                                                  \
               for (size_t __i = 0; __i < __arr0.size(); ++__i)                                     \
                 __r._M_data[__i] = name(_VPart(__arr0[__i]), _VPart(__arr1[__i]),                  \
                                                _VPart(__arr2[__i]))._M_data;                       \
               return __r;                                                                          \
             }                                                                                      \
+          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data,            \
+                                                              __z._M_data); })                     \
+            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data, __z._M_data);                   \
           else                                                                                     \
-            return _Vp(__detail::__##name(__x._M_data, __y._M_data, __z._M_data));                 \
+            {                                                                                      \
+              using _VB = typename _Vp::_MemberType;                                               \
+              return _GLIBCXX_SIMD_INT_PACK(_Vp::size(), _Is, {                                    \
+                     if constexpr (sizeof(_Tp) == sizeof(float))                                   \
+                       return _VB{__builtin_##name##f(__x[_Is], __y[_Is], __z[_Is])...};           \
+                     else if constexpr (sizeof(_Tp) == sizeof(double))                             \
+                       return _VB{__builtin_##name(__x[_Is], __y[_Is], __z[_Is])...};              \
+                     else                                                                          \
+                       static_assert(false);                                                       \
+                   });                                                                             \
+            }                                                                                      \
         }                                                                                          \
     }                                                                                              \
 }                                                                                                  \
