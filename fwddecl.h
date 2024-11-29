@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <ranges>
 
-namespace SIMD_NSPC
+namespace std
 {
   template <int _Width>
     struct _VecAbi;
@@ -164,7 +164,7 @@ namespace SIMD_NSPC
     struct _AbiCombine;
 
   template <typename _Tp, typename _Abi = __detail::_NativeAbi<_Tp>>
-    class basic_vec;
+    class basic_simd;
 
   template <size_t _Bytes,
             typename _Abi = __detail::_NativeAbi<__detail::__mask_integer_from<_Bytes>>>
@@ -220,7 +220,7 @@ namespace SIMD_NSPC
   template <typename _Tp,
             // FIXME: P1928 defines different default value:
             __detail::_SimdSizeType _Np = __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>>
-    using vec = basic_vec<_Tp, __detail::__deduce_t<_Tp, _Np>>;
+    using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
   template <typename _Tp,
             // FIXME: P1928 defines different default value:
@@ -254,7 +254,7 @@ namespace SIMD_NSPC
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_vec<_Tp, _Abi>& __x) noexcept;
+    split(const basic_simd<_Tp, _Abi>& __x) noexcept;
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
@@ -262,8 +262,8 @@ namespace SIMD_NSPC
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    vec<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
-    cat(const basic_vec<_Tp, _Abis>&... __xs) noexcept;
+    simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
+    cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept;
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
@@ -273,8 +273,8 @@ namespace SIMD_NSPC
   namespace __detail
   {
     template <typename _BinaryOperation, typename _Tp>
-      concept __binary_operation = requires (_BinaryOperation __binary_op, vec<_Tp, 1> __v) {
-        { __binary_op(__v, __v) } -> same_as<vec<_Tp, 1>>;
+      concept __binary_operation = requires (_BinaryOperation __binary_op, simd<_Tp, 1> __v) {
+        { __binary_op(__v, __v) } -> same_as<simd<_Tp, 1>>;
       };
 
     template <typename _Tp, typename _BinaryOperation>
@@ -292,65 +292,65 @@ namespace SIMD_NSPC
   template <typename _Tp, typename _Abi,
             __detail::__binary_operation<_Tp> _BinaryOperation = plus<>>
     constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
+    reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op = {});
 
   template <typename _Tp, typename _Abi,
             __detail::__binary_operation<_Tp> _BinaryOperation = plus<>>
     constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
            _BinaryOperation __binary_op = {},
            __type_identity_t<_Tp> __identity_element
              = __detail::__default_identity_element<_Tp, _BinaryOperation>());
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_vec<_Tp, _Abi>& __x) noexcept;
+    reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_vec<_Tp, _Abi>& __x,
-               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept;
+    reduce_min(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_vec<_Tp, _Abi>& __x) noexcept;
+    reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept;
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_vec<_Tp, _Abi>& __x,
-               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept;
+    reduce_max(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
 
   template <std::ranges::range _Rg, typename... _Tp>
     requires (not std::ranges::contiguous_range<_Rg>)
     constexpr void
     load(_Rg&&, const _Tp&...)
       = _GLIBCXX_DELETE_MSG(
-          "SIMD_NSPC::load(range, flags = {}) requires a contiguous range"
+          "std::load(range, flags = {}) requires a contiguous range"
           ", either by passing the range, begin and end iterators, or begin and size.");
 
   template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
     requires std::ranges::output_range<_Rg, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags = {});
+    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags = {});
 
   template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
     requires std::ranges::output_range<_Rg, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range,
-          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {});
+    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range,
+          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {});
 
   template <typename _Tp, typename _Abi, contiguous_iterator _First, sentinel_for<_First> _Last,
             typename... _Flags>
     requires std::output_iterator<_First, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _First __first, _Last __last,
+    store(const basic_simd<_Tp, _Abi>& __v, _First __first, _Last __last,
           flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __last), __flags); }
 
   template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
     requires std::output_iterator<_First, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _First __first, size_t __size,
+    store(const basic_simd<_Tp, _Abi>& __v, _First __first, size_t __size,
           flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __size), __flags); }
 
@@ -358,29 +358,23 @@ namespace SIMD_NSPC
             typename... _Flags>
     requires std::output_iterator<_First, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _First __first, _Last __last,
-          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
+    store(const basic_simd<_Tp, _Abi>& __v, _First __first, _Last __last,
+          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __last), __k, __flags); }
 
   template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
     requires std::output_iterator<_First, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _First __first, size_t __size,
-          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
+    store(const basic_simd<_Tp, _Abi>& __v, _First __first, size_t __size,
+          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
     { store(__v, std::span(__first, __size), __k, __flags); }
-}
-
-namespace SIMD_TOPLEVEL_NSPC
-{
-  using SIMD_NSPC::basic_vec;
-  using SIMD_NSPC::vec;
 }
 
 namespace std::simd_generic
 {
   namespace scalar
   {
-    namespace __detail = SIMD_NSPC::__detail;
+    namespace __detail = std::__detail;
 
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
     all_of(same_as<bool> auto __x) noexcept;
@@ -452,7 +446,7 @@ namespace std::simd_generic
       reduce_max(_Tp __x, bool __k) noexcept;
   }
 
-  using namespace SIMD_NSPC;
+  using namespace std;
 
   using namespace std::simd_generic::scalar;
 }

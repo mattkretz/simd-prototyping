@@ -13,19 +13,19 @@
 #include <concepts>
 #include <climits>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
-    // Deducing the right ABI tag for basic_mask -> basic_vec is tricky for the AVX w/o AVX2
-    // case, where basic_vec<T, Abi> might be unusable and we therefore need to deduce another ABI
+    // Deducing the right ABI tag for basic_mask -> basic_simd is tricky for the AVX w/o AVX2
+    // case, where basic_simd<T, Abi> might be unusable and we therefore need to deduce another ABI
     // tag.
     template <size_t _Bytes, typename _Abi>
       struct __simd_abi_for_mask
       { using type = __deduce_t<__mask_integer_from<_Bytes>, _Abi::_S_size>; };
 
     template <size_t _Bytes, typename _Abi>
-      requires (std::destructible<SIMD_NSPC::basic_vec<__mask_integer_from<_Bytes>, _Abi>>
+      requires (std::destructible<std::basic_simd<__mask_integer_from<_Bytes>, _Abi>>
                   or not __simd_abi_tag<_Abi>)
       struct __simd_abi_for_mask<_Bytes, _Abi>
       { using type = _Abi; };
@@ -66,7 +66,7 @@ namespace SIMD_NSPC
 
       using _MemberType = typename _Traits::_MaskMember;
 
-      using _SimdType = SIMD_NSPC::basic_vec<_Tp, __detail::__simd_abi_for_mask_t<_Bytes, _Abi>>;
+      using _SimdType = std::basic_simd<_Tp, __detail::__simd_abi_for_mask_t<_Bytes, _Abi>>;
 
     public:
       // the only non-static data member
@@ -258,7 +258,7 @@ namespace SIMD_NSPC
       template <std::integral _Up, typename _Ap>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         resize_simd_t<__simd_size_v<_Up, _Ap>, basic_mask>
-        operator[](basic_vec<_Up, _Ap> const& __idx) const
+        operator[](basic_simd<_Up, _Ap> const& __idx) const
         {
           __glibcxx_simd_precondition(is_unsigned_v<_Up> or all_of(__idx >= 0), "out-of-bounds");
           __glibcxx_simd_precondition(all_of(__idx < _Up(size)), "out-of-bounds");
@@ -308,9 +308,9 @@ namespace SIMD_NSPC
       template <typename _Up, typename _UAbi>
         requires (__simd_size_v<_Up, _UAbi> == size.value)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit(sizeof(_Up) != _Bytes)
-        operator basic_vec<_Up, _UAbi>() const noexcept
+        operator basic_simd<_Up, _UAbi>() const noexcept
         {
-          using _Rp = basic_vec<_Up, _UAbi>;
+          using _Rp = basic_simd<_Up, _UAbi>;
           _Rp __r {};
           _Rp::_Impl::_S_masked_assign(__data(*this), __data(__r), 1);
           return __r;
@@ -412,16 +412,16 @@ namespace SIMD_NSPC
       template <typename _T0, typename _T1>
         requires (__detail::__vectorizable<__detail::__nopromot_common_type_t<_T0, _T1>>
                     and sizeof(__detail::__nopromot_common_type_t<_T0, _T1>) == _Bytes
-                    and convertible_to<_T0, vec<__detail::__nopromot_common_type_t<_T0, _T1>,
+                    and convertible_to<_T0, simd<__detail::__nopromot_common_type_t<_T0, _T1>,
                                                 size.value>>
-                    and convertible_to<_T1, vec<__detail::__nopromot_common_type_t<_T0, _T1>,
+                    and convertible_to<_T1, simd<__detail::__nopromot_common_type_t<_T0, _T1>,
                                                 size.value>>)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
-        vec<__detail::__nopromot_common_type_t<_T0, _T1>, size.value>
+        simd<__detail::__nopromot_common_type_t<_T0, _T1>, size.value>
         select_impl(const basic_mask& __k, const _T0& __t, const _T1& __f) noexcept
         {
           using _Rp = __detail::__nopromot_common_type_t<_T0, _T1>;
-          using _RV = vec<_Rp, size.value>;
+          using _RV = simd<_Rp, size.value>;
           _RV __ret = __f;
           _RV::_Impl::_S_masked_assign(__data(__k), __data(__ret), _Rp(__t));
           return __ret;

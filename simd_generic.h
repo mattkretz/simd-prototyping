@@ -201,7 +201,7 @@ namespace std::simd_generic::scalar
 namespace std::simd_generic
 {
   template <typename _Tp, typename _Up = __detail::__value_type_of<_Tp>>
-    struct simd_alignment : SIMD_NSPC::simd_alignment<_Tp, _Up>
+    struct simd_alignment : std::simd_alignment<_Tp, _Up>
     {};
 
   template <__detail::__vectorizable _Tp, typename _Up>
@@ -214,7 +214,7 @@ namespace std::simd_generic
 
 
   template <typename _Tp, typename _Vp>
-    struct rebind_simd : SIMD_NSPC::rebind_simd<_Tp, _Vp>
+    struct rebind_simd : std::rebind_simd<_Tp, _Vp>
     {};
 
   template <__detail::__vectorizable _Tp, __detail::__vectorizable _Up>
@@ -230,12 +230,12 @@ namespace std::simd_generic
 
 
   template <__detail::_SimdSizeType _Np, typename _Vp>
-    struct resize_simd : SIMD_NSPC::resize_simd<_Np, _Vp>
+    struct resize_simd : std::resize_simd<_Np, _Vp>
     {};
 
   template <__detail::_SimdSizeType _Np, __detail::__vectorizable _Tp>
     struct resize_simd<_Np, _Tp>
-    { using type = SIMD_NSPC::vec<_Tp, _Np>; };
+    { using type = std::simd<_Tp, _Np>; };
 
   template <__detail::__vectorizable _Tp>
     struct resize_simd<1, _Tp>
@@ -250,22 +250,22 @@ namespace std::simd_generic
 
 
   template <typename _Tp>
-    concept integral = std::integral<_Tp> or SIMD_NSPC::integral<_Tp>;
+    concept integral = std::integral<_Tp> or std::integral<_Tp>;
 
   template <typename _Tp>
-    concept signed_integral = std::signed_integral<_Tp> or SIMD_NSPC::signed_integral<_Tp>;
+    concept signed_integral = std::signed_integral<_Tp> or std::signed_integral<_Tp>;
 
   template <typename _Tp>
-    concept unsigned_integral = std::unsigned_integral<_Tp> or SIMD_NSPC::unsigned_integral<_Tp>;
+    concept unsigned_integral = std::unsigned_integral<_Tp> or std::unsigned_integral<_Tp>;
 
   template <typename _Tp>
-    concept floating_point = std::floating_point<_Tp> or SIMD_NSPC::floating_point<_Tp>;
+    concept floating_point = std::floating_point<_Tp> or std::floating_point<_Tp>;
 
   template <typename _Tp>
     concept arithmetic = integral<_Tp> or floating_point<_Tp>;
 
   template <typename _Tp>
-    concept regular = std::regular<_Tp> or SIMD_NSPC::regular<_Tp>;
+    concept regular = std::regular<_Tp> or std::regular<_Tp>;
 }
 
 #endif  // PROTOTYPE_SIMD_GENERIC_H_

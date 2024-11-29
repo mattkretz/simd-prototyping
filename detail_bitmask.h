@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <bitset>
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   inline constexpr size_t
   __div_roundup(size_t __a, size_t __b)

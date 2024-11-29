@@ -16,22 +16,22 @@ vmovlhps	xmm0, xmm0, xmm1
 */
 
 #include "../simd"
-namespace simd = SIMD_NSPC;
+namespace simd = std;
 
 void g(auto);
 
-void f0(simd::vec<int, 4> a, simd::vec<int, 4> b) {
+void f0(simd::simd<int, 4> a, simd::simd<int, 4> b) {
   g(cat(a, b));
 }
 
-void f1(simd::vec<float, 4> a, simd::vec<float, 4> b) {
+void f1(simd::simd<float, 4> a, simd::simd<float, 4> b) {
   g(cat(a, b));
 }
 
-void f2(simd::vec<float, 2> a, simd::vec<float, 2> b) {
+void f2(simd::simd<float, 2> a, simd::simd<float, 2> b) {
   g(cat(a, b));
 }
 
-void f3(simd::vec<float, 3> a, simd::vec<float, 1> b) {
+void f3(simd::simd<float, 3> a, simd::simd<float, 1> b) {
   g(cat(a, b));
 }

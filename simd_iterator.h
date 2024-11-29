@@ -9,7 +9,7 @@
 #include "fwddecl.h"
 
 #if SIMD_IS_A_RANGE
-namespace SIMD_NSPC
+namespace std
 {
   template <typename _Vp>
     class __simd_iterator

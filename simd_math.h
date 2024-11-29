@@ -9,7 +9,7 @@
 #include "simd.h"
 #include <cmath>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -17,7 +17,7 @@ namespace SIMD_NSPC
       constexpr bool __is_simd_specialization = false;
 
     template <typename _Tp, typename _Abi>
-      constexpr bool __is_simd_specialization<basic_vec<_Tp, _Abi>> = true;
+      constexpr bool __is_simd_specialization<basic_simd<_Tp, _Abi>> = true;
 
     template <typename _Tp>
       using __plus_result_t = decltype(declval<const _Tp&>() + declval<const _Tp&>());
@@ -37,7 +37,7 @@ namespace SIMD_NSPC
 
     template <typename... _Ts>
       concept __math_floating_point
-        = (SIMD_NSPC::floating_point<__deduced_simd_t<_Ts>> or ...);
+        = (simd_floating_point<__deduced_simd_t<_Ts>> or ...);
 
     template <typename... _Ts>
       struct __math_common_simd;
@@ -78,7 +78,7 @@ namespace SIMD_NSPC
 }
 
 #define _GLIBCXX_SIMD_MATH_1ARG(name)                                                              \
-namespace SIMD_NSPC                                                                                \
+namespace std                                                                                \
 {                                                                                                  \
   template <__detail::__math_floating_point _Up>                                                   \
     _GLIBCXX_ALWAYS_INLINE constexpr __detail::__deduced_simd_t<_Up>                               \
@@ -104,14 +104,14 @@ namespace SIMD_NSPC                                                             
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
-                         _Tup::_S_generate_pervec(                                                 \
+                         _Tup::_S_generate_persimd(                                                \
                            [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
                              return __data(name(__x._M_data._M_simd_at(__i)));                     \
                            }));                                                                    \
             }                                                                                      \
           else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
             {                                                                                      \
-              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              using _VPart = basic_simd<_Tp, typename _Vp::abi_type::_Abi0Type>;                   \
               _Vp __r;                                                                             \
               const auto& __arr0 = __x._M_data;                                                    \
               _GLIBCXX_SIMD_INT_PACK(__arr0.size(), _Is, {                                         \
@@ -135,15 +135,10 @@ namespace SIMD_NSPC                                                             
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
-}                                                                                                  \
-                                                                                                   \
-namespace SIMD_TOPLEVEL_NSPC                                                                       \
-{                                                                                                  \
-  using SIMD_NSPC::name;                                                                           \
 }
 
 #define _GLIBCXX_SIMD_MATH_2ARG(name)                                                              \
-namespace SIMD_NSPC                                                                                \
+namespace std                                                                                \
 {                                                                                                  \
   template <typename _V0, typename _V1>                                                            \
     _GLIBCXX_ALWAYS_INLINE constexpr __detail::__math_common_simd_t<_V0, _V1>                      \
@@ -170,7 +165,7 @@ namespace SIMD_NSPC                                                             
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
-                         _Tup::_S_generate_pervec(                                                 \
+                         _Tup::_S_generate_persimd(                                                \
                            [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
                              return __data(name(__x._M_data._M_simd_at(__i),                       \
                                                 __y._M_data._M_simd_at(__i)));                     \
@@ -178,7 +173,7 @@ namespace SIMD_NSPC                                                             
             }                                                                                      \
           else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
             {                                                                                      \
-              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              using _VPart = basic_simd<_Tp, typename _Vp::abi_type::_Abi0Type>;                   \
               _Vp __r;                                                                             \
               const auto& __arr0 = __x._M_data;                                                    \
               const auto& __arr1 = __y._M_data;                                                    \
@@ -203,15 +198,10 @@ namespace SIMD_NSPC                                                             
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
-}                                                                                                  \
-                                                                                                   \
-namespace SIMD_TOPLEVEL_NSPC                                                                       \
-{                                                                                                  \
-  using SIMD_NSPC::name;                                                                           \
 }
 
 #define _GLIBCXX_SIMD_MATH_3ARG(name)                                                              \
-namespace SIMD_NSPC                                                                                \
+namespace std                                                                                \
 {                                                                                                  \
   namespace __detail                                                                               \
   {                                                                                                \
@@ -261,7 +251,7 @@ namespace SIMD_NSPC                                                             
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
-                         _Tup::_S_generate_pervec(                                                 \
+                         _Tup::_S_generate_persimd(                                                \
                            [&] [[gnu::always_inline]] (vir::constexpr_value auto __i) {            \
                              return __data(name(__x._M_data._M_simd_at(__i),                       \
                                                 __y._M_data._M_simd_at(__i),                       \
@@ -270,7 +260,7 @@ namespace SIMD_NSPC                                                             
             }                                                                                      \
           else if constexpr (requires { typename _Vp::abi_type::_Abi0Type; })                      \
             {                                                                                      \
-              using _VPart = basic_vec<_Tp, typename _Vp::abi_type::_Abi0Type>;                    \
+              using _VPart = basic_simd<_Tp, typename _Vp::abi_type::_Abi0Type>;                   \
               _Vp __r;                                                                             \
               const auto& __arr0 = __x._M_data;                                                    \
               const auto& __arr1 = __y._M_data;                                                    \
@@ -301,11 +291,6 @@ namespace SIMD_NSPC                                                             
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \
-}                                                                                                  \
-                                                                                                   \
-namespace SIMD_TOPLEVEL_NSPC                                                                       \
-{                                                                                                  \
-  using SIMD_NSPC::name;                                                                           \
 }
 
 _GLIBCXX_SIMD_MATH_1ARG(acos)

@@ -9,7 +9,7 @@
 #include "simd.h"
 #include "simd_split.h"
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -40,16 +40,16 @@ namespace SIMD_NSPC
       { return __identity_element_for<_Tp, _BinaryOperation>; }
 
     template <typename _Tp, typename _Abi, typename _BinaryOperation>
-      constexpr SIMD_NSPC::resize_simd_t<SIMD_NSPC::__simd_size_v<_Tp, _Abi> / 2,
-                                         basic_vec<_Tp, _Abi>>
-      __split_and_invoke_once(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
+      constexpr std::resize_simd_t<std::__simd_size_v<_Tp, _Abi> / 2,
+                                         basic_simd<_Tp, _Abi>>
+      __split_and_invoke_once(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
       {
-        using _V1 = basic_vec<_Tp, _Abi>;
+        using _V1 = basic_simd<_Tp, _Abi>;
         static_assert(std::__has_single_bit(unsigned(_V1::size.value)));
-        using _V2 = SIMD_NSPC::resize_simd_t<_V1::size.value / 2, _V1>;
-        const auto [__x0, __x1] = SIMD_NSPC::split<_V2>(__x);
-        // Mandates: binary_op can be invoked with two arguments of type basic_vec<_Tp, A1>
-        // returning basic_vec<_Tp, A1> for every A1 that is an ABI tag type.
+        using _V2 = std::resize_simd_t<_V1::size.value / 2, _V1>;
+        const auto [__x0, __x1] = std::split<_V2>(__x);
+        // Mandates: binary_op can be invoked with two arguments of type basic_simd<_Tp, A1>
+        // returning basic_simd<_Tp, A1> for every A1 that is an ABI tag type.
         static_assert(requires {
           { __binary_op(__x0, __x1) } -> same_as<_V2>;
         });
@@ -59,9 +59,9 @@ namespace SIMD_NSPC
 
   template <typename _Tp, typename _Abi, __detail::__binary_operation<_Tp> _BinaryOperation>
     constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
+    reduce(const basic_simd<_Tp, _Abi>& __x, _BinaryOperation __binary_op)
     {
-      using _V1 = basic_vec<_Tp, _Abi>;
+      using _V1 = basic_simd<_Tp, _Abi>;
 
       if constexpr (requires{__detail::_SimdTraits<_Tp, _Abi>::_SimdImpl::_S_reduce(
                                __x, __binary_op);} and _V1::size.value > 1)
@@ -77,7 +77,7 @@ namespace SIMD_NSPC
         return __binary_op(__x, _V1([&](auto __i) { return __x[__i ^ 1]; }))[0];
 
       else if constexpr (std::__has_single_bit(_V1::size.value))
-        return SIMD_NSPC::reduce(__detail::__split_and_invoke_once(__x, __binary_op), __binary_op);
+        return std::reduce(__detail::__split_and_invoke_once(__x, __binary_op), __binary_op);
 
       else
         {
@@ -85,37 +85,37 @@ namespace SIMD_NSPC
           constexpr int __right_size = _V1::size.value - __left_size;
           constexpr int __max_size = std::__bit_ceil(_V1::size.value);
           constexpr int __missing = __max_size - _V1::size.value;
-          if constexpr (sizeof(_V1) == sizeof(SIMD_NSPC::resize_simd_t<__max_size, _V1>)
+          if constexpr (sizeof(_V1) == sizeof(std::resize_simd_t<__max_size, _V1>)
                           and (__missing < __right_size)
                           and not same_as<decltype(__detail::__identity_element_for
                                                      <_Tp, _BinaryOperation>), nullptr_t>)
             {
-              using _V2 = SIMD_NSPC::resize_simd_t<__max_size, _V1>;
-              constexpr SIMD_NSPC::vec<_Tp, __missing> __padding
+              using _V2 = std::resize_simd_t<__max_size, _V1>;
+              constexpr std::simd<_Tp, __missing> __padding
                 = __detail::__identity_element_for<_Tp, _BinaryOperation>;
-              const _V2 __y = SIMD_NSPC::cat(__x, __padding);
-              return SIMD_NSPC::reduce(__detail::__split_and_invoke_once(__y, __binary_op), __binary_op);
+              const _V2 __y = std::cat(__x, __padding);
+              return std::reduce(__detail::__split_and_invoke_once(__y, __binary_op), __binary_op);
             }
 
-          using _V2 = SIMD_NSPC::resize_simd_t<__left_size, _V1>;
-          const auto [__x0, __x1] = SIMD_NSPC::split<_V2>(__x);
-          return SIMD_NSPC::reduce(
-                   SIMD_NSPC::cat(__detail::__split_and_invoke_once(__x0, __binary_op), __x1),
+          using _V2 = std::resize_simd_t<__left_size, _V1>;
+          const auto [__x0, __x1] = std::split<_V2>(__x);
+          return std::reduce(
+                   std::cat(__detail::__split_and_invoke_once(__x0, __binary_op), __x1),
                    __binary_op);
         }
     }
 
   template <typename _Tp, typename _Abi, __detail::__binary_operation<_Tp> _BinaryOperation>
     constexpr _Tp
-    reduce(const basic_vec<_Tp, _Abi>& __x, const typename basic_vec<_Tp, _Abi>::mask_type& __k,
+    reduce(const basic_simd<_Tp, _Abi>& __x, const typename basic_simd<_Tp, _Abi>::mask_type& __k,
            _BinaryOperation __binary_op, __type_identity_t<_Tp> __identity_element)
     {
-      __glibcxx_simd_precondition(__binary_op(vec<_Tp, 1>(_Tp(2)), vec<_Tp, 1>(_Tp(3)))[0]
-                                    == __binary_op(vec<_Tp, 1>(_Tp(3)), vec<_Tp, 1>(_Tp(2)))[0],
+      __glibcxx_simd_precondition(__binary_op(simd<_Tp, 1>(_Tp(2)), simd<_Tp, 1>(_Tp(3)))[0]
+                                    == __binary_op(simd<_Tp, 1>(_Tp(3)), simd<_Tp, 1>(_Tp(2)))[0],
                                   "The given binary operation needs to be commutative.");
-      __glibcxx_simd_precondition(__binary_op(vec<_Tp, 1>(_Tp(2)),
-                                              __binary_op(vec<_Tp, 1>(__identity_element),
-                                                          vec<_Tp, 1>(__identity_element)))[0]
+      __glibcxx_simd_precondition(__binary_op(simd<_Tp, 1>(_Tp(2)),
+                                              __binary_op(simd<_Tp, 1>(__identity_element),
+                                                          simd<_Tp, 1>(__identity_element)))[0]
                                     == _Tp(2),
                                   "The given identity_element needs to preserve identity over the "
                                   "given binary operation.");
@@ -125,7 +125,7 @@ namespace SIMD_NSPC
   // NaN inputs are precondition violations (_Tp satisfies and models totally_ordered)
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_vec<_Tp, _Abi>& __x) noexcept
+    reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       return reduce(__x, []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
                return select(__a < __b, __a, __b);
@@ -134,8 +134,8 @@ namespace SIMD_NSPC
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_min(const basic_vec<_Tp, _Abi>& __x,
-               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept
+    reduce_min(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
     {
       return reduce(select(__k, __x, std::__finite_max_v<_Tp>),
                     []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
@@ -145,7 +145,7 @@ namespace SIMD_NSPC
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_vec<_Tp, _Abi>& __x) noexcept
+    reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       return reduce(__x, []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
                return select(__a < __b, __b, __a);
@@ -154,8 +154,8 @@ namespace SIMD_NSPC
 
   template <std::totally_ordered _Tp, typename _Abi>
     constexpr _Tp
-    reduce_max(const basic_vec<_Tp, _Abi>& __x,
-               const typename basic_vec<_Tp, _Abi>::mask_type& __k) noexcept
+    reduce_max(const basic_simd<_Tp, _Abi>& __x,
+               const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
     {
       return reduce(select(__k, __x, std::__finite_min_v<_Tp>),
                     []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {

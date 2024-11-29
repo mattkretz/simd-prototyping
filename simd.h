@@ -13,7 +13,7 @@
 #include <span>
 #include <iterator>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -22,11 +22,11 @@ namespace SIMD_NSPC
 
     template <typename _Rg>
       struct __simd_load_return<void, _Rg>
-      { using type = vec<ranges::range_value_t<_Rg>>; };
+      { using type = simd<ranges::range_value_t<_Rg>>; };
 
     template <typename _Tp, typename _Abi, typename _Rg>
-      struct __simd_load_return<basic_vec<_Tp, _Abi>, _Rg>
-      { using type = basic_vec<_Tp, _Abi>; };
+      struct __simd_load_return<basic_simd<_Tp, _Abi>, _Rg>
+      { using type = basic_simd<_Tp, _Abi>; };
 
     template <typename _Tp, typename _Rg>
       using __simd_load_return_t = typename __simd_load_return<_Tp, _Rg>::type;
@@ -122,9 +122,9 @@ namespace SIMD_NSPC
   template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
     requires std::ranges::output_range<_Rg, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags)
+    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags)
     {
-      using _TV = basic_vec<_Tp, _Abi>;
+      using _TV = basic_simd<_Tp, _Abi>;
       static_assert(destructible<_TV>);
       static_assert(__detail::__loadstore_convertible_to<
                       _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
@@ -136,7 +136,7 @@ namespace SIMD_NSPC
       static_assert(__detail::__static_range_size<_Rg> >= _TV::size.value
                       or __allow_out_of_bounds
                       or __detail::__static_range_size<_Rg> == dynamic_extent,
-                    "Out-of-bounds access: simd::vec store past the end of the output range");
+                    "Out-of-bounds access: simd::simd store past the end of the output range");
 
       auto* __ptr = __flags.template _S_adjust_pointer<_TV>(std::ranges::data(__range));
       constexpr _Tp* __type_tag = nullptr;
@@ -176,10 +176,10 @@ namespace SIMD_NSPC
   template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
     requires std::ranges::output_range<_Rg, _Tp>
     constexpr void
-    store(const basic_vec<_Tp, _Abi>& __v, _Rg&& __range,
-          const typename basic_vec<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags)
+    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range,
+          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags)
     {
-      using _TV = basic_vec<_Tp, _Abi>;
+      using _TV = basic_simd<_Tp, _Abi>;
       static_assert(__detail::__loadstore_convertible_to<
                       _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
                     "The converting store is not value-preserving. "
@@ -220,30 +220,30 @@ namespace SIMD_NSPC
   // - no members except value_type, abi_type, and mask_type
   template <typename _Tp, typename _Abi>
     requires (__detail::_SimdTraits<_Tp, _Abi>::_S_size == 0)
-    class basic_vec<_Tp, _Abi>
+    class basic_simd<_Tp, _Abi>
     {
     public:
       using value_type = _Tp;
 
       using abi_type = _Abi;
 
-      using mask_type = SIMD_NSPC::basic_mask<
+      using mask_type = std::basic_mask<
                           sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
 
-      basic_vec() = delete;
+      basic_simd() = delete;
 
-      ~basic_vec() = delete;
+      ~basic_simd() = delete;
 
-      basic_vec(const basic_vec&) = delete;
+      basic_simd(const basic_simd&) = delete;
 
-      basic_vec& operator=(const basic_vec&) = delete;
+      basic_simd& operator=(const basic_simd&) = delete;
     };
 #endif
 
   // --------------------------------------------------------------
   // supported
   template <typename _Tp, typename _Abi>
-    class basic_vec
+    class basic_simd
     {
 #if not SIMD_DISABLED_HAS_API
       static_assert(__detail::__vectorizable<_Tp> and __detail::__valid_abi_tag<_Abi, _Tp>);
@@ -266,13 +266,13 @@ namespace SIMD_NSPC
 
       using abi_type = _Abi;
 
-      using mask_type = SIMD_NSPC::basic_mask<sizeof(_Tp), _Abi>;
+      using mask_type = std::basic_mask<sizeof(_Tp), _Abi>;
 
       static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 
 #if SIMD_IS_A_RANGE
-      using iterator = __simd_iterator<basic_vec>;
-      using const_iterator = __simd_iterator<const basic_vec>;
+      using iterator = __simd_iterator<basic_simd>;
+      using const_iterator = __simd_iterator<const basic_simd>;
 
       //static_assert(std::random_access_iterator<iterator>);
       //static_assert(std::sentinel_for<std::default_sentinel_t, iterator>);
@@ -291,7 +291,7 @@ namespace SIMD_NSPC
 #endif
 
       constexpr
-      basic_vec() = default;
+      basic_simd() = default;
 
       // ABI-specific conversions
       template <typename _Up>
@@ -303,7 +303,7 @@ namespace SIMD_NSPC
       template <typename _Up>
         requires (_Traits::template _S_is_simd_ctor_arg<_Up>)
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _GLIBCXX_SIMD_IMPLDEF_CONV_EXPLICIT
-        basic_vec(_Up __x)
+        basic_simd(_Up __x)
         : _M_data(_Traits::_S_simd_construction(__x))
         {}
 
@@ -317,7 +317,7 @@ namespace SIMD_NSPC
       template <__detail::__broadcast_constructible<value_type> _Up>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
 #endif
-        basic_vec(_Up&& __x) noexcept
+        basic_simd(_Up&& __x) noexcept
         : _M_data(_Impl::_S_broadcast(value_type(static_cast<_Up&&>(__x))))
         {}
 
@@ -325,8 +325,8 @@ namespace SIMD_NSPC
                 same_as<_U0> _U1, same_as<_U0>... _Us>
         requires (size.value == 2 + sizeof...(_Us))
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-        basic_vec(_U0 __x0, _U1 __x1, _Us... __xs)
-        : basic_vec(array<value_type, size.value>{__x0, __x1, __xs...})
+        basic_simd(_U0 __x0, _U1 __x1, _Us... __xs)
+        : basic_simd(array<value_type, size.value>{__x0, __x1, __xs...})
         {}
 
       // type conversion constructor
@@ -335,20 +335,20 @@ namespace SIMD_NSPC
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         explicit(not __detail::__value_preserving_convertible_to<_Up, value_type>
                    || __detail::__higher_rank_than<_Up, value_type>)
-        basic_vec(const basic_vec<_Up, _UAbi>& __x) noexcept
+        basic_simd(const basic_simd<_Up, _UAbi>& __x) noexcept
         : _M_data(__detail::_SimdConverter<_Up, _UAbi, _Tp, _Abi>()(__data(__x)))
         {}
 
       // generator constructor
       template <__detail::__simd_generator_invokable<value_type, size()> _Fp>
         constexpr explicit
-        basic_vec(_Fp&& __gen) noexcept
+        basic_simd(_Fp&& __gen) noexcept
         : _M_data(_Impl::template _S_generator<value_type>(static_cast<_Fp&&>(__gen)))
         {}
 
       template <__detail::__almost_simd_generator_invokable<value_type, size()> _Fp>
         constexpr explicit
-        basic_vec(_Fp&& )
+        basic_simd(_Fp&& )
           = _GLIBCXX_DELETE_MSG("Invalid return type of the generator function: "
                                 "Requires value-preserving conversion or implicitly "
                                 "convertible user-defined type.");
@@ -356,7 +356,7 @@ namespace SIMD_NSPC
       // ranges typically don't have a static size
       // but if one does, this ctor is useful (std::array, C-array, span of static extent)
       //
-      // Note that simd::vec is not a match, because it's not a contiguous range. Thus, if the
+      // Note that simd::simd is not a match, because it's not a contiguous range. Thus, if the
       // constraint were to be relaxed to a random-access range, I'd expect ambiguities with the
       // conversion constructor.
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
@@ -364,8 +364,8 @@ namespace SIMD_NSPC
                                                       value_type, _Flags...>
           and (__detail::__static_range_size<_Rg> == size.value)
         constexpr // implicit!
-        basic_vec(_Rg&& __range, flags<_Flags...> __flags = {})
-        : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_vec>(
+        basic_simd(_Rg&& __range, flags<_Flags...> __flags = {})
+        : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
                                    std::ranges::data(__range)), _S_type_tag))
         {}
 
@@ -375,8 +375,8 @@ namespace SIMD_NSPC
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
                                                       value_type, _Flags...>
         constexpr explicit
-        basic_vec(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
-        : _M_data(__data(SIMD_NSPC::load<basic_vec>(__range, __flags)))
+        basic_simd(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
+        : _M_data(__data(std::load<basic_simd>(__range, __flags)))
         {
           __glibcxx_simd_precondition(std::ranges::size(__range) <= unsigned(size),
                                       "Input range is too large. "
@@ -389,7 +389,7 @@ namespace SIMD_NSPC
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
                                                       value_type, _Flags...>
         constexpr explicit
-        basic_vec(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
+        basic_simd(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
         : _M_data(_Impl::template _S_generator<value_type>(
                     [&__range, __it = std::ranges::begin(__range)] (int __i) mutable {
                       __glibcxx_simd_precondition(__it != std::ranges::end(__range),
@@ -406,18 +406,18 @@ namespace SIMD_NSPC
 
       // and give a better error message when the user might have expected `ranges::to` to work
       template <std::ranges::range _Rg, typename... _Flags>
-        basic_vec(std::from_range_t, _Rg&&, flags<_Flags...> = {})
+        basic_simd(std::from_range_t, _Rg&&, flags<_Flags...> = {})
         : _M_data{}
         {
-          static_assert(false, "'ranges::to<basic_vec>()' requires a value-preserving conversion. "
-                               "Call 'ranges::to<basic_vec>(simd::flag_convert)' to allow all "
+          static_assert(false, "'ranges::to<basic_simd>()' requires a value-preserving conversion. "
+                               "Call 'ranges::to<basic_simd>(simd::flag_convert)' to allow all "
                                "implicit conversions.");
         }
 #endif
 
       // private init
       _GLIBCXX_SIMD_INTRINSIC constexpr
-      basic_vec(__detail::_PrivateInit, const _MemberType& __init)
+      basic_simd(__detail::_PrivateInit, const _MemberType& __init)
       : _M_data(__init)
       {}
 
@@ -427,22 +427,22 @@ namespace SIMD_NSPC
       requires requires(value_type __a) { {!__a} -> same_as<bool>; }
       { return {__detail::__private_init, _Impl::_S_negate(__data(*this))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
       operator+() const
       requires requires(value_type __a) { +__a; }
       { return *this; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
       operator-() const
       requires requires(value_type __a) { -__a; }
       { return {__detail::__private_init, _Impl::_S_unary_minus(__data(*this))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
       operator~() const
       requires requires(value_type __a) { ~__a; }
       { return {__detail::__private_init, _Impl::_S_complement(__data(*this))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec&
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd&
       operator++()
       requires requires(value_type __a) { ++__a; }
       {
@@ -450,16 +450,16 @@ namespace SIMD_NSPC
         return *this;
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
       operator++(int)
       requires requires(value_type __a) { __a++; }
       {
-        basic_vec __r = *this;
+        basic_simd __r = *this;
         _Impl::_S_increment(_M_data);
         return __r;
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec&
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd&
       operator--()
       requires requires(value_type __a) { --__a; }
       {
@@ -467,119 +467,119 @@ namespace SIMD_NSPC
         return *this;
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_vec
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr basic_simd
       operator--(int)
       requires requires(value_type __a) { __a--; }
       {
-        basic_vec __r = *this;
+        basic_simd __r = *this;
         _Impl::_S_decrement(_M_data);
         return __r;
       }
 
-      // compound assignment [basic_vec.cassign]
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator+=(basic_vec& __lhs, const basic_vec& __x)
+      // compound assignment [basic_simd.cassign]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator+=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a + __b; }
       { return __lhs = __lhs + __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator-=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator-=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a - __b; }
       { return __lhs = __lhs - __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator*=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator*=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a * __b; }
       { return __lhs = __lhs * __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator/=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator/=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a / __b; }
       { return __lhs = __lhs / __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator%=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator%=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a % __b; }
       { return __lhs = __lhs % __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator&=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator&=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a & __b; }
       { return __lhs = __lhs & __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator|=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator|=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a | __b; }
       { return __lhs = __lhs | __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator^=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator^=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a ^ __b; }
       { return __lhs = __lhs ^ __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator<<=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator<<=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a << __b; }
       { return __lhs = __lhs << __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator>>=(basic_vec& __lhs, const basic_vec& __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator>>=(basic_simd& __lhs, const basic_simd& __x)
       requires requires(value_type __a, value_type __b) { __a >> __b; }
       { return __lhs = __lhs >> __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator<<=(basic_vec& __lhs, int __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator<<=(basic_simd& __lhs, int __x)
       requires requires(value_type __a, int __b) { __a << __b; }
       { return __lhs = __lhs << __x; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec&
-      operator>>=(basic_vec& __lhs, int __x)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd&
+      operator>>=(basic_simd& __lhs, int __x)
       requires requires(value_type __a, int __b) { __a >> __b; }
       { return __lhs = __lhs >> __x; }
 
-      // binary operators [basic_vec.binary]
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator+(const basic_vec& __x, const basic_vec& __y)
+      // binary operators [basic_simd.binary]
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator+(const basic_simd& __x, const basic_simd& __y)
       requires requires(value_type __a) { __a + __a; }
       { return {__detail::__private_init, _Impl::_S_plus(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator-(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator-(const basic_simd& __x, const basic_simd& __y)
       requires requires(value_type __a) { __a - __a; }
       { return {__detail::__private_init, _Impl::_S_minus(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator*(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator*(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a * __a; }
       { return {__detail::__private_init, _Impl::_S_multiplies(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator/(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator/(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a / __a; }
       { return {__detail::__private_init, _Impl::_S_divides(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator%(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator%(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a % __a; }
       { return {__detail::__private_init, _Impl::_S_modulus(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator&(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator&(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a & __a; }
       { return {__detail::__private_init, _Impl::_S_bit_and(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator|(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator|(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a | __a; }
       { return {__detail::__private_init, _Impl::_S_bit_or(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator^(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator^(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a ^ __a; }
       { return {__detail::__private_init, _Impl::_S_bit_xor(__data(__x), __data(__y))}; }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator>>(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator>>(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a >> __a; }
       {
         __glibcxx_simd_precondition(is_unsigned_v<value_type> or all_of(__y >= value_type()),
@@ -590,8 +590,8 @@ namespace SIMD_NSPC
         return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __data(__y))};
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator<<(const basic_vec& __x, const basic_vec& __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator<<(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a << __a; }
       {
         __glibcxx_simd_precondition(is_unsigned_v<value_type> or all_of(__y >= value_type()),
@@ -602,8 +602,8 @@ namespace SIMD_NSPC
         return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __data(__y))};
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator>>(const basic_vec& __x, int __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator>>(const basic_simd& __x, int __y)
       requires requires (value_type __a, int __b) { __a >> __b; }
       {
         __glibcxx_simd_precondition(__y >= 0, "negative shift is undefined behavior");
@@ -613,8 +613,8 @@ namespace SIMD_NSPC
         return {__detail::__private_init, _Impl::_S_bit_shift_right(__data(__x), __y)};
       }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_vec
-      operator<<(const basic_vec& __x, int __y)
+      _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend basic_simd
+      operator<<(const basic_simd& __x, int __y)
       requires requires (value_type __a, int __b) { __a << __b; }
       {
         __glibcxx_simd_precondition(__y >= 0, "negative shift is undefined behavior");
@@ -624,34 +624,34 @@ namespace SIMD_NSPC
         return {__detail::__private_init, _Impl::_S_bit_shift_left(__data(__x), __y)};
       }
 
-      // compares [basic_vec.comparison]
+      // compares [basic_simd.comparison]
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator==(const basic_vec& __x, const basic_vec& __y)
+      operator==(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a == __a; }
       { return {__detail::__private_init, _Impl::_S_equal_to(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator!=(const basic_vec& __x, const basic_vec& __y)
+      operator!=(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a != __a; }
       { return {__detail::__private_init, _Impl::_S_not_equal_to(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator<(const basic_vec& __x, const basic_vec& __y)
+      operator<(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a < __a; }
       { return {__detail::__private_init, _Impl::_S_less(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator<=(const basic_vec& __x, const basic_vec& __y)
+      operator<=(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a <= __a; }
       { return {__detail::__private_init, _Impl::_S_less_equal(__data(__x), __data(__y))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator>(const basic_vec& __x, const basic_vec& __y)
+      operator>(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a > __a; }
       { return {__detail::__private_init, _Impl::_S_less(__data(__y), __data(__x))}; }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr friend mask_type
-      operator>=(const basic_vec& __x, const basic_vec& __y)
+      operator>=(const basic_simd& __x, const basic_simd& __y)
       requires requires (value_type __a) { __a >= __a; }
       { return {__detail::__private_init, _Impl::_S_less_equal(__data(__y), __data(__x))}; }
 
@@ -659,7 +659,7 @@ namespace SIMD_NSPC
       _M_to_array() const noexcept
       {
         std::array<_Tp, size()> __r = {};
-        SIMD_NSPC::store(*this, __r);
+        std::store(*this, __r);
         return __r;
       }
 
@@ -667,8 +667,8 @@ namespace SIMD_NSPC
       operator std::array<_Tp, size()>() const noexcept
       { return _M_to_array(); }
 
-      _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_vec
-      select_impl(const mask_type& __k, const basic_vec& __t, const basic_vec& __f)
+      _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd
+      select_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
       {
         auto __ret = __f;
         _Impl::_S_masked_assign(__data(__k), __ret._M_data, __t._M_data);
@@ -686,12 +686,12 @@ namespace SIMD_NSPC
 #if SIMD_HAS_SUBSCRIPT_GATHER
       template <std::integral _Up, typename _Ap>
         constexpr
-        resize_simd_t<__simd_size_v<_Up, _Ap>, basic_vec>
-        operator[](basic_vec<_Up, _Ap> const& __idx) const
+        resize_simd_t<__simd_size_v<_Up, _Ap>, basic_simd>
+        operator[](basic_simd<_Up, _Ap> const& __idx) const
         {
           __glibcxx_simd_precondition(is_unsigned_v<_Up> or all_of(__idx >= 0), "out-of-bounds");
           __glibcxx_simd_precondition(all_of(__idx < _Up(size)), "out-of-bounds");
-          using _Rp = resize_simd_t<__simd_size_v<_Up, _Ap>, basic_vec>;
+          using _Rp = resize_simd_t<__simd_size_v<_Up, _Ap>, basic_simd>;
           return _Rp(__detail::__private_init,
                      _Rp::_Impl::template _S_generator<value_type>([&](int __i) {
                        return _Impl::_S_get(_M_data, __idx[__i]);
@@ -699,10 +699,10 @@ namespace SIMD_NSPC
         }
 #endif
 
-      friend constexpr const auto& __data(const basic_vec& __x)
+      friend constexpr const auto& __data(const basic_simd& __x)
       { return __x._M_data; }
 
-      friend constexpr auto& __data(basic_vec& __x)
+      friend constexpr auto& __data(basic_simd& __x)
       { return __x._M_data; }
 
       _GLIBCXX_SIMD_INTRINSIC constexpr bool
@@ -718,40 +718,40 @@ namespace SIMD_NSPC
     };
 
   template <typename _Tp, typename _Abi>
-    struct is_simd<basic_vec<_Tp, _Abi>>
-    : is_default_constructible<basic_vec<_Tp, _Abi>>
+    struct is_simd<basic_simd<_Tp, _Abi>>
+    : is_default_constructible<basic_simd<_Tp, _Abi>>
     {};
 
   template <std::ranges::contiguous_range _Rg>
-    basic_vec(_Rg&&)
-      -> basic_vec<std::ranges::range_value_t<_Rg>,
+    basic_simd(_Rg&&)
+      -> basic_simd<std::ranges::range_value_t<_Rg>,
                    __detail::__deduce_t<std::ranges::range_value_t<_Rg>,
                                         __detail::__static_range_size<_Rg>>>;
 
   template <std::ranges::contiguous_range _Rg, typename... _Flags>
-    basic_vec(_Rg&&, flags<_Flags...>)
-      -> basic_vec<std::ranges::range_value_t<_Rg>,
+    basic_simd(_Rg&&, flags<_Flags...>)
+      -> basic_simd<std::ranges::range_value_t<_Rg>,
                    __detail::__deduce_t<std::ranges::range_value_t<_Rg>,
                                         __detail::__static_range_size<_Rg>>>;
 
 #if RANGES_TO_SIMD
     template <std::ranges::input_range _Rg>
-    basic_vec(std::from_range_t, _Rg&& x)
-    -> basic_vec<std::ranges::range_value_t<_Rg>>;
+    basic_simd(std::from_range_t, _Rg&& x)
+    -> basic_simd<std::ranges::range_value_t<_Rg>>;
 
   template <std::ranges::input_range _Rg, typename... _Flags>
-    basic_vec(std::from_range_t, _Rg&& x, flags<_Flags...>)
-    -> basic_vec<std::ranges::range_value_t<_Rg>>;
+    basic_simd(std::from_range_t, _Rg&& x, flags<_Flags...>)
+    -> basic_simd<std::ranges::range_value_t<_Rg>>;
 #endif
 
   template <size_t _Bs, typename _Abi>
-    basic_vec(SIMD_NSPC::basic_mask<_Bs, _Abi>)
-    -> basic_vec<__detail::__mask_integer_from<_Bs>,
+    basic_simd(std::basic_mask<_Bs, _Abi>)
+    -> basic_simd<__detail::__mask_integer_from<_Bs>,
                   __detail::__simd_abi_for_mask_t<_Bs, _Abi>>;
 
   template <__detail::__vectorizable _Tp, __detail::__simd_type _Simd>
     struct rebind_simd<_Tp, _Simd>
-    { using type = vec<_Tp, _Simd::size()>; };
+    { using type = simd<_Tp, _Simd::size()>; };
 
   template <__detail::__vectorizable _Tp, __detail::__mask_type _Mask>
     struct rebind_simd<_Tp, _Mask>
@@ -759,32 +759,32 @@ namespace SIMD_NSPC
 
   template <__detail::_SimdSizeType _Np, __detail::__simd_type _Simd>
     struct resize_simd<_Np, _Simd>
-    { using type = vec<typename _Simd::value_type, _Np>; };
+    { using type = simd<typename _Simd::value_type, _Np>; };
 
   template <__detail::_SimdSizeType _Np, __detail::__mask_type _Mask>
     struct resize_simd<_Np, _Mask>
     { using type = mask<typename decltype(+_Mask())::value_type, _Np>; };
 
   template <typename _Tp, typename _Abi, __detail::__vectorizable _Up>
-    struct simd_alignment<basic_vec<_Tp, _Abi>, _Up>
-    : std::integral_constant<size_t, alignof(rebind_simd_t<_Up, basic_vec<_Tp, _Abi>>)>
+    struct simd_alignment<basic_simd<_Tp, _Abi>, _Up>
+    : std::integral_constant<size_t, alignof(rebind_simd_t<_Up, basic_simd<_Tp, _Abi>>)>
     {};
 
   template <size_t _Bs, typename _Abi>
     struct simd_alignment<basic_mask<_Bs, _Abi>, bool>
-    : std::integral_constant<size_t, alignof(vec<__detail::__make_unsigned_int_t<bool>,
+    : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_int_t<bool>,
                                                   basic_mask<_Bs, _Abi>::size()>)>
     {};
 
   template <same_as<void> = void, typename _Fp>
     requires __detail::__simd_generator_invokable<
                _Fp, decltype(declval<_Fp&&>()(__detail::__ic<0>)),
-               vec<decltype(declval<_Fp&&>()(__detail::__ic<0>))>::size()>
-    constexpr vec<decltype(declval<_Fp&&>()(__detail::__ic<0>))>
+               simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>::size()>
+    constexpr simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>
     generate(_Fp&& __gen)
     {
       using _Tp = decltype(declval<_Fp&&>()(__detail::__ic<0>));
-      using _Vp = vec<_Tp>;
+      using _Vp = simd<_Tp>;
       return _Vp(__detail::__private_init,
                  _Vp::_Impl::template _S_generator<_Tp>(static_cast<_Fp&&>(__gen)));
     }

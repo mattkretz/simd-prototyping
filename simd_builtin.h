@@ -15,7 +15,7 @@
 
 #include <experimental/bits/numeric_traits.h>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -213,7 +213,7 @@ namespace SIMD_NSPC
     };
 }
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   template <typename _Abi, auto>
     struct _ImplBuiltinBase
@@ -238,7 +238,7 @@ namespace SIMD_NSPC::__detail
       using _SuperImpl = typename _Abi::_Impl;
 
       template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_vec<__value_type_of<_TV>, _Abi>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr basic_simd<__value_type_of<_TV>, _Abi>
         _M_make_simd(_TV __x)
         { return __x; }
 

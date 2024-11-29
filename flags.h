@@ -12,7 +12,7 @@
 #include <bit>
 #include <concepts>
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   struct _LoadStoreTag
   {};
@@ -95,7 +95,7 @@ namespace SIMD_NSPC::__detail
     concept __loadstore_tag = std::is_base_of_v<_LoadStoreTag, _Tp>;
 } // namespace __detail
 
-namespace SIMD_NSPC
+namespace std
 {
 
   template <typename... _Flags>
@@ -224,10 +224,10 @@ namespace SIMD_NSPC
 
   inline constexpr flags<__detail::_Throw> flag_throw;
 
-  inline constexpr SIMD_NSPC::flags<__detail::_Streaming> __flag_streaming;
+  inline constexpr std::flags<__detail::_Streaming> __flag_streaming;
 
   template <int _L1, int _L2>
-    inline constexpr SIMD_NSPC::flags<__detail::_Prefetch<_L1, _L2>> __flag_prefetch;
+    inline constexpr std::flags<__detail::_Prefetch<_L1, _L2>> __flag_prefetch;
 
   [[deprecated("use flag_default")]]
   inline constexpr auto element_aligned = flag_default;
@@ -238,6 +238,6 @@ namespace SIMD_NSPC
   template <size_t _Np>
     [[deprecated("use flag_overaligned")]]
     inline constexpr auto overaligned = flag_overaligned<_Np>;
-} // namespace SIMD_NSPC
+} // namespace std
 
 #endif  // PROTOTYPE_FLAGS_H_

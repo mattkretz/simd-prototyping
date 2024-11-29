@@ -9,7 +9,7 @@
 #include "simd.h"
 #include "iota.h"
 
-namespace SIMD_NSPC
+namespace std
 {
   template <size_t _Offset, typename _Tp>
     constexpr const _Tp&

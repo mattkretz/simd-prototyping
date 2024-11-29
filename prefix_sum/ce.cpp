@@ -3,7 +3,7 @@
 #include <numeric>
 #include <bit>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -34,10 +34,10 @@ namespace SIMD_NSPC
   }
 
   template <typename _Tp, typename _Abi>
-    constexpr basic_vec<_Tp, _Abi>
-    inclusive_scan(basic_vec<_Tp, _Abi> __v, auto&& __binary_op)
+    constexpr basic_simd<_Tp, _Abi>
+    inclusive_scan(basic_simd<_Tp, _Abi> __v, auto&& __binary_op)
     {
-      using _V = basic_vec<_Tp, _Abi>;
+      using _V = basic_simd<_Tp, _Abi>;
       using _M = typename _V::mask_type;
       using _Ip = __detail::__make_signed_int_t<_Tp>;
       using _IV = rebind_simd_t<_Ip, _V>;
@@ -52,15 +52,15 @@ namespace SIMD_NSPC
     }
 
   template <typename _Tp, typename _Abi>
-    constexpr basic_vec<_Tp, _Abi>
-    inclusive_scan(basic_vec<_Tp, _Abi> const& __v)
+    constexpr basic_simd<_Tp, _Abi>
+    inclusive_scan(basic_simd<_Tp, _Abi> const& __v)
     { return inclusive_scan(__v, std::plus<>()); }
 
   template <typename _Tp, typename _Abi>
-    constexpr basic_vec<_Tp, _Abi>
-    scaled_inclusive_scan(basic_vec<_Tp, _Abi> __v, _Tp __a, auto&& __binary_op)
+    constexpr basic_simd<_Tp, _Abi>
+    scaled_inclusive_scan(basic_simd<_Tp, _Abi> __v, _Tp __a, auto&& __binary_op)
     {
-      using _V = basic_vec<_Tp, _Abi>;
+      using _V = basic_simd<_Tp, _Abi>;
       using _M = typename _V::mask_type;
       using _Ip = __detail::__make_signed_int_t<_Tp>;
       using _IV = rebind_simd_t<_Ip, _V>;
@@ -78,17 +78,17 @@ namespace SIMD_NSPC
     }
 
   template <typename _Tp, typename _Abi>
-    constexpr basic_vec<_Tp, _Abi>
-    scaled_inclusive_scan(basic_vec<_Tp, _Abi> const& __v, _Tp __a)
+    constexpr basic_simd<_Tp, _Abi>
+    scaled_inclusive_scan(basic_simd<_Tp, _Abi> const& __v, _Tp __a)
     { return scaled_inclusive_scan(__v, __a, std::plus<>()); }
 
 } // namespace std
 
-namespace simd = SIMD_NSPC;
+namespace simd = std;
 
 auto f(float last, std::span<float> data)
 {
-  using V = simd::vec<float>;
+  using V = simd::simd<float>;
   constexpr float a = 0.125f;
   constexpr float b = 1.f - a;
   constexpr auto aa = simd::inclusive_scan(V(a), std::multiplies<>());
@@ -117,5 +117,5 @@ auto f_scalar(float last, std::span<float> data)
     }
 }
 
-constexpr auto x = scaled_inclusive_scan(simd::vec<int>(1), 2);
+constexpr auto x = scaled_inclusive_scan(simd::simd<int>(1), 2);
 auto xx = x;

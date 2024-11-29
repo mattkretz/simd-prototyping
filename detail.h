@@ -15,7 +15,7 @@
 #include <limits>
 #include <ranges>
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   template <typename _Tp>
     _GLIBCXX_SIMD_INTRINSIC constexpr bool
@@ -170,7 +170,7 @@ namespace SIMD_NSPC::__detail
 #define __glibcxx_simd_precondition(expr, msg, ...)                                                \
   do {                                                                                             \
     if (__builtin_expect(!bool(expr), false))                                                      \
-      SIMD_NSPC::__detail::__invoke_ub(                                                            \
+      std::__detail::__invoke_ub(                                                            \
         _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
         __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
@@ -183,13 +183,13 @@ namespace SIMD_NSPC::__detail
         "\n" _GLIBCXX_SIMD_LOC "note: " msg " (precondition '" #expr "' does not hold)")))         \
       { __builtin_unreachable(); }();                                                              \
     else if (__builtin_expect(!__precondition_result, false))                                      \
-      SIMD_NSPC::__detail::__invoke_ub(                                                            \
+      std::__detail::__invoke_ub(                                                            \
         _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
         __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
 #endif
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -334,7 +334,7 @@ namespace SIMD_NSPC
   }
 }
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   template <typename _Up, typename _Accessor = _Up,
             typename _ValueType = typename _Up::value_type>
@@ -470,7 +470,7 @@ namespace SIMD_NSPC::__detail
     };
 }
 
-namespace SIMD_NSPC
+namespace std
 {
   template <__detail::__vectorizable _Tp, __detail::__simd_abi_tag _Abi>
     requires requires { _Abi::_S_size; }

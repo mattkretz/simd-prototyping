@@ -10,7 +10,7 @@
 #include <array>
 #include <tuple>
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {
@@ -30,7 +30,7 @@ namespace SIMD_NSPC
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_vec<_Tp, _Abi>& __x) noexcept
+    split(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       constexpr int __in = __simd_size_v<_Tp, _Abi>;
       constexpr int __out = _V::size();
@@ -47,7 +47,7 @@ namespace SIMD_NSPC
         }
       else // -> tuple
         return [&]<size_t... _Is>(std::index_sequence<_Is...>) {
-          using _Rem = SIMD_NSPC::resize_simd_t<__rem, _V>;
+          using _Rem = std::resize_simd_t<__rem, _V>;
           using _Rp = std::tuple<__detail::__repeat_type<_V, _Is>..., _Rem>;
           return _Rp {generate<_V>([&](auto __i) {
                         return __x[__i + __out * _Is];
@@ -76,7 +76,7 @@ namespace SIMD_NSPC
         }
       else // -> tuple
         return [&]<size_t... _Is>(std::index_sequence<_Is...>) {
-          using _Rem = SIMD_NSPC::resize_simd_t<__rem, _M>;
+          using _Rem = std::resize_simd_t<__rem, _M>;
           using _Rp = std::tuple<__detail::__repeat_type<_M, _Is>..., _Rem>;
           return _Rp {_M([&](auto __i) {
                         return __x[__i + __out * _Is];
@@ -109,7 +109,7 @@ namespace SIMD_NSPC
       {
         using _Tp = typename _T0::value_type;
         constexpr int __size = _T0::size.value + _T1::size.value;
-        const SIMD_NSPC::resize_simd_t<__size, _T0>
+        const std::resize_simd_t<__size, _T0>
           __x01{__private_init,
                 [&]<_SimdSizeType... _Is, _SimdSizeType... _Js, _SimdSizeType... _Ks>
                   [[__gnu__::__always_inline__]]
@@ -141,16 +141,16 @@ namespace SIMD_NSPC
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    vec<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
-    cat(const basic_vec<_Tp, _Abis>&... __xs) noexcept
+    simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
+    cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept
     {
       constexpr int __size = (__simd_size_v<_Tp, _Abis> + ...);
       if constexpr (sizeof...(_Abis) == 1)
-        return vec<_Tp, __size>(__xs...);
+        return simd<_Tp, __size>(__xs...);
       else if constexpr (__size <= __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>)
         return __detail::__cat_recursive(__xs...);
       else
-        return generate<vec<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>>(
+        return generate<simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>>(
                  [&] [[__gnu__::__always_inline__]] (auto __i) {
                    return __detail::__get_simd_element_from_pack(__i, __xs...);
                  });

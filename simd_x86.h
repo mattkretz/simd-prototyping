@@ -12,7 +12,7 @@
 
 #include <x86intrin.h>
 
-namespace SIMD_NSPC
+namespace std
 {
   template <int _Width>
     struct _Avx512Abi
@@ -178,7 +178,7 @@ namespace SIMD_NSPC
 }
 
 #if __x86_64__ or __i386__
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   template <typename _Abi, auto _Flags>
     struct _SimdMaskTraits<sizeof(float), _Abi, _Flags>
@@ -3066,7 +3066,7 @@ namespace SIMD_NSPC::__detail
                    and ((_S_have_ssse3 and is_integral_v<_Tp>)
                           or (_S_have_sse3 and is_floating_point_v<_Tp>)))
         static constexpr _Tp
-        _S_reduce(basic_vec<_Tp, _Abi> __x, const plus<>&)
+        _S_reduce(basic_simd<_Tp, _Abi> __x, const plus<>&)
         {
           constexpr auto _Np = _S_size;
           using _Ip = __x86_builtin_int_t<_Tp>;
@@ -3456,7 +3456,7 @@ namespace SIMD_NSPC::__detail
                 }
 
               else if constexpr (_Flags._M_have_sse2())
-                return -SIMD_NSPC::reduce(-__k);
+                return -std::reduce(-__k);
 
               else
                 return __builtin_popcount(__bits);

@@ -13,7 +13,7 @@
 #error "iota_v is implemented such that it requires simd to be a range"
 #endif
 
-namespace SIMD_NSPC
+namespace std
 {
   namespace __detail
   {

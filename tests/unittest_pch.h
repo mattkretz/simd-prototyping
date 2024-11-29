@@ -8,7 +8,7 @@
 
 #include "../simd"
 
-namespace simd = SIMD_NSPC;
+namespace simd = std;
 
 #include <source_location>
 #include <iostream>

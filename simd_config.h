@@ -8,18 +8,6 @@
 
 #include <bits/c++config.h>
 
-#if SIMD_IN_STD
-#define SIMD_NSPC std::datapar
-#define SIMD_TOPLEVEL_NSPC std
-#else
-#define SIMD_NSPC cpp26::datapar
-#define SIMD_TOPLEVEL_NSPC cpp26
-#endif
-namespace cpp26
-{
-  using namespace std;
-}
-
 #ifndef SIMD_IS_A_RANGE
 // FIXME: not conforming to P1928
 #define SIMD_IS_A_RANGE 1

@@ -1,5 +1,5 @@
 #include "../simd"
-namespace simd = SIMD_NSPC;
+namespace simd = std;
 
 using namespace vir::literals;
 
@@ -16,7 +16,7 @@ ret
 vpsignb	xmm0, xmm0, xmm0
 ret
 */
-using V0 = simd::vec<char, 15>;
+using V0 = simd::simd<char, 15>;
 V0 test0a(V0::mask_type a)
 { return +a; }
 
@@ -42,7 +42,7 @@ mov	eax, edi
 and	eax, 65793
 ret
 */
-using V1 = simd::vec<char, 3>;
+using V1 = simd::simd<char, 3>;
 V1 test1a(V1::mask_type a)
 { return +a; }
 

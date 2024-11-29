@@ -11,7 +11,7 @@
 
 #include <cmath>
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   // __promote_preserving_unsigned
   // work around crazy semantics of unsigned integers of lower rank than int:
@@ -37,7 +37,7 @@ namespace SIMD_NSPC::__detail
   struct _MaskImplScalar;
 }
 
-namespace SIMD_NSPC
+namespace std
 {
   struct _ScalarAbi
   {
@@ -111,7 +111,7 @@ namespace SIMD_NSPC
   };
 }
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   struct _SimdImplScalar
   {
@@ -161,7 +161,7 @@ namespace SIMD_NSPC::__detail
 
     template <typename _Tp, typename _BinaryOperation>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
-      _S_reduce(const basic_vec<_Tp, _ScalarAbi>& __x, const _BinaryOperation&)
+      _S_reduce(const basic_simd<_Tp, _ScalarAbi>& __x, const _BinaryOperation&)
       { return __x._M_data; }
 
     template <typename _Tp>

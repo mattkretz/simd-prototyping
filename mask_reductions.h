@@ -10,7 +10,7 @@
 #include "simd_reductions.h"
 #include "x86_detail.h"
 
-namespace SIMD_NSPC
+namespace std
 {
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool

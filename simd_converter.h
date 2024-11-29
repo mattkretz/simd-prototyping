@@ -8,7 +8,7 @@
 
 #include "detail.h"
 
-namespace SIMD_NSPC::__detail
+namespace std::__detail
 {
   template <__vectorizable _Tp, typename _TAbi, __vectorizable _Up, typename _UAbi>
     struct _SimdConverter;
