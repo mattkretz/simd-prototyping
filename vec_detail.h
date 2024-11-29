@@ -613,22 +613,21 @@ namespace SIMD_NSPC::__detail
    * An object of given type where all bits are 1.
    */
   template <__vec_builtin _V>
-    static inline constexpr _V _S_allbits
-      = __builtin_bit_cast(_V, ~__vec_builtin_type_bytes<char, sizeof(_V)>());
+    constexpr _V _S_allbits = __builtin_bit_cast(_V, ~__vec_builtin_type_bytes<char, sizeof(_V)>());
 
   /**
    * An object of given type where only the sign bits are 1.
    */
   template <__vec_builtin _V>
     requires std::floating_point<__value_type_of<_V>>
-    static inline constexpr _V _S_signmask = __vec_xor(_V() + 1, _V() - 1);
+    constexpr _V _S_signmask = __vec_xor(_V() + 1, _V() - 1);
 
   /**
    * An object of given type where only the sign bits are 0 (complement of _S_signmask).
    */
   template <__vec_builtin _V>
     requires std::floating_point<__value_type_of<_V>>
-    static inline constexpr _V _S_absmask = __vec_andnot(_S_signmask<_V>, _S_allbits<_V>);
+    constexpr _V _S_absmask = __vec_andnot(_S_signmask<_V>, _S_allbits<_V>);
 }
 
 #endif  // PROTOTYPE_VEC_DETAIL_H_
