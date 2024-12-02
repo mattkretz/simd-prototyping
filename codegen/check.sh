@@ -26,9 +26,15 @@ cat "$srcfile" | while read line; do
       *)
         asm="$(grep -A$n "$regex" "$asmfile" | tail -n1)"
         if ! echo "$asm" | grep --color=auto "$line"; then
-          echo "Failure on '$regex' in line $n: $asm."
-          echo "Expected '$line'."
-          exit 2
+          asm="$(grep -A$((n+1)) "$regex" "$asmfile" | tail -n1)"
+          if echo "$asm" | grep --color=auto "$line"; then
+            n=$((n+1))
+          else
+            echo "Failure on:"
+            grep -A$n "$regex" "$asmfile"
+            echo "Expected '$line'."
+            exit 2
+          fi
         fi
         n=$((n+1))
         ;;

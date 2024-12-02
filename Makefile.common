@@ -182,7 +182,7 @@ check-codegen-%: obj/codegen.%.s codegen/check.sh
 
 obj/codegen.%.s: codegen/%.c++ obj
 	@echo "Building $@"
-	@$(CXX) $(CXXFLAGS) -masm=intel -march=skylake -S -o $@ $<
+	@$(CXX) $(CXXFLAGS) -masm=intel -march=skylake -fcf-protection=none -S -o $@ $<
 	@cat $@ | grep -v '^\s*\.' | c++filt > $@.tmp
 	@mv $@.tmp $@
 
