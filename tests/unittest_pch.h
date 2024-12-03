@@ -55,7 +55,7 @@ std::ostream& operator<<(std::ostream& s, std::basic_simd<T, Abi> const& v)
 }
 
 template <std::size_t B, typename Abi>
-std::ostream& operator<<(std::ostream& s, std::basic_mask<B, Abi> const& v)
+std::ostream& operator<<(std::ostream& s, std::basic_simd_mask<B, Abi> const& v)
 {
   s << '<';
   for (int i = 0; i < v.size(); ++i)

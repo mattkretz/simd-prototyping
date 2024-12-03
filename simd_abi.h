@@ -621,7 +621,7 @@ namespace std
         using abi_type = _AbiArray<_Abi0, _Np>;
 
         template <typename _Ts>
-          using mask_type = std::basic_mask<sizeof(_Ts), _Abi0>;
+          using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
 
         template <__vectorizable _Tp>
           using _MaskMember0 = typename _Abi0::template _MaskMember<_Tp>;
@@ -649,7 +649,7 @@ namespace std
 
         template <typename _Tp, size_t _Bs, typename _UAbi>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
-          _S_convert(std::basic_mask<_Bs, _UAbi> __x)
+          _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
           { return _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
@@ -709,26 +709,26 @@ namespace std
           { return _Impl0::_S_set(__k[__i / _S_chunk_size], __i % _S_chunk_size, __x); }
 
         template <size_t _Bs>
-          static constexpr basic_mask<_Bs, _Abi0>
-          _S_submask(basic_mask<_Bs, abi_type> const& __masks, int __i)
+          static constexpr basic_simd_mask<_Bs, _Abi0>
+          _S_submask(basic_simd_mask<_Bs, abi_type> const& __masks, int __i)
           { return {__private_init, __data(__masks)[__i]}; }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_any_of(basic_mask<_Bs, abi_type> const& __masks)
+          _S_any_of(basic_simd_mask<_Bs, abi_type> const& __masks)
           { return (std::any_of(_S_submask(__masks, _Is)) or ...); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_all_of(basic_mask<_Bs, abi_type> const& __masks)
+          _S_all_of(basic_simd_mask<_Bs, abi_type> const& __masks)
           { return (std::all_of(_S_submask(__masks, _Is)) and ...); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC
           static constexpr bool
-          _S_none_of(basic_mask<_Bs, abi_type> const& __masks)
+          _S_none_of(basic_simd_mask<_Bs, abi_type> const& __masks)
           { return (std::none_of(_S_submask(__masks, _Is)) and ...); }
 
         // TODO: benchmark whether it's more efficient to do element-wise reduction of array members
@@ -737,7 +737,7 @@ namespace std
         template <size_t _Bs>
           requires (_Bs == 1)
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(const basic_mask<_Bs, abi_type> & __k)
+          _S_popcount(const basic_simd_mask<_Bs, abi_type> & __k)
           {
             using _Ip = __mask_integer_from<_Bs>;
             using _Up = __make_unsigned_int_t<_Ip>;
@@ -752,7 +752,7 @@ namespace std
 
         template <size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_first_set(basic_mask<_Bs, abi_type> const& __masks)
+          _S_find_first_set(basic_simd_mask<_Bs, abi_type> const& __masks)
           {
             if (std::any_of(_S_submask(__masks, 0)))
               return std::reduce_min_index(_S_submask(__masks, 0));
@@ -769,7 +769,7 @@ namespace std
 
         template <size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_last_set(basic_mask<_Bs, abi_type> const& __masks)
+          _S_find_last_set(basic_simd_mask<_Bs, abi_type> const& __masks)
           {
             if (std::any_of(_S_submask(__masks, _Np - 1)))
               return (_Np - 1) * _S_chunk_size
@@ -1581,7 +1581,7 @@ namespace std
 
         template <typename _Tp, size_t _Bs, typename _UAbi>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
-          _S_convert(std::basic_mask<_Bs, _UAbi> __x)
+          _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
           { return _UAbi::_MaskImpl::_S_to_bits(__data(__x)).template _M_extract<0, _Np>(); }
 
         //template <typename>
@@ -1681,32 +1681,32 @@ namespace std
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_all_of(const basic_mask<_Bs, _Abi> & __k)
+          _S_all_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).all(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_any_of(const basic_mask<_Bs, _Abi> & __k)
+          _S_any_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).any(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_none_of(const basic_mask<_Bs, _Abi> & __k)
+          _S_none_of(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).none(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(const basic_mask<_Bs, _Abi> & __k)
+          _S_popcount(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __data(__k).count(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_first_set(const basic_mask<_Bs, _Abi> & __k)
+          _S_find_first_set(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __detail::__lowest_bit(__data(__k)._M_to_bits()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_last_set(const basic_mask<_Bs, _Abi> & __k)
+          _S_find_last_set(const basic_simd_mask<_Bs, _Abi> & __k)
           { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
       };
 

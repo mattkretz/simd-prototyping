@@ -689,7 +689,7 @@ namespace std::__detail
 
     template <typename, size_t _Bs, typename _UAbi>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_convert(basic_mask<_Bs, _UAbi> __x)
+      _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
       { return __x[0]; }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
@@ -760,32 +760,32 @@ namespace std::__detail
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_all_of(basic_mask<_Bs, abi_type> __k)
+      _S_all_of(basic_simd_mask<_Bs, abi_type> __k)
       { return __data(__k); }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_any_of(basic_mask<_Bs, abi_type> __k)
+      _S_any_of(basic_simd_mask<_Bs, abi_type> __k)
       { return __data(__k); }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_none_of(basic_mask<_Bs, abi_type> __k)
+      _S_none_of(basic_simd_mask<_Bs, abi_type> __k)
       { return !__data(__k); }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_popcount(basic_mask<_Bs, abi_type> __k)
+      _S_popcount(basic_simd_mask<_Bs, abi_type> __k)
       { return __data(__k); }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr int
-      _S_find_first_set(basic_mask<_Bs, abi_type>)
+      _S_find_first_set(basic_simd_mask<_Bs, abi_type>)
       { return 0; }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr int
-      _S_find_last_set(basic_mask<_Bs, abi_type>)
+      _S_find_last_set(basic_simd_mask<_Bs, abi_type>)
       { return 0; }
   };
 }

@@ -227,7 +227,7 @@ namespace std
 
       using abi_type = _Abi;
 
-      using mask_type = std::basic_mask<
+      using mask_type = std::basic_simd_mask<
                           sizeof(conditional_t<is_void_v<_Tp>, int, _Tp>), _Abi>;
 
       basic_simd() = delete;
@@ -266,7 +266,7 @@ namespace std
 
       using abi_type = _Abi;
 
-      using mask_type = std::basic_mask<sizeof(_Tp), _Abi>;
+      using mask_type = std::basic_simd_mask<sizeof(_Tp), _Abi>;
 
       static constexpr auto size = __detail::__ic<_Traits::_S_size>;
 
@@ -744,7 +744,7 @@ namespace std
 #endif
 
   template <size_t _Bs, typename _Abi>
-    basic_simd(std::basic_mask<_Bs, _Abi>)
+    basic_simd(std::basic_simd_mask<_Bs, _Abi>)
     -> basic_simd<__detail::__mask_integer_from<_Bs>,
                   __detail::__simd_abi_for_mask_t<_Bs, _Abi>>;
 
@@ -754,7 +754,7 @@ namespace std
 
   template <__detail::__vectorizable _Tp, __detail::__mask_type _Mask>
     struct rebind_simd<_Tp, _Mask>
-    { using type = mask<_Tp, _Mask::size()>; };
+    { using type = simd_mask<_Tp, _Mask::size()>; };
 
   template <__detail::_SimdSizeType _Np, __detail::__simd_type _Simd>
     struct resize_simd<_Np, _Simd>
@@ -762,7 +762,7 @@ namespace std
 
   template <__detail::_SimdSizeType _Np, __detail::__mask_type _Mask>
     struct resize_simd<_Np, _Mask>
-    { using type = mask<typename decltype(+_Mask())::value_type, _Np>; };
+    { using type = simd_mask<typename decltype(+_Mask())::value_type, _Np>; };
 
   template <typename _Tp, typename _Abi, __detail::__vectorizable _Up>
     struct simd_alignment<basic_simd<_Tp, _Abi>, _Up>
@@ -770,9 +770,9 @@ namespace std
     {};
 
   template <size_t _Bs, typename _Abi>
-    struct simd_alignment<basic_mask<_Bs, _Abi>, bool>
+    struct simd_alignment<basic_simd_mask<_Bs, _Abi>, bool>
     : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_int_t<bool>,
-                                                  basic_mask<_Bs, _Abi>::size()>)>
+                                                  basic_simd_mask<_Bs, _Abi>::size()>)>
     {};
 
   template <same_as<void> = void, typename _Fp>

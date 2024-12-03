@@ -59,9 +59,9 @@ namespace std
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_mask<_Bs, _Abi>& __x) noexcept
+    split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept
     {
-      constexpr int __in = basic_mask<_Bs, _Abi>::size();
+      constexpr int __in = basic_simd_mask<_Bs, _Abi>::size();
       constexpr int __out = _M::size();
       constexpr int __rem = __in % __out;
       if constexpr (__rem == 0)
@@ -158,11 +158,11 @@ namespace std
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    mask<__detail::__mask_integer_from<_Bs>, (basic_mask<_Bs, _Abis>::size.value + ...)>
-    cat(const basic_mask<_Bs, _Abis>&... __xs) noexcept
+    simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept
     {
-      return mask<__detail::__mask_integer_from<_Bs>,
-                       (basic_mask<_Bs, _Abis>::size.value + ...)>(
+      return simd_mask<__detail::__mask_integer_from<_Bs>,
+                       (basic_simd_mask<_Bs, _Abis>::size.value + ...)>(
                [&] [[__gnu__::__always_inline__]] (auto __i) {
                  return __detail::__get_simd_element_from_pack(__i, __xs...);
                });

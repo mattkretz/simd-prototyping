@@ -168,7 +168,7 @@ namespace std
 
   template <size_t _Bytes,
             typename _Abi = __detail::_NativeAbi<__detail::__mask_integer_from<_Bytes>>>
-    class basic_mask;
+    class basic_simd_mask;
 
   template <typename... _Flags>
     struct flags;
@@ -218,39 +218,37 @@ namespace std
     using resize_simd_t = typename resize_simd<_Np, _Vp>::type;
 
   template <typename _Tp,
-            // FIXME: P1928 defines different default value:
             __detail::_SimdSizeType _Np = __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>>
     using simd = basic_simd<_Tp, __detail::__deduce_t<_Tp, _Np>>;
 
   template <typename _Tp,
-            // FIXME: P1928 defines different default value:
             __detail::_SimdSizeType _Np = __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>>
-    using mask = basic_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
+    using simd_mask = basic_simd_mask<sizeof(_Tp), __detail::__deduce_t<_Tp, _Np>>;
 
   // mask_reductions.h
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    all_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
+    all_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    any_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
+    any_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
-    none_of(const basic_mask<_Bs, _Abi>& __k) noexcept;
+    none_of(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_count(const basic_mask<_Bs, _Abi>& __k) noexcept;
+    reduce_count(const basic_simd_mask<_Bs, _Abi>& __k) noexcept;
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_min_index(const basic_mask<_Bs, _Abi>& __k);
+    reduce_min_index(const basic_simd_mask<_Bs, _Abi>& __k);
 
   template <size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr __detail::_SimdSizeType
-    reduce_max_index(const basic_mask<_Bs, _Abi>& __k);
+    reduce_max_index(const basic_simd_mask<_Bs, _Abi>& __k);
 
   _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
   all_of(same_as<bool> auto __x) noexcept;
@@ -276,7 +274,7 @@ namespace std
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_mask<_Bs, _Abi>& __x) noexcept;
+    split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
@@ -285,8 +283,8 @@ namespace std
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-    mask<__detail::__mask_integer_from<_Bs>, (basic_mask<_Bs, _Abis>::size.value + ...)>
-    cat(const basic_mask<_Bs, _Abis>&... __xs) noexcept;
+    simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
+    cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept;
 
   namespace __detail
   {

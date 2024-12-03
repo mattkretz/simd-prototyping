@@ -963,7 +963,7 @@ namespace std::__detail
 
       template <typename _Tp, size_t _Bs, typename _UAbi>
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
-        _S_convert(basic_mask<_Bs, _UAbi> __x)
+        _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
         { return _SuperImpl::template _S_convert_mask<_MaskMember<_Tp>>(__data(__x)); }
 
       template <__vec_builtin _TV>
@@ -1083,27 +1083,27 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_all_of(basic_mask<_Bs, abi_type> __k)
+        _S_all_of(basic_simd_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... and (__k[_Is] != 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_any_of(basic_mask<_Bs, abi_type> __k)
+        _S_any_of(basic_simd_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... or (__k[_Is] != 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-        _S_none_of(basic_mask<_Bs, abi_type> __k)
+        _S_none_of(basic_simd_mask<_Bs, abi_type> __k)
         { return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, { return (... and (__k[_Is] == 0)); }); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_first_set(basic_mask<_Bs, abi_type> __k)
+        _S_find_first_set(basic_simd_mask<_Bs, abi_type> __k)
         { return __lowest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_to_bits()); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_last_set(basic_mask<_Bs, abi_type> __k)
+        _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
         { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
     };
 
