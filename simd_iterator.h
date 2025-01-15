@@ -14,6 +14,7 @@ namespace std
   template <typename _Vp>
     class __simd_iterator
     {
+      friend class __simd_iterator<const _Vp>;
       _Vp* _M_data = nullptr;
       int _M_offset = 0;
 
@@ -31,6 +32,11 @@ namespace std
 
       constexpr
       __simd_iterator(const __simd_iterator &) = default;
+
+      constexpr
+      __simd_iterator(const __simd_iterator<remove_const_t<_Vp>> &__i) requires is_const_v<_Vp>
+      : _M_data(__i._M_data), _M_offset(__i._M_offset)
+      {}
 
       constexpr __simd_iterator&
       operator=(const __simd_iterator &) = default;
@@ -69,9 +75,9 @@ namespace std
         return r;
       }
 
-      constexpr difference_type
-      operator-(__simd_iterator __rhs) const
-      { return _M_offset - __rhs._M_offset; }
+      constexpr friend difference_type
+      operator-(__simd_iterator __a, __simd_iterator __b)
+      { return __a._M_offset - __b._M_offset; }
 
       constexpr friend difference_type
       operator-(__simd_iterator __it, std::default_sentinel_t)
@@ -114,10 +120,13 @@ namespace std
       constexpr friend auto operator<=>(__simd_iterator __a, __simd_iterator __b)
       { return __a._M_offset <=> __b._M_offset; }
 
+      constexpr friend auto operator<=>(__simd_iterator __a, default_sentinel_t)
+      { return __a._M_offset <=> _Vp::size.value; }
+
       constexpr friend bool operator==(__simd_iterator __a, __simd_iterator __b) = default;
 
       constexpr friend bool operator==(__simd_iterator __a, std::default_sentinel_t)
-      { return __a._M_offset == difference_type(_Vp::size.value); }
+      { return __a._M_offset == _Vp::size.value; }
     };
 }
 #endif

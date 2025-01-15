@@ -285,8 +285,16 @@ namespace std
       begin() const
       { return const_iterator(*this, 0); }
 
+      constexpr const_iterator
+      cbegin() const
+      { return const_iterator(*this, 0); }
+
       constexpr std::default_sentinel_t
       end() const
+      { return {}; }
+
+      constexpr std::default_sentinel_t
+      cend() const
       { return {}; }
 #endif
 

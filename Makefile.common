@@ -15,7 +15,7 @@ endif
 print_compiler_info:
 	@echo "Compiler: $(CXX) $(ICECC_CXX)"
 	@echo "          $(cxx_version)"
-	@echo
+	@echo "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
 
 CXXFLAGS += $(CXXFLAGS_$(compiler))
 

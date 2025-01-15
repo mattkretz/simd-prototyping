@@ -242,6 +242,28 @@ static_assert(
 static_assert(all_of((std::generate<std::simd<int, 4>>([](int i) { return i << 10; }) >> 10)
                 == std::iota_v<std::simd<int, 4>>));
 
+// simd iterators /////////////////////
+
+static_assert([] { std::simd<float> x = {}; return x.begin() == x.begin(); }());
+static_assert([] { std::simd<float> x = {}; return x.begin() == x.cbegin(); }());
+static_assert([] { std::simd<float> x = {}; return x.cbegin() == x.begin(); }());
+static_assert([] { std::simd<float> x = {}; return x.cbegin() == x.cbegin(); }());
+static_assert([] { std::simd<float> x = {}; return x.begin() + x.size() == x.end(); }());
+static_assert([] { std::simd<float> x = {}; return x.end() == x.begin() + x.size(); }());
+static_assert([] { std::simd<float> x = {}; return x.begin() < x.end(); }());
+static_assert([] { std::simd<float> x = {}; return x.begin() <= x.end(); }());
+static_assert(not [] { std::simd<float> x = {}; return x.begin() > x.end(); }());
+static_assert(not [] { std::simd<float> x = {}; return x.begin() >= x.end(); }());
+static_assert(not [] { std::simd<float> x = {}; return x.end() < x.begin(); }());
+static_assert(not [] { std::simd<float> x = {}; return x.end() <= x.begin(); }());
+static_assert([] { std::simd<float> x = {}; return x.end() > x.begin(); }());
+static_assert([] { std::simd<float> x = {}; return x.end() >= x.begin(); }());
+static_assert([] { std::simd<float> x = {}; return x.end() - x.begin(); }() == std::simd<float>::size());
+static_assert([] { std::simd<float> x = {}; return x.begin() - x.end(); }() == -std::simd<float>::size());
+static_assert([] { std::simd<float> x = {}; return x.begin() - x.begin(); }() == 0);
+static_assert([] { std::simd<float> x = {}; return x.begin() + 1 - x.begin(); }() == 1);
+static_assert([] { std::simd<float> x = {}; return x.begin() + 1 - x.cbegin(); }() == 1);
+
 // mask to simd ///////////////////////
 
 static_assert([] constexpr {
