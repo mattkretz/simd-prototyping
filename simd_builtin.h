@@ -1106,16 +1106,6 @@ namespace std::__detail
         _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
         { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
     };
-
-  template <__vectorizable _From, int _FromBytes, __vectorizable _To, int _ToBytes>
-    struct _SimdConverter<_From, _VecAbi<_FromBytes>, _To, _VecAbi<_ToBytes>>
-    {
-      using _ToV = typename _VecAbi<_ToBytes>::template _SimdMember<_To>;
-
-      _GLIBCXX_SIMD_INTRINSIC constexpr _ToV
-      operator()(__vec_builtin auto __from)
-      { return __vec_convert<_ToV>(__from); }
-    };
 }
 
 #endif // PROTOTYPE_SIMD_BUILTIN_H_

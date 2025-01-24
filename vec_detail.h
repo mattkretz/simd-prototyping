@@ -609,6 +609,17 @@ namespace std::__detail
         }
     }
 
+  template <size_t _Bytes, __vec_builtin _TV>
+    _GLIBCXX_SIMD_INTRINSIC constexpr auto
+    __vec_zero_pad_to(_TV __x)
+    {
+      static_assert(sizeof(_TV) <= _Bytes);
+      if constexpr (sizeof(_TV) == _Bytes)
+        return __x;
+      else
+        return __vec_zero_pad_to<_Bytes>(__vec_concat(__x, _TV()));
+    }
+
   /**
    * An object of given type where all bits are 1.
    */

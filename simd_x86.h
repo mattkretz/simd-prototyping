@@ -3648,6 +3648,51 @@ namespace std::__detail
 
     };
 
+  template <__vectorizable _From, __vectorizable _To, int _Width>
+    struct _SimdConverter<_From, _Avx512Abi<_Width>, _To, _Avx512Abi<_Width>>
+    : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Width>
+    struct _SimdConverter<_From, _Avx512Abi<_Width>, _To, _VecAbi<_Width>>
+    : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Width>
+    struct _SimdConverter<_From, _VecAbi<_Width>, _To, _Avx512Abi<_Width>>
+    : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+    struct _SimdConverter<_From, _AbiArray<_Avx512Abi<_Width>, _Np>, _To, _Avx512Abi<_Width * _Np>>
+    : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+    struct _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _Avx512Abi<_Width * _Np>>
+    : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+    struct _SimdConverter<_From, _AbiArray<_Avx512Abi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
+    : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+    struct _SimdConverter<_From, _AbiCombine<_Np, _Avx512Abi<_Mp>>, _To, _Avx512Abi<_Np>>
+    : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+    struct _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _Avx512Abi<_Np>>
+    : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
+    {};
+
+  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+    struct _SimdConverter<_From, _AbiCombine<_Np, _Avx512Abi<_Mp>>, _To, _VecAbi<_Np>>
+    : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
+    {};
+
 }
 #endif // __x86_64__ or __i386__
 #endif // PROTOTYPE_SIMD_X86_H_

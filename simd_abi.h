@@ -874,12 +874,18 @@ namespace std
         { return true; }
       };
 
-    template <typename _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp>... _As>
-      struct _SimdTupleData
+    template <typename _Tp, __valid_abi_tag<_Tp>... _As>
+      struct _SimdTupleData;
+
+    template <typename _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp> _A1,
+              __valid_abi_tag<_Tp>... _As>
+      struct _SimdTupleData<_Tp, _A0, _A1, _As...>
       {
-        static_assert(sizeof...(_As) != 0);
+        using _AbiTail = _AbiCombine<(__simd_size_v<_Tp, _A1> + ... + __simd_size_v<_Tp, _As>), _A1>;
+
         typename _A0::template _SimdMember<_Tp> _M_x;
-        _SimdTuple<_Tp, _As...> _M_tail;
+
+        _SimdTuple<_Tp, _A1, _As...> _M_tail;
       };
 
     template <typename _Tp, __valid_abi_tag<_Tp> _A0>
@@ -899,6 +905,8 @@ namespace std
 
         using _SimdType = basic_simd<_Tp, _A0>;
 
+        using _Abi0 = _A0;
+
         using _Simpl0 = _A0::_SimdImpl;
 
         using _Mimpl0 = _A0::_MaskImpl;
@@ -910,6 +918,7 @@ namespace std
         static constexpr auto _S_total_size
           = vir::cw<(__simd_size_v<_Tp, _A0> + ... + __simd_size_v<_Tp, _As>)>;
 
+        static constexpr auto _S_size0 = _A0::_S_size;
         static constexpr auto _S_tail_size = _SimdTuple<_Tp, _As...>::_S_size;
 
         static constexpr auto _S_tuple_size = vir::cw<_SimdSizeType(sizeof...(_As) + 1)>;
