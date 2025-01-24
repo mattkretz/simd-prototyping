@@ -304,7 +304,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__merge) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD(q, char, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                                    and sizeof(_Tp) == 2)
@@ -316,7 +316,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__intrin) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD(h, short, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
                                    and is_integral_v<_Up>)
@@ -328,7 +328,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__intrin) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD(s, int, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
                                    and is_floating_point_v<_Up>)
@@ -340,7 +340,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__intrin) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD_FLT(s, float, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx2() and sizeof(_Tp) == 4 and is_integral_v<_Up>)
                 {
@@ -365,7 +365,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__intrin) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD(d, long long, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 8
                                    and is_floating_point_v<_Up>)
@@ -377,7 +377,7 @@ namespace std::__detail
                   else if constexpr (sizeof(__intrin) == 64)
                     _GLIBCXX_SIMD_MASK_LOAD_FLT(d, double, 512);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_avx2() and sizeof(_Tp) == 8 and is_integral_v<_Up>)
                 {
@@ -473,7 +473,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_512_mask(__aa, __bb, __k));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (sizeof(_TV) == 32)
             {
@@ -490,7 +490,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_256_mask(__aa, __bb, __k));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (sizeof(_TV) == 16)
             {
@@ -507,13 +507,13 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 8)
                 return reinterpret_cast<_TV>(__builtin_ia32_blendmq_128_mask(__aa, __bb, __k));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (sizeof(_TV) < 16)
             return __vec_bitcast_trunc<_TV>(_S_select_bitmask(__k, __vec_zero_pad_to_16(__a),
                                                               __vec_zero_pad_to_16(__b)));
           else
-            __assert_unreachable<_TV>();
+            static_assert(false);
 #endif
         }
 
@@ -609,7 +609,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_TV) == 16)
                     return reinterpret_cast<_TV>(__builtin_ia32_pblendvb128(__bi, __ai, __ki));
                   else
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else if constexpr (sizeof(_Tp) == 4 and sizeof(_TV) == 32)
                 return __builtin_ia32_blendvps256(__b, __a, __k);
@@ -620,7 +620,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 8 and sizeof(_TV) == 16)
                 return __builtin_ia32_blendvpd(__b, __a, __k);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if (_GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                      return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
@@ -1303,7 +1303,7 @@ namespace std::__detail
 #endif
                 }
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else if constexpr (sizeof(_Tp) == 4 and sizeof __ix == 16 and not _Flags._M_have_avx2())
             {
@@ -1624,7 +1624,7 @@ namespace std::__detail
                   return _mm512_mask_blend_epi16(0xaaaa'aaaaU, __to_x86_intrin(__a),
                                                  __to_x86_intrin(__b));
                 else
-                  __assert_unreachable<decltype(__a)>();
+                  static_assert(false);
               };
               if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
                               and sizeof(_TV) <= 16)
@@ -1804,7 +1804,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_EQ_OQ);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_mask_cmpeq_epi64_mask(__k1, __xi, __yi);
@@ -1831,7 +1831,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmpeq_epi8_mask(__k1, __xi, __yi);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
 
           else
@@ -1880,7 +1880,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_UQ);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_mask_cmpneq_epi64_mask(__k1, __xi, __yi);
@@ -1907,7 +1907,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmpneq_epi8_mask(__k1, __xi, __yi);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
 
           else
@@ -1957,7 +1957,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OS);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (is_signed_v<_Tp>)
                 {
@@ -1986,7 +1986,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 1)
                     return _mm_mask_cmplt_epi8_mask(__k1, __xi, __yi);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_mask_cmplt_epu64_mask(__k1, __xi, __yi);
@@ -2013,7 +2013,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmplt_epu8_mask(__k1, __xi, __yi);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
 
           else
@@ -2063,7 +2063,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 2)
                     return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OS);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (is_signed_v<_Tp>)
                 {
@@ -2092,7 +2092,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 1)
                     return _mm_mask_cmple_epi8_mask(__k1, __xi, __yi);
                   else
-                    __assert_unreachable<_Tp>();
+                    static_assert(false);
                 }
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_mask_cmple_epu64_mask(__k1, __xi, __yi);
@@ -2119,7 +2119,7 @@ namespace std::__detail
               else if constexpr (sizeof(_Tp) == 1)
                 return _mm_mask_cmple_epu8_mask(__k1, __xi, __yi);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
 
           else
@@ -2162,7 +2162,7 @@ namespace std::__detail
           else if constexpr (__vec_builtin_sizeof<_TV, 8>)
             return __builtin_ia32_sqrtps(__x);
           else
-            __assert_unreachable<_Tp>();
+            static_assert(false);
         }
 
       template <__vec_builtin _TV>
@@ -2200,7 +2200,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2>)
                 return _mm_maskz_scalef_ph(__k1, __xi, __expi);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else
             return _Base::_S_ldexp(__x, __exp);
@@ -2445,7 +2445,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm512_mask_cmplt_epi32_mask(__k1, reinterpret_cast<__m512i>(__xi), __m512i());
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else
             return _Base::_S_signbit(__x);
@@ -2473,7 +2473,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _knot_mask8(_mm512_fpclass_pd_mask(__x, 0x9f));
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx512f())
             {
@@ -2504,10 +2504,10 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 8, 64>)
                 return _mm512_cmp_pd_mask(__a, __b, _CMP_ORD_Q);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else
-            __assert_unreachable<_Tp>();
+            static_assert(false);
         }
 
       template <__vec_builtin _TV>
@@ -2540,7 +2540,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
                 return __k1 ^ _mm_mask_fpclass_ph_mask(__k1, __xi, 0x99);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else
 #endif
@@ -2575,7 +2575,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 16>)
                 return _mm_fpclass_ph_mask(__xi, 0x18);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx512dq() and _Flags._M_have_avx512vl())
             {
@@ -2588,7 +2588,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 32>)
                 return _mm256_movm_epi32(_mm256_fpclass_ps_mask(__x, 0x18));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else
 #endif
@@ -2631,7 +2631,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
                 return __k1 ^ _mm512_mask_fpclass_ph_mask(__k1, __xi, __mode);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else if constexpr (_S_use_bitmasks)
             {
@@ -2667,7 +2667,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 2, 64>)
                 return _mm512_movm_epi16(_knot_mask32(_mm512_fpclass_ph_mask(__x, __mode)));
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else
             return _Base::_S_isnormal(__x);
@@ -2714,7 +2714,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_UNORD_Q);
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else if constexpr (sizeof(__xi) == 32 and sizeof(_Tp) == 4)
             return _mm256_cmp_ps(__xi, __yi, _CMP_UNORD_Q);
@@ -2725,7 +2725,7 @@ namespace std::__detail
           else if constexpr (sizeof(__xi) == 16 and sizeof(_Tp) == 8)
             return _mm_cmpunord_pd(__xi, __yi);
           else
-            __assert_unreachable<_Tp>();
+            static_assert(false);
 #endif
         }
 
@@ -2760,7 +2760,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GT_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx())
             {
@@ -2773,7 +2773,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps(__xi, __yi, _CMP_GT_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
@@ -2823,7 +2823,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_GE_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx())
             {
@@ -2836,7 +2836,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps(__xi, __yi, _CMP_GE_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
@@ -2886,7 +2886,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LT_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx())
             {
@@ -2899,7 +2899,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps(__xi, __yi, _CMP_LT_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
@@ -2949,7 +2949,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_LE_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx())
             {
@@ -2962,7 +2962,7 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps(__xi, __yi, _CMP_LE_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_sse2() and __vec_builtin_sizeof<_TV, 4, 16>)
             {
@@ -3012,7 +3012,7 @@ namespace std::__detail
                                    and _Flags._M_have_avx512vl())
                 return _mm_mask_cmp_ph_mask(__k1, __xi, __yi, _CMP_NEQ_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (_Flags._M_have_avx())
             {
@@ -3025,14 +3025,14 @@ namespace std::__detail
               else if constexpr (__vec_builtin_sizeof<_TV, 4, 16>)
                 return _mm_cmp_ps(__xi, __yi, _CMP_NEQ_OQ);
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (__vec_builtin_sizeof<_TV, 8, 16> and _Flags._M_have_sse2())
             return __vec_and(_mm_cmpord_pd(__xi, __yi), _mm_cmpneq_pd(__xi, __yi));
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 16> and _Flags._M_have_sse())
             return __vec_and(_mm_cmpord_ps(__xi, __yi), _mm_cmpneq_ps(__xi, __yi));
           else
-            __assert_unreachable<_TV>();
+            static_assert(false);
         }
 
       template <std::unsigned_integral _Kp>
@@ -3141,7 +3141,7 @@ namespace std::__detail
                 }
 
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else if constexpr (is_floating_point_v<_Tp>)
             {
@@ -3172,10 +3172,10 @@ namespace std::__detail
 #endif
 
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else
-            __assert_unreachable<_Tp>();
+            static_assert(false);
         }
 #endif // __clang__
 
@@ -3293,7 +3293,7 @@ namespace std::__detail
                 return __builtin_ia32_kortestcdi(
                          __kk, __sizemask == 0xffffffffffffffffULL ? __kk : uint64_t(~__sizemask));
               else
-                __assert_unreachable<_Tp>();
+                static_assert(false);
             }
           else
             {
@@ -3528,7 +3528,7 @@ namespace std::__detail
                       else if constexpr (sizeof(__value_type_of<_TV>) == 4)
                         return _mm256_testz_ps(__a, __a);
                       else // TODO:ph
-                        __assert_unreachable<_TV>();
+                        static_assert(false);
                     }
                   else if constexpr (sizeof(_TV) <= 16)
                     {
@@ -3539,16 +3539,16 @@ namespace std::__detail
                       else if constexpr (sizeof(__value_type_of<_TV>) == 4)
                         return _mm_testz_ps(__ai, __ai);
                       else // TODO:ph
-                        __assert_unreachable<_TV>();
+                        static_assert(false);
                     }
                   else
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_sse4_1())
                 return _mm_testz_si128(reinterpret_cast<__m128i>(__ai),
                                        reinterpret_cast<__m128i>(__ai));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
           else if constexpr (sizeof(_TV) <= 8)
             return __builtin_bit_cast(__make_signed_int_t<_TV>, __a) == 0;
@@ -3563,7 +3563,7 @@ namespace std::__detail
               else if constexpr (sizeof(__b) == 64)
                 return _S_is_zero(__vec_lo256(__b) | __vec_hi256(__b));
               else
-                __assert_unreachable<_TV>();
+                static_assert(false);
             }
         }
 
@@ -3587,7 +3587,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 4)
                     return _mm256_testz_ps(__ai, __bi);
                   else // TODO:ph
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx())
                 {
@@ -3596,7 +3596,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 4)
                     return _mm_testz_ps(__ai, __bi);
                   else // TODO:ph
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else if constexpr (_Flags._M_have_sse4_1())
                 return _mm_testz_si128(reinterpret_cast<__m128i>(__ai),
@@ -3629,7 +3629,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 4)
                     return _mm256_testc_ps(__ai, __bi);
                   else // TODO:ph
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else if constexpr (is_floating_point_v<_Tp> and _Flags._M_have_avx())
                 {
@@ -3638,7 +3638,7 @@ namespace std::__detail
                   else if constexpr (sizeof(_Tp) == 4)
                     return _mm_testc_ps(__ai, __bi);
                   else // TODO:ph
-                    __assert_unreachable<_TV>();
+                    static_assert(false);
                 }
               else
                 return _mm_testc_si128(reinterpret_cast<__m128i>(__ai),
