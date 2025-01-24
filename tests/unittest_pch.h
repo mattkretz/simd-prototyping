@@ -8,8 +8,6 @@
 
 #include "../simd"
 
-namespace simd = std;
-
 #include <source_location>
 #include <iostream>
 #include <concepts>

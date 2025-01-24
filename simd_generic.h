@@ -13,15 +13,15 @@ namespace std::simd_generic::scalar
 {
   template <__detail::__vectorizable _Tp, ranges::contiguous_range _Rg, typename... _Flags>
     constexpr _Tp
-    load(_Rg&& __range, flags<_Flags...> __flags = {})
+    simd_unchecked_load(_Rg&& __range, simd_flags<_Flags...> __flags = {})
     {
       static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
                                                          _Tp, _Flags...>,
                     "The converting load is not value-preserving. "
-                    "Pass 'std::simd::flag_convert' if lossy conversion matches the intent.");
+                    "Pass 'std::simd_flag_convert' if lossy conversion matches the intent.");
 
       constexpr bool __allow_out_of_bounds
-        = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
+        = (false or ... or is_same_v<_Flags, __detail::_AllowPartialLoadStore>);
       static_assert(__detail::__static_range_size<_Rg> > 0
                       or __allow_out_of_bounds
                       or __detail::__static_range_size<_Rg> == dynamic_extent,
@@ -56,25 +56,25 @@ namespace std::simd_generic::scalar
   template <__detail::__vectorizable _Tp, contiguous_iterator _First, sentinel_for<_First> _Last,
             typename... _Flags>
     constexpr auto
-    load(_First __first, _Last __last, flags<_Flags...> __flags = {})
-    { return load<_Tp>(std::span(__first, __last), __flags); }
+    simd_unchecked_load(_First __first, _Last __last, simd_flags<_Flags...> __flags = {})
+    { return simd_unchecked_load<_Tp>(std::span(__first, __last), __flags); }
 
   template <__detail::__vectorizable _Tp, contiguous_iterator _First, typename... _Flags>
     constexpr auto
-    load(_First __first, size_t __size, flags<_Flags...> __flags = {})
-    { return load<_Tp>(std::span(__first, __size), __flags); }
+    simd_unchecked_load(_First __first, size_t __size, simd_flags<_Flags...> __flags = {})
+    { return simd_unchecked_load<_Tp>(std::span(__first, __size), __flags); }
 
   template <__detail::__vectorizable _Tp, ranges::contiguous_range _Rg, typename... _Flags>
     constexpr void
-    store(const _Tp& __x, _Rg&& __range, flags<_Flags...> __flags = {})
+    simd_unchecked_store(const _Tp& __x, _Rg&& __range, simd_flags<_Flags...> __flags = {})
     {
       static_assert(__detail::__loadstore_convertible_to<
                       _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
                     "The converting store is not value-preserving. "
-                    "Pass 'std::simd::flag_convert' if lossy conversion matches the intent.");
+                    "Pass 'std::simd_flag_convert' if lossy conversion matches the intent.");
 
       constexpr bool __allow_out_of_bounds
-        = (false or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
+        = (false or ... or is_same_v<_Flags, __detail::_AllowPartialLoadStore>);
       static_assert(__detail::__static_range_size<_Rg> > 0
                       or __allow_out_of_bounds
                       or __detail::__static_range_size<_Rg> == dynamic_extent,

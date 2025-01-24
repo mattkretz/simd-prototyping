@@ -137,6 +137,16 @@ namespace std::__detail
 
     template <typename _Tp, typename _Up>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp>) noexcept
+      { return __mem_size == 0 ? _Tp() : static_cast<_Tp>(__mem[0]); }
+
+    template <typename _Tp, typename _Up>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_masked_load(bool __k, const _Up* __mem, _TypeTag<_Tp>) noexcept
+      { return __k ? static_cast<_Tp>(__mem[0]) : _Tp(); }
+
+    template <typename _Tp, typename _Up>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_masked_load(_Tp __merge, bool __k, const _Up* __mem) noexcept
       {
         if (__k)
@@ -670,13 +680,8 @@ namespace std::__detail
 
     template <typename>
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_broadcast(bool __x)
+      _S_mask_broadcast(bool __x)
       { return __x; }
-
-    template <typename>
-      _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-      _S_load(const bool* __mem)
-      { return __mem[0]; }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr _SanitizedBitMask<1>
     _S_to_bits(bool __x)
@@ -691,25 +696,6 @@ namespace std::__detail
       _GLIBCXX_SIMD_INTRINSIC static constexpr bool
       _S_convert(basic_simd_mask<_Bs, _UAbi> __x)
       { return __x[0]; }
-
-    _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-    _S_masked_load(bool __merge, bool __mask, const bool* __mem) noexcept
-    {
-      if (__mask)
-        __merge = __mem[0];
-      return __merge;
-    }
-
-    _GLIBCXX_SIMD_INTRINSIC static constexpr void
-    _S_store(bool __v, bool* __mem) noexcept
-    { __mem[0] = __v; }
-
-    _GLIBCXX_SIMD_INTRINSIC static constexpr void
-    _S_masked_store(const bool __v, bool* __mem, const bool __k) noexcept
-    {
-      if (__k)
-        __mem[0] = __v;
-    }
 
     _GLIBCXX_SIMD_INTRINSIC static constexpr bool
     _S_logical_and(bool __x, bool __y)

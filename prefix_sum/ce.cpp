@@ -95,7 +95,7 @@ auto f(float last, std::span<float> data)
   for (std::size_t i = 0; i < 1024; i += V::size)
     {
       __asm volatile("# LLVM-MCA-BEGIN simd":::"memory");
-      auto x = simd::load<V>(data.begin() + i, data.end());
+      auto x = simd::simd_unchecked_load<V>(data.begin() + i, data.end());
       V y = aa * last + scaled_inclusive_scan(b * x, a);
       last = y[V::size - 1];
       store(y, data.begin() + i, data.end());

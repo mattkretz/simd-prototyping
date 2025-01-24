@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <limits>
 #include <ranges>
+#include <span>
 
 namespace std::__detail
 {
@@ -33,6 +34,13 @@ namespace std::__detail
    */
   template <typename _Tp>
     using __may_alias [[__gnu__::__may_alias__]] = _Tp;
+
+  _GLIBCXX_SIMD_INTRINSIC constexpr bool
+  __ptr_is_aligned_to(const void* __ptr, size_t __align)
+  {
+    const auto __addr = __builtin_bit_cast(__UINTPTR_TYPE__, __ptr);
+    return (__addr % __align) == 0;
+  }
 
   /**
    * @internal
@@ -235,12 +243,12 @@ namespace std
       struct _MaskCastType;
     };
 
-    template <typename _Tp, typename _Abi, auto = __build_flags()>
+    template <typename _Tp, typename _Abi, _BuildFlags = {}>
       struct _SimdTraits
       : _InvalidTraits
       {};
 
-    template <typename _Tp, typename _Abi, auto _Flags>
+    template <typename _Tp, typename _Abi, _BuildFlags _Flags>
       requires (_Abi::template _IsValid<_Tp>::value)
       struct _SimdTraits<_Tp, _Abi, _Flags>
       : _Abi::template __traits<_Tp>
@@ -249,33 +257,34 @@ namespace std
     /**
      * Masks need to be different for AVX without AVX2.
      */
-    template <size_t _Bs, typename _Abi, auto _Flags = __build_flags()>
+    template <size_t _Bs, typename _Abi, _BuildFlags _Flags = {}>
       struct _SimdMaskTraits
       : _SimdTraits<__mask_integer_from<_Bs>, _Abi, _Flags>
       {};
 
+    template <__vectorizable _Tp, _SimdSizeType _Np = __simd_size_v<_Tp, _NativeAbi<_Tp>>>
+      requires (not is_same_v<typename __deduce_t<_Tp, _Np>::template __traits<_Tp>,
+                              _InvalidTraits>)
+      using __deduced_traits = typename __deduce_t<_Tp, _Np>::template __traits<_Tp>;
+
     template <typename _Rg>
-      constexpr inline size_t
-      __static_range_size = [] -> size_t {
-        using _Tp = std::remove_cvref_t<_Rg>;
-        if constexpr (requires { typename std::integral_constant<size_t, _Tp::size()>; })
-          return _Tp::size();
-        else if constexpr (requires { typename std::integral_constant<size_t, _Tp::extent>; })
-          return _Tp::extent;
-        else if constexpr (std::extent_v<_Tp> > 0)
-          return std::extent_v<_Tp>;
-        else if constexpr (requires {
-                             typename std::integral_constant<size_t, std::tuple_size<_Tp>::value>;
-                             typename std::ranges::range_value_t<_Rg>;
-                           })
+      constexpr size_t
+      __static_range_size(_Rg&& __r)
+      {
+        if consteval
           {
-            if constexpr (std::tuple_size_v<_Tp> >= 1
-                            && std::same_as<std::tuple_element_t<0, _Tp>,
-                                            std::ranges::range_value_t<_Rg>>)
-              return std::tuple_size_v<_Tp>;
+#if 0 // PR117849
+            if constexpr (requires {
+                            typename integral_constant<size_t, ranges::size(__r2)>;
+                          })
+              return ranges::size(__r);
+            else
+              return dynamic_extent;
+#else
+            return decltype(span(__r))::extent;
+#endif
           }
-        return std::dynamic_extent;
-      }();
+      }
 
     _GLIBCXX_SIMD_INTRINSIC _SimdSizeType
     __lowest_bit(std::integral auto __bits)

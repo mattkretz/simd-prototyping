@@ -17,7 +17,7 @@ template <template<typename> class Test>
 #else
     using T = UNITTEST_TYPE;
 #endif
-    if constexpr (std::destructible<simd::simd<T>>)
+    if constexpr (std::destructible<std::simd<T>>)
       {
 #ifndef UNITTEST_WIDTH
         constexpr int Width = 8;
@@ -25,30 +25,30 @@ template <template<typename> class Test>
         constexpr int Width = UNITTEST_WIDTH;
 #endif
         constexpr int N = Width <= 64 ? Width // 1-64
-                                      : 64 + (Width - 64) * simd::simd<T>::size();
-        if constexpr (std::destructible<simd::simd<T, N>>)
+                                      : 64 + (Width - 64) * std::simd<T>::size();
+        if constexpr (std::destructible<std::simd<T, N>>)
           {
-            static_assert(std::destructible<simd::simd_mask<T, N>>);
-            static_assert(std::destructible<typename simd::simd<T, N>::mask_type>);
-            static_assert(simd::simd<T, N>::size() == N);
-            static_assert(simd::simd_mask<T, N>::size() == N);
-            run_functions.push_back(Test<simd::simd<T, N>>::run);
+            static_assert(std::destructible<std::simd_mask<T, N>>);
+            static_assert(std::destructible<typename std::simd<T, N>::mask_type>);
+            static_assert(std::simd<T, N>::size() == N);
+            static_assert(std::simd_mask<T, N>::size() == N);
+            run_functions.push_back(Test<std::simd<T, N>>::run);
           }
         else
           {
             std::cout << "Test type not supported.\n";
-            static_assert(simd::simd<T, N>::size() == 0);
-            static_assert(simd::simd_mask<T, N>::size() == 0);
+            static_assert(std::simd<T, N>::size() == 0);
+            static_assert(std::simd_mask<T, N>::size() == 0);
           }
       }
     else
       {
         std::cout << "Test type not supported.\n";
-        static_assert(not std::default_initializable<simd::simd<T>>);
-        static_assert(not std::copy_constructible<simd::simd<T>>);
-        static_assert(not std::is_copy_assignable_v<simd::simd<T>>);
-        static_assert(simd::simd<T>::size() == 0);
-        static_assert(simd::simd_mask<T>::size() == 0);
+        static_assert(not std::default_initializable<std::simd<T>>);
+        static_assert(not std::copy_constructible<std::simd<T>>);
+        static_assert(not std::is_copy_assignable_v<std::simd<T>>);
+        static_assert(std::simd<T>::size() == 0);
+        static_assert(std::simd_mask<T>::size() == 0);
       }
   }
 

@@ -10,6 +10,7 @@
 #include "simd_scalar.h"
 #include "simd_builtin.h"
 #include "simd_x86.h"
+#include "detail.h"
 
 #include <cstdint>
 
@@ -102,16 +103,16 @@ namespace std
 
     using namespace vir::literals;
 
-    template <typename _Abi0, size_t... _Is>
+    template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
       struct _SimdImplArray;
 
-    template <typename _Abi0, size_t... _Is>
+    template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
       struct _MaskImplArray;
 
-    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
+    template <_SimdSizeType _Np, typename _Tag, _BuildFlags = {}>
       struct _SimdImplAbiCombine;
 
-    template <_SimdSizeType _Np, typename _Tag, auto = __build_flags()>
+    template <_SimdSizeType _Np, typename _Tag, _BuildFlags = {}>
       struct _MaskImplAbiCombine;
 
     template <typename _Tp, __valid_abi_tag<_Tp>... _As>
@@ -148,7 +149,7 @@ namespace std
         = typename __fixed_size_storage_builder<_Tp, _Np, _SimdTuple<_Tp>>::type;
   }
 
-  template <typename _Abi0, __detail::_SimdSizeType _Np>
+  template <typename _Abi0, int _Np>
     struct _AbiArray
     {
       using _Abi0Type = _Abi0;
@@ -163,8 +164,9 @@ namespace std
 
       static constexpr bool _S_is_partial = false;
 
-      static constexpr _SimdSizeType _S_max_size
-        = std::max(_SimdSizeType(64), _SimdSizeType(8 * _Abi0::_S_size));
+      // consider simd<float>::mask_type::operator- on AVX w/o AVX2:
+      // This cannot be 'n * Abi0::_S_size' because otherwise mask cannot be implemented.
+      static constexpr _SimdSizeType _S_max_size = 256;
 
       struct _IsValidAbiTag
       : bool_constant<_Abi0::_IsValidAbiTag::value and not _Abi0::_S_is_partial
@@ -180,12 +182,12 @@ namespace std
         {};
 
       using _SimdImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
-                                   -> __detail::_SimdImplArray<_Abi0, _Is...> {
+                                   -> __detail::_SimdImplArray<_Abi0, {}, _Is...> {
                                      return {};
                                    }(make_index_sequence<_Np>()));
 
       using _MaskImpl = decltype([]<size_t... _Is>(index_sequence<_Is...>)
-                                   -> __detail::_MaskImplArray<_Abi0, _Is...> {
+                                   -> __detail::_MaskImplArray<_Abi0, {}, _Is...> {
                                      return {};
                                    }(make_index_sequence<_Np>()));
 
@@ -337,7 +339,7 @@ namespace std
 
   namespace __detail
   {
-    template <typename _Abi0, size_t... _Is>
+    template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
       struct _SimdImplArray
       {
         static constexpr _SimdSizeType _Np = sizeof...(_Is);
@@ -390,6 +392,30 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_load(const _Up* __mem, _TypeTag<_Tp> __tag) noexcept
           { return {_Impl0::_S_load(__mem + _Is * _S_chunk_size, __tag)...}; }
+
+        template <__vectorizable _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
+          _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
+          {
+            if (__mem_size >= _S_size) [[unlikely]]
+              return _S_load(__mem, __tag);
+            else
+              {
+                return {
+                  ((__mem_size < _Is * _S_chunk_size)
+                     ? _Impl0::_S_broadcast(_Tp())
+                     : (__mem_size < (_Is + 1) * _S_chunk_size
+                          ? _Impl0::_S_partial_load(__mem + _Is * _S_chunk_size,
+                                                    __mem_size - _Is * _S_chunk_size, __tag)
+                          : _Impl0::_S_load(__mem + _Is * _S_chunk_size, __tag)))...
+                };
+              }
+          }
+
+        template <typename _Tp, typename _Up>
+          static constexpr inline _Tp
+          _S_masked_load(_MaskMember<_Tp> const& __k, const _Up* __mem, _TypeTag<_Tp> __tag)
+          { return {_Impl0::_S_masked_load(__k[_Is], __mem + _Is * _S_chunk_size, __tag)...}; }
 
         template <typename _Tp, typename _Up>
           static constexpr inline _Tp
@@ -613,7 +639,7 @@ namespace std
           }
       };
 
-    template <typename _Abi0, size_t... _Is>
+    template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
       struct _MaskImplArray
       {
         static constexpr _SimdSizeType _Np = sizeof...(_Is);
@@ -625,6 +651,9 @@ namespace std
 
         template <__vectorizable _Tp>
           using _MaskMember0 = typename _Abi0::template _MaskMember<_Tp>;
+
+        template <__vectorizable _Tp>
+          using _SimdMember0 = typename _Abi0::template _SimdMember<_Tp>;
 
         template <__vectorizable _Tp>
           using _MaskMember = std::array<_MaskMember0<_Tp>, _Np>;
@@ -665,6 +694,11 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr auto
           _S_to_bits(const std::array<_Tp, _Np>& __k)
           { return _S_to_bits_recursive(_Impl0::_S_to_bits(__k[_Is])...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_mask_broadcast(bool __x)
+          { return {((void)_Is, _Impl0::template _S_mask_broadcast<_Tp>(__x))...}; }
 
         template <typename _Tp>
           _GLIBCXX_SIMD_INTRINSIC
@@ -742,9 +776,9 @@ namespace std
             using _Ip = __mask_integer_from<_Bs>;
             using _Up = __make_unsigned_int_t<_Ip>;
             if constexpr (-_S_size >= __finite_min_v<_Ip>)
-              return -_SimdImplArray<_Abi0, _Is...>::_S_reduce(-__k, std::plus<>());
+              return -_SimdImplArray<_Abi0, _Flags, _Is...>::_S_reduce(-__k, std::plus<>());
             else if constexpr (_S_size <= __finite_max_v<_Up>)
-              return _SimdImplArray<_Abi0, _Is...>::_S_reduce(
+              return _SimdImplArray<_Abi0, _Flags, _Is...>::_S_reduce(
                        static_cast<basic_simd<_Up, abi_type>>(__k), std::plus<>());
             else
               return (std::reduce_count(_S_submask(__k, _Is)) + ...);
@@ -782,6 +816,127 @@ namespace std
                                                  _S_submask(__masks, __i));
               }
             return std::reduce_max_index(_S_submask(__masks, 0));
+          }
+
+        template <__vectorizable _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static _MaskMember<_Tp>
+          _S_mask_with_n_true(unsigned __n)
+          {
+            __glibcxx_simd_precondition(__n < _S_size, "");
+            if constexpr (sizeof(_MaskMember<_Tp>) * __CHAR_BIT__ == _S_size)
+              {
+                static_assert(is_integral_v<_MaskMember0<_Tp>>);
+                static_assert(__CHAR_BIT__ == 8);
+                static_assert(sizeof(unsigned) == 4);
+                static_assert(sizeof(unsigned long long) == 8);
+                _MaskMember<_Tp> __ret;
+                if constexpr (_Flags._M_have_bmi2())
+                  {
+                    if constexpr (_S_size <= 32)
+                      {
+                        const auto __bits = __builtin_ia32_bzhi_si(~0u >> (32 - _S_size), __n);
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+                    else if constexpr (_S_size <= 64)
+                      {
+                        const auto __bits = __builtin_ia32_bzhi_di(~0ull >> (64 - _S_size), __n);
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+                    else
+                      {
+                        constexpr unsigned __parts = __bit_ceil(sizeof(__ret)) / 8u;
+                        unsigned long long __bits[__parts] = {};
+                        unsigned __i = __n / 64u;
+                        if (__i < __parts)
+                          __bits[__i] = __builtin_ia32_bzhi_di(~0ull, __n % 64u);
+                        while (__i)
+                          __bits[--__i] = ~0ull;
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+                  }
+                else
+                  {
+                    if constexpr (_S_size < 32)
+                      {
+                        const auto __bits = (1u << __n) - 1;
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+                    else if constexpr (_S_size <= 64)
+                      {
+                        const auto __bits = _S_size == 64 and __n == 64
+                                              ? ~0ull : (1ull << __n) - 1;
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+#ifdef __SIZEOF_INT128__
+                    else if constexpr (_S_size <= 128)
+                      {
+                        using _Up = unsigned __int128;
+                        const auto __bits = _S_size == 128 and __n == 128
+                                              ? ~_Up() : (_Up(1) << __n) - 1;
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+#endif
+                    else
+                      {
+                        constexpr unsigned __parts = __bit_ceil(sizeof(__ret)) / 8u;
+                        unsigned long long __bits[__parts] = {};
+                        unsigned __i = __n / 64u;
+                        if (__i < __parts)
+                          __bits[__i] = (1ull << __n) - 1;
+                        while (__i)
+                          __bits[--__i] = ~0ull;
+                        __builtin_memcpy(&__ret, &__bits, sizeof(__ret));
+                      }
+                  }
+                return __ret;
+              }
+            else
+              {
+                static_assert(__has_single_bit(_S_chunk_size));
+                if constexpr (_Np <= 4 and _S_size <= 128) // always stays below INT8_MAX
+                  {
+                    constexpr auto __iota0 = _S_vec_iota<_SimdMember0<_Tp>>;
+                    const auto __nv0 = _Abi0::_SimdImpl::_S_broadcast(_Tp(__n));
+                    return {_Abi0::_SimdImpl::_S_less(__iota0 + _Tp(_S_chunk_size * _Is), __nv0)...};
+                  }
+                else
+                  {
+                    _MaskMember<_Tp> __ret = {};
+                    __builtin_memset(&__ret, -1, __n * sizeof(_Tp));
+                    return __ret;
+                  }
+#if 0
+                constexpr auto __all0 = _Impl0::template _S_mask_broadcast<_Tp>(false);
+                constexpr auto __all1 = _Impl0::template _S_mask_broadcast<_Tp>(true);
+                const unsigned __masked_n = __n & unsigned(_S_chunk_size - 1);
+                return {
+                  (__n < _S_chunk_size * _Is ? __all0
+                                             : (__n >= _S_chunk_size * (_Is + 1)
+                                                  ? __all1
+                                                  : _Impl0::template _S_mask_with_n_true<_Tp>(__masked_n))
+                  )...
+                };
+#elif 0
+                constexpr auto __all1 = _Impl0::template _S_mask_broadcast<_Tp>(true);
+                const unsigned __masked_n = __n & unsigned(_S_chunk_size - 1);
+                _MaskMember<_Tp> __ret = _S_mask_broadcast<_Tp>(false);
+                if (__n == 0)
+                  return __ret;
+                for (auto& __chunk : __ret)
+                  {
+                    if (__n >= _S_chunk_size)
+                      {
+                        __chunk = __all1;
+                        __n -= _S_chunk_size;
+                      }
+                    else
+                      {
+                        __chunk = _Impl0::template _S_mask_with_n_true<_Tp>(__masked_n);
+                        return __ret;
+                      }
+                  }
+#endif
+              }
           }
 
         template <__vectorizable _Tp, typename _Fp>
@@ -1044,7 +1199,7 @@ namespace std
         {}
       };
 
-    template <_SimdSizeType _Np, typename _Tag, auto>
+    template <_SimdSizeType _Np, typename _Tag, _BuildFlags>
       struct _SimdImplAbiCombine
       {
         using _MaskMember = _SanitizedBitMask<_Np>;
@@ -1052,10 +1207,10 @@ namespace std
         template <typename _Tp>
           using _SimdMember = __fixed_size_storage_t<_Tp, _Np>;
 
-        using _Abi = _AbiCombine<_Np, _Tag>;
+        using abi_type = _AbiCombine<_Np, _Tag>;
 
         template <typename _Tp>
-          using _Simd = basic_simd<_Tp, _Abi>;
+          using _Simd = basic_simd<_Tp, abi_type>;
 
         template <typename _Tp>
           using _TypeTag = _Tp*;
@@ -1091,6 +1246,19 @@ namespace std
             return _SimdMember<_Tp>::_S_forall(
                      [&] [[__gnu__::__always_inline__]] (auto __meta, auto& __chunk) {
                        __chunk = __meta._S_load(__mem + __meta._S_offset, _TypeTag<_Tp>());
+                     });
+          }
+
+        template <typename _Tp, typename... _As, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static _SimdTuple<_Tp, _As...>
+          _S_masked_load(const _MaskMember __bits, const _Up* __mem, _TypeTag<_Tp> __tag)
+          {
+            return _SimdMember<_Tp>::_S_forall(
+                     [&] [[__gnu__::__always_inline__]] (auto __meta, auto& __chunk) {
+                       __chunk = __meta._S_submask(__bits).any()
+                                   ? __meta._S_masked_load(__meta._S_make_mask(__bits),
+                                                           __mem + __meta._S_offset, __tag)
+                                   : remove_reference_t<decltype(__chunk)>();
                      });
           }
 
@@ -1549,7 +1717,7 @@ namespace std
           }
       };
 
-    template <_SimdSizeType _Np, typename _Tag, auto>
+    template <_SimdSizeType _Np, typename _Tag, _BuildFlags _Flags>
       struct _MaskImplAbiCombine
       {
         static_assert(
@@ -1557,7 +1725,7 @@ namespace std
           "The _AbiCombine implementation relies on one uint64_t being able to store "
           "all boolean elements."); // required in load & store
 
-        using _Abi = _AbiCombine<_Np, _Tag>;
+        using abi_type = _AbiCombine<_Np, _Tag>;
 
         using _MaskMember = _SanitizedBitMask<_Np>;
 
@@ -1592,55 +1760,6 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
           _S_convert(std::basic_simd_mask<_Bs, _UAbi> __x)
           { return _UAbi::_MaskImpl::_S_to_bits(__data(__x)).template _M_extract<0, _Np>(); }
-
-        //template <typename>
-          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
-          _S_load(const bool* __mem)
-          {
-            using _Ip = __make_signed_int_t<bool>;
-            // the following load uses element_aligned and relies on __mem already
-            // carrying alignment information from when this load function was
-            // called.
-            const std::basic_simd<_Ip, _Abi> __bools(
-                    reinterpret_cast<const __may_alias<_Ip>*>(__mem));
-            return __data(__bools != 0);
-          }
-
-/*        static constexpr _MaskMember
-        _S_load(const bool* __mem) noexcept
-        {
-          // TODO: uint8_t is not necessarily the best type to use here. For smaller
-          // _Np uint16_t, uint32_t, uint64_t, float, and double can be more efficient.
-          uint64_t __r = 0;
-          using _Vs = __fixed_size_storage_t<uint8_t, _Np>;
-          __for_each(_Vs{}, [&] [[__gnu__::__always_inline__]] (auto __meta, auto) {
-                       __r |= __meta._S_mask_to_shifted_ullong(
-                                __meta._S_mask_impl._S_load(&__mem[__meta._S_offset],
-                                                            __ic<__meta._S_size()>));
-                     });
-          return __r;
-        }*/
-
-        static constexpr _MaskMember
-        _S_masked_load(_MaskMember __merge, _MaskMember __mask, const bool* __mem) noexcept
-        {
-          _S_bit_iteration(__mask,
-              [&] [[__gnu__::__always_inline__]] (auto __i) {
-              __merge.set(__i, __mem[__i]);
-              });
-          return __merge;
-        }
-
-        static constexpr void
-        _S_store(const _MaskMember __bitmask, bool* __mem) noexcept
-        { _FirstAbi<uint8_t>::_CommonImpl::_S_store_bool_array(__bitmask, __mem); }
-
-        static constexpr void
-        _S_masked_store(const _MaskMember __v, bool* __mem, const _MaskMember __k) noexcept
-        {
-          _S_bit_iteration(
-              __k, [&] [[__gnu__::__always_inline__]] (auto __i) { __mem[__i] = __v[__i]; });
-        }
 
         _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
         _S_logical_and(const _MaskMember& __x, const _MaskMember& __y) noexcept
@@ -1690,33 +1809,42 @@ namespace std
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_all_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_all_of(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __data(__k).all(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_any_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_any_of(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __data(__k).any(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr bool
-          _S_none_of(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_none_of(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __data(__k).none(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_popcount(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_popcount(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __data(__k).count(); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_first_set(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_find_first_set(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __detail::__lowest_bit(__data(__k)._M_to_bits()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_last_set(const basic_simd_mask<_Bs, _Abi> & __k)
+          _S_find_last_set(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
+
+        template <__vectorizable _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static _MaskMember
+          _S_mask_with_n_true(unsigned __n)
+          {
+            __glibcxx_simd_precondition(__n < _Np, "");
+            if constexpr (_Np <= 65 and _Flags._M_have_bmi2())
+              return _MaskMember::__create_unchecked(__builtin_ia32_bzhi_di(~0ull, __n));
+          }
       };
 
     // try all native ABIs (including scalar) first

@@ -80,8 +80,6 @@ namespace std
 
       using value_type = bool;
 
-      using reference = __detail::_SmartReference<_MemberType, _Impl, value_type>;
-
       using abi_type = _Abi;
 
       static constexpr auto size = __detail::__ic<_Traits::_S_size>;
@@ -143,7 +141,7 @@ namespace std
       // broadcast ctor
       _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
       basic_simd_mask(value_type __x) noexcept
-      : _M_data(_Impl::template _S_broadcast<_Tp>(__x))
+      : _M_data(_Impl::template _S_mask_broadcast<_Tp>(__x))
       {}
 
       // conversion ctor

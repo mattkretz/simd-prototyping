@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: LGPL-3.0-or-later */
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
 /* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
  *                       Matthias Kretz <m.kretz@gsi.de>
@@ -10,210 +11,11 @@
 #include "simd_mask.h"
 #include "flags.h"
 #include "simd_iterator.h"
+#include "loadstore.h"
 #include <span>
-#include <iterator>
 
 namespace std
 {
-  namespace __detail
-  {
-    template <typename _Tp, typename _Rg>
-      struct __simd_load_return;
-
-    template <typename _Rg>
-      struct __simd_load_return<void, _Rg>
-      { using type = simd<ranges::range_value_t<_Rg>>; };
-
-    template <typename _Tp, typename _Abi, typename _Rg>
-      struct __simd_load_return<basic_simd<_Tp, _Abi>, _Rg>
-      { using type = basic_simd<_Tp, _Abi>; };
-
-    template <typename _Tp, typename _Rg>
-      using __simd_load_return_t = typename __simd_load_return<_Tp, _Rg>::type;
-  }
-
-  template <typename _Tp = void, ranges::contiguous_range _Rg, typename... _Flags>
-    requires (not __detail::__vectorizable<_Tp>)
-      and (not __detail::__loadstore_convertible_to<
-                 std::ranges::range_value_t<_Rg>,
-                 typename __detail::__simd_load_return_t<_Tp, _Rg>::value_type, _Flags...>)
-    constexpr void
-    load(_Rg&& __range, flags<_Flags...> __flags = {})
-      = _GLIBCXX_DELETE_MSG(
-          "The converting load is not value-preserving. "
-          "Pass 'std::simd::flag_convert' if lossy conversion matches the intent.");
-
-  template <typename _Tp = void, ranges::contiguous_range _Rg, typename... _Flags>
-    requires (not __detail::__vectorizable<_Tp>)
-      and __detail::__loadstore_convertible_to<
-            std::ranges::range_value_t<_Rg>,
-            typename __detail::__simd_load_return_t<_Tp, _Rg>::value_type, _Flags...>
-    _GLIBCXX_SIMD_INTRINSIC
-    constexpr __detail::__simd_load_return_t<_Tp, _Rg>
-    load(_Rg&& __range, flags<_Flags...> __flags = {})
-    {
-      using _RV = __detail::__simd_load_return_t<_Tp, _Rg>;
-
-      constexpr bool __throw_on_out_of_bounds = (is_same_v<_Flags, __detail::_Throw> or ...);
-      constexpr bool __allow_out_of_bounds
-        = (__throw_on_out_of_bounds or ... or is_same_v<_Flags, __detail::_LoadDefaultInit>);
-      static_assert(__detail::__static_range_size<_Rg> >= _RV::size.value
-                      or __allow_out_of_bounds
-                      or __detail::__static_range_size<_Rg> == dynamic_extent,
-                    "Out-of-bounds access: load of %d values out of range of size %d");
-
-      const auto* __ptr = __flags.template _S_adjust_pointer<_RV>(std::ranges::data(__range));
-      using _Rp = typename _RV::value_type;
-      constexpr _Rp* __type_tag = nullptr;
-
-      const auto __rg_size = std::ranges::size(__range);
-      if constexpr (not __allow_out_of_bounds)
-        __glibcxx_simd_precondition(std::ranges::size(__range) >= _RV::size(),
-                                    "Input range is too small. "
-                                    "Consider passing 'std::simd::flag_default_init'.");
-
-      if constexpr (__throw_on_out_of_bounds)
-        {
-          if (__rg_size < _RV::size())
-            throw std::out_of_range("std::simd::load Input range is too small.");
-        }
-#ifdef __AVX512F__
-      if constexpr (__allow_out_of_bounds)
-        {
-          const typename _RV::mask_type __k([&](unsigned __i) { return __i < __rg_size; });
-          _RV __ret {};
-          _RV::_Impl::_S_masked_load(__data(__ret), __data(__k), __ptr);
-          return __ret;
-        }
-#endif
-
-      if constexpr (__detail::__static_range_size<_Rg> != dynamic_extent
-                      and __detail::__static_range_size<_Rg> >= _RV::size())
-        return _RV(__detail::__private_init, _RV::_Impl::_S_load(__ptr, __type_tag));
-      else if (__rg_size >= _RV::size())
-        return _RV(__detail::__private_init, _RV::_Impl::_S_load(__ptr, __type_tag));
-      else if (__builtin_is_constant_evaluated() or __builtin_constant_p(__rg_size))
-        return generate<_RV>([&](size_t __i) {
-                 return __i < __rg_size ? __range[__i] : _Rp();
-               });
-      else
-        return [&] {
-          _RV __ret {};
-          const int __bytes_to_read = (_RV::size() - __rg_size) * sizeof(_Rp);
-          __builtin_memcpy(&__data(__ret), __ptr, __bytes_to_read);
-          return __ret;
-        }();
-    }
-
-  template <typename _Tp = void, contiguous_iterator _First, sentinel_for<_First> _Last,
-            typename... _Flags>
-    _GLIBCXX_SIMD_INTRINSIC
-    constexpr auto
-    load(_First __first, _Last __last, flags<_Flags...> __flags = {})
-    { return load<_Tp>(std::span(__first, __last), __flags); }
-
-  template <typename _Tp = void, contiguous_iterator _First, typename... _Flags>
-    _GLIBCXX_SIMD_INTRINSIC
-    constexpr auto
-    load(_First __first, size_t __size, flags<_Flags...> __flags = {})
-    { return load<_Tp>(std::span(__first, __size), __flags); }
-
-  // (first, last) and (first, size) overloads are in fwddecl.h
-  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
-    requires std::ranges::output_range<_Rg, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags)
-    {
-      using _TV = basic_simd<_Tp, _Abi>;
-      static_assert(destructible<_TV>);
-      static_assert(__detail::__loadstore_convertible_to<
-                      _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
-                    "The converting store is not value-preserving. "
-                    "Pass 'std::simd::flag_convert' if lossy conversion matches the intent.");
-
-      constexpr bool __allow_out_of_bounds
-        = (false or ... or is_same_v<_Flags, __detail::_AllowPartialStore>);
-      static_assert(__detail::__static_range_size<_Rg> >= _TV::size.value
-                      or __allow_out_of_bounds
-                      or __detail::__static_range_size<_Rg> == dynamic_extent,
-                    "Out-of-bounds access: simd::simd store past the end of the output range");
-
-      auto* __ptr = __flags.template _S_adjust_pointer<_TV>(std::ranges::data(__range));
-      constexpr _Tp* __type_tag = nullptr;
-
-      const auto __rg_size = std::ranges::size(__range);
-      if constexpr (not __allow_out_of_bounds)
-        __glibcxx_simd_precondition(std::ranges::size(__range) >= _TV::size(),
-                                    "output range is too small. "
-                                    "Consider passing 'std::simd::flag_allow_partial_store'.");
-
-#ifdef __AVX512F__
-      if constexpr (__allow_out_of_bounds)
-        {
-          const typename _TV::mask_type __k([&](unsigned __i) { return __i < __rg_size; });
-          _TV::_Impl::_S_masked_store(__data(__v), __ptr, __data(__k));
-          return;
-        }
-#endif
-
-      if constexpr (__detail::__static_range_size<_Rg> != dynamic_extent
-                      and __detail::__static_range_size<_Rg> >= _TV::size())
-        _TV::_Impl::_S_store(__data(__v), __ptr, __type_tag);
-      else if (__rg_size >= _TV::size())
-        _TV::_Impl::_S_store(__data(__v), __ptr, __type_tag);
-      else if (__builtin_is_constant_evaluated() or __builtin_constant_p(__rg_size))
-        {
-          for (unsigned __i = 0; __i < __rg_size; ++__i)
-            __ptr[__i] = static_cast<std::ranges::range_value_t<_Rg>>(__v[__i]);
-        }
-      else
-        {
-          const int __bytes_to_write = (_TV::size() - __rg_size) * sizeof(_Tp);
-          __builtin_memcpy(__ptr, &__data(__v), __bytes_to_write);
-        }
-    }
-
-  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
-    requires std::ranges::output_range<_Rg, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range,
-          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags)
-    {
-      using _TV = basic_simd<_Tp, _Abi>;
-      static_assert(__detail::__loadstore_convertible_to<
-                      _Tp, std::ranges::range_value_t<_Rg>, _Flags...>,
-                    "The converting store is not value-preserving. "
-                    "Pass 'std::simd::flag_convert' if lossy conversion matches the intent.");
-
-      constexpr bool __allow_out_of_bounds
-        = (false or ... or is_same_v<_Flags, __detail::_AllowPartialStore>);
-
-      auto* __ptr = __flags.template _S_adjust_pointer<_TV>(std::ranges::data(__range));
-
-      const auto __rg_size = std::ranges::size(__range);
-      if constexpr (not __allow_out_of_bounds)
-        __glibcxx_simd_precondition(none_of(__k)
-                                      or std::ranges::size(__range) > size_t(reduce_max_index(__k)),
-                                    "output range is too small. "
-                                    "Consider passing 'std::simd::flag_allow_partial_store'.");
-
-      if (__builtin_is_constant_evaluated())
-        {
-          for (int __i = 0; __i < _TV::size(); ++__i)
-            if (__k[__i] and (not __allow_out_of_bounds or size_t(__i) < __rg_size))
-              __ptr[__i] = static_cast<std::ranges::range_value_t<_Rg>>(__v[__i]);
-        }
-      else if (__allow_out_of_bounds && __rg_size < _TV::size())
-        {
-          using _Ip = __detail::__mask_integer_from<sizeof(_Tp)>;
-          constexpr rebind_simd_t<_Ip, _TV> __iota([](_Ip i) { return i; });
-          const typename _TV::mask_type __k2 = __iota < _Ip(__rg_size);
-          _TV::_Impl::_S_masked_store(__data(__v), __ptr, __data(__k & __k2));
-        }
-      else
-        _TV::_Impl::_S_masked_store(__data(__v), __ptr, __data(__k));
-    }
-
 #if not SIMD_DISABLED_HAS_API
   // not supported:
   // - deleted: dctor, dtor, cctor, cassign
@@ -259,8 +61,6 @@ namespace std
       alignas(_Traits::_S_simd_align) _MemberType _M_data;
 
       using _Impl = typename _Traits::_SimdImpl;
-
-      using reference = __detail::_SmartReference<_MemberType, _Impl, _Tp>;
 
       using value_type = _Tp;
 
@@ -369,7 +169,7 @@ namespace std
       // conversion constructor.
       template <__detail::__static_sized_range<size.value> _Rg, typename... _Flags>
         constexpr // implicit!
-        basic_simd(_Rg&& __range, flags<_Flags...> __flags = {})
+        basic_simd(_Rg&& __range, simd_flags<_Flags...> __flags = {})
         : _M_data(_Impl::_S_load(__flags.template _S_adjust_pointer<basic_simd>(
                                    std::ranges::data(__range)), _S_type_tag))
         {
@@ -382,7 +182,7 @@ namespace std
       template <std::ranges::contiguous_range _Rg, typename... _Flags>
         requires std::ranges::sized_range<_Rg>
         constexpr explicit
-        basic_simd(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
+        basic_simd(std::from_range_t, _Rg&& __range, simd_flags<_Flags...> __flags = {})
         : _M_data(__data(std::load<basic_simd>(__range, __flags)))
         {
           static_assert(__detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
@@ -398,7 +198,7 @@ namespace std
         requires __detail::__loadstore_convertible_to<std::ranges::range_value_t<_Rg>,
                                                       value_type, _Flags...>
         constexpr explicit
-        basic_simd(std::from_range_t, _Rg&& __range, flags<_Flags...> __flags = {})
+        basic_simd(std::from_range_t, _Rg&& __range, simd_flags<_Flags...> __flags = {})
         : _M_data(_Impl::template _S_generator<value_type>(
                     [&__range, __it = std::ranges::begin(__range)] (int __i) mutable {
                       __glibcxx_simd_precondition(__it != std::ranges::end(__range),
@@ -415,11 +215,11 @@ namespace std
 
       // and give a better error message when the user might have expected `ranges::to` to work
       template <std::ranges::range _Rg, typename... _Flags>
-        basic_simd(std::from_range_t, _Rg&&, flags<_Flags...> = {})
+        basic_simd(std::from_range_t, _Rg&&, simd_flags<_Flags...> = {})
         : _M_data{}
         {
           static_assert(false, "'ranges::to<basic_simd>()' requires a value-preserving conversion. "
-                               "Call 'ranges::to<basic_simd>(simd::flag_convert)' to allow all "
+                               "Call 'ranges::to<basic_simd>(simd_flag_convert)' to allow all "
                                "implicit conversions.");
         }
 #endif
@@ -668,7 +468,7 @@ namespace std
       _M_to_array() const noexcept
       {
         std::array<_Tp, size()> __r = {};
-        std::store(*this, __r);
+        std::simd_unchecked_store(*this, __r);
         return __r;
       }
 
@@ -747,7 +547,7 @@ namespace std
     -> basic_simd<std::ranges::range_value_t<_Rg>>;
 
   template <std::ranges::input_range _Rg, typename... _Flags>
-    basic_simd(std::from_range_t, _Rg&& x, flags<_Flags...>)
+    basic_simd(std::from_range_t, _Rg&& x, simd_flags<_Flags...>)
     -> basic_simd<std::ranges::range_value_t<_Rg>>;
 #endif
 

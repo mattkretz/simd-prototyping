@@ -11,21 +11,13 @@ namespace test01
 {
   using namespace simd::__detail;
 
-  template <typename T, int N>
-    class MyArray
-    {
-      T data[N];
+  int carr4[4] = {};
 
-    public:
-      static constexpr std::integral_constant<int, N> size = {};
-    };
-
-  static_assert(__static_range_size<MyArray<int, 4>> == 4);
-  static_assert(__static_range_size<std::array<int, 4>> == 4);
-  static_assert(__static_range_size<int[4]> == 4);
-  static_assert(__static_range_size<std::span<int, 4>> == 4);
-  static_assert(__static_range_size<std::span<int>> == std::dynamic_extent);
-  static_assert(__static_range_size<std::vector<int>> == std::dynamic_extent);
+  static_assert(__static_range_size(std::array<int, 4> {}) == 4);
+  static_assert(__static_range_size(carr4) == 4);
+  static_assert(__static_range_size(std::span<int, 4>(carr4, 4)) == 4);
+  static_assert(__static_range_size(std::span<int>(carr4, 4)) == std::dynamic_extent);
+  static_assert(__static_range_size(std::vector<int>()) == std::dynamic_extent);
 
   static_assert(std::same_as<__nopromot_common_type_t<short, signed char>, short>);
   static_assert(std::same_as<__nopromot_common_type_t<short, unsigned char>, short>);
@@ -63,11 +55,11 @@ namespace test01
   static_assert(std::same_as<__fixed_size_storage_t<float, 7>,
                              _SimdTuple<float, simd::_VecAbi<4>, simd::_VecAbi<3>>>);
 
-  static_assert(simd::simd<float>::size > 1);
-  static_assert(alignof(simd::simd<float>) > alignof(float));
-  static_assert(alignof(simd::simd<float, 4>) > alignof(float));
-  static_assert(alignof(simd::simd<float, 3>) > alignof(float));
-  static_assert(alignof(simd::simd<float, 7>) > alignof(float));
+  static_assert(std::simd<float>::size > 1);
+  static_assert(alignof(std::simd<float>) > alignof(float));
+  static_assert(alignof(std::simd<float, 4>) > alignof(float));
+  static_assert(alignof(std::simd<float, 3>) > alignof(float));
+  static_assert(alignof(std::simd<float, 7>) > alignof(float));
 #endif
 #if defined __AVX__ and not defined __AVX512F__
   static_assert(std::same_as<__deduce_t<float, 8>, simd::_VecAbi<8>>);
@@ -76,22 +68,22 @@ namespace test01
                              std::array<__vec_builtin_type<float, 8>, 2>>);
   static_assert(std::same_as<__deduce_t<float, 16>::_MaskMember<int>,
                              std::array<__vec_builtin_type<int, 8>, 2>>);
-  static_assert(std::same_as<simd::simd_mask<float, 16>::abi_type, __deduce_t<float, 16>>);
+  static_assert(std::same_as<std::simd_mask<float, 16>::abi_type, __deduce_t<float, 16>>);
   static_assert(std::same_as<_SimdMaskTraits<4, __deduce_t<float, 16>>::_MaskMember,
                              std::array<__vec_builtin_type<int, 8>, 2>>);
 #endif
 }
 
 #if defined __AVX__ and not defined __AVX2__
-static_assert(alignof(simd::simd_mask<int, 8>) == 16);
-static_assert(alignof(simd::simd_mask<float, 8>) == 32);
-static_assert(alignof(simd::simd_mask<int, 16>) == 16);
-static_assert(alignof(simd::simd_mask<float, 16>) == 32);
-static_assert(alignof(simd::simd_mask<long long, 4>) == 16);
-static_assert(alignof(simd::simd_mask<double, 4>) == 32);
-static_assert(alignof(simd::simd_mask<long long, 8>) == 16);
-static_assert(alignof(simd::simd_mask<double, 8>) == 32);
-static_assert(std::same_as<decltype(+simd::simd_mask<float, 8>()), simd::simd<int, 8>>);
+static_assert(alignof(std::simd_mask<int, 8>) == 16);
+static_assert(alignof(std::simd_mask<float, 8>) == 32);
+static_assert(alignof(std::simd_mask<int, 16>) == 16);
+static_assert(alignof(std::simd_mask<float, 16>) == 32);
+static_assert(alignof(std::simd_mask<long long, 4>) == 16);
+static_assert(alignof(std::simd_mask<double, 4>) == 32);
+static_assert(alignof(std::simd_mask<long long, 8>) == 16);
+static_assert(alignof(std::simd_mask<double, 8>) == 32);
+static_assert(std::same_as<decltype(+std::simd_mask<float, 8>()), std::simd<int, 8>>);
 #endif
 
 template <auto X>
@@ -140,40 +132,40 @@ template <typename V, typename T = typename V::value_type>
 template <typename T>
   struct test_usable_simd
   {
-    static_assert(not usable_simd<simd::simd<T, 0>>);
+    static_assert(not usable_simd<std::simd<T, 0>>);
 #if SIMD_DISABLED_HAS_API
-    static_assert(has_static_size<simd::simd<T, 0>>);
-    static_assert(simd::simd<T, 0>::size() == 0);
+    static_assert(has_static_size<std::simd<T, 0>>);
+    static_assert(std::simd<T, 0>::size() == 0);
 #else
-    static_assert(not has_static_size<simd::simd<T, 0>>);
+    static_assert(not has_static_size<std::simd<T, 0>>);
 #endif
-    static_assert(usable_simd<simd::simd<T, 1>>);
-    static_assert(usable_simd<simd::simd<T, 2>>);
-    static_assert(usable_simd<simd::simd<T, 3>>);
-    static_assert(usable_simd<simd::simd<T, 4>>);
-    static_assert(usable_simd<simd::simd<T, 7>>);
-    static_assert(usable_simd<simd::simd<T, 8>>);
-    static_assert(usable_simd<simd::simd<T, 16>>);
-    static_assert(usable_simd<simd::simd<T, 32>>);
-    static_assert(usable_simd<simd::simd<T, 63>>);
-    static_assert(usable_simd<simd::simd<T, 64>>);
+    static_assert(usable_simd<std::simd<T, 1>>);
+    static_assert(usable_simd<std::simd<T, 2>>);
+    static_assert(usable_simd<std::simd<T, 3>>);
+    static_assert(usable_simd<std::simd<T, 4>>);
+    static_assert(usable_simd<std::simd<T, 7>>);
+    static_assert(usable_simd<std::simd<T, 8>>);
+    static_assert(usable_simd<std::simd<T, 16>>);
+    static_assert(usable_simd<std::simd<T, 32>>);
+    static_assert(usable_simd<std::simd<T, 63>>);
+    static_assert(usable_simd<std::simd<T, 64>>);
 
 #if SIMD_DISABLED_HAS_API
-    static_assert(has_static_size<simd::simd_mask<T, 0>>);
-    static_assert(simd::simd_mask<T, 0>::size() == 0);
+    static_assert(has_static_size<std::simd_mask<T, 0>>);
+    static_assert(std::simd_mask<T, 0>::size() == 0);
 #else
-    static_assert(not has_static_size<simd::simd_mask<T, 0>>);
+    static_assert(not has_static_size<std::simd_mask<T, 0>>);
 #endif
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 1>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 2>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 3>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 4>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 7>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 8>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 16>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 32>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 63>>);
-    static_assert(usable_simd_or_mask<simd::simd_mask<T, 64>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 1>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 2>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 3>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 4>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 7>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 8>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 16>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 32>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 63>>);
+    static_assert(usable_simd_or_mask<std::simd_mask<T, 64>>);
   };
 
 template <template <typename> class Tpl>
@@ -216,14 +208,14 @@ namespace test_generator
   struct udt_convertible_to_float
   { operator float() const; };
 
-  static_assert(    std::constructible_from<simd::simd<float>, float (&)(int)>);
-  static_assert(not std::convertible_to<float (&)(int), simd::simd<float>>);
-  static_assert(not std::constructible_from<simd::simd<float>, int (&)(int)>);
-  static_assert(not std::constructible_from<simd::simd<float>, double (&)(int)>);
-  static_assert(    std::constructible_from<simd::simd<float>, short (&)(int)>);
+  static_assert(    std::constructible_from<std::simd<float>, float (&)(int)>);
+  static_assert(not std::convertible_to<float (&)(int), std::simd<float>>);
+  static_assert(not std::constructible_from<std::simd<float>, int (&)(int)>);
+  static_assert(not std::constructible_from<std::simd<float>, double (&)(int)>);
+  static_assert(    std::constructible_from<std::simd<float>, short (&)(int)>);
   // should be invalid with wording update:
-  static_assert(    std::constructible_from<simd::simd<float>, long double (&)(int)>);
-  static_assert(    std::constructible_from<simd::simd<float>,
+  static_assert(    std::constructible_from<std::simd<float>, long double (&)(int)>);
+  static_assert(    std::constructible_from<std::simd<float>,
                                             udt_convertible_to_float (&)(int)>);
 }
 
@@ -365,7 +357,7 @@ namespace simd_reduction_tests
                 }, INT_MAX) == INT_MAX);
 
   template <typename BinaryOperation>
-    concept masked_reduce_works = requires(simd::simd<int, 4> a, simd::simd<int, 4> b) {
+    concept masked_reduce_works = requires(std::simd<int, 4> a, std::simd<int, 4> b) {
       reduce(a, a < b, BinaryOperation());
     };
 
@@ -506,43 +498,43 @@ static_assert(
 
 // simd_flags ////////////////////////
 
-static_assert(simd::flags<>()._M_is_equal(simd::flag_default));
+static_assert(std::simd_flags<>()._M_is_equal(std::simd_flag_default));
 
-static_assert(not simd::flag_aligned._M_is_equal(simd::flag_default));
+static_assert(not std::simd_flag_aligned._M_is_equal(std::simd_flag_default));
 
-static_assert(not simd::flag_default._M_is_equal(simd::flag_aligned));
+static_assert(not std::simd_flag_default._M_is_equal(std::simd_flag_aligned));
 
-static_assert((simd::flag_default | simd::flag_default)
-                ._M_is_equal(simd::flag_default));
+static_assert((std::simd_flag_default | std::simd_flag_default)
+                ._M_is_equal(std::simd_flag_default));
 
-static_assert((simd::flag_aligned | simd::flag_default)
-                ._M_is_equal(simd::flag_aligned));
+static_assert((std::simd_flag_aligned | std::simd_flag_default)
+                ._M_is_equal(std::simd_flag_aligned));
 
-static_assert((simd::flag_aligned | simd::flag_aligned)
-                ._M_is_equal(simd::flag_aligned));
+static_assert((std::simd_flag_aligned | std::simd_flag_aligned)
+                ._M_is_equal(std::simd_flag_aligned));
 
-static_assert((simd::flag_aligned | simd::flag_convert)
-                ._M_is_equal(simd::flag_convert | simd::flag_aligned));
+static_assert((std::simd_flag_aligned | std::simd_flag_convert)
+                ._M_is_equal(std::simd_flag_convert | std::simd_flag_aligned));
 
-static_assert(not ((simd::flag_aligned | simd::flag_convert)
-                     ._M_and(simd::flag_aligned))
-                ._M_is_equal(simd::flag_convert | simd::flag_aligned));
+static_assert(not ((std::simd_flag_aligned | std::simd_flag_convert)
+                     ._M_and(std::simd_flag_aligned))
+                ._M_is_equal(std::simd_flag_convert | std::simd_flag_aligned));
 
-static_assert(((simd::flag_aligned | simd::flag_convert)
-                 ._M_and(simd::flag_aligned))
-                ._M_is_equal(simd::flag_aligned));
+static_assert(((std::simd_flag_aligned | std::simd_flag_convert)
+                 ._M_and(std::simd_flag_aligned))
+                ._M_is_equal(std::simd_flag_aligned));
 
-static_assert(simd::flag_aligned._M_test(simd::flag_aligned));
+static_assert(std::simd_flag_aligned._M_test(std::simd_flag_aligned));
 
-static_assert(simd::flag_aligned._M_test(simd::flag_default));
+static_assert(std::simd_flag_aligned._M_test(std::simd_flag_default));
 
-static_assert(not simd::flag_default._M_test(simd::flag_aligned));
+static_assert(not std::simd_flag_default._M_test(std::simd_flag_aligned));
 
 // simd concepts ///////////////////////////////////
 
 static_assert(ext::simd_regular<int>);
-static_assert(ext::simd_regular<simd::simd<int>>);
-static_assert(ext::simd_regular<simd::simd_mask<int>>);
+static_assert(ext::simd_regular<std::simd<int>>);
+static_assert(ext::simd_regular<std::simd_mask<int>>);
 
 // simd.math ///////////////////////////////////////
 
@@ -550,11 +542,11 @@ namespace math_tests
 {
   using namespace vir::literals;
 
-  constexpr simd::simd<float, 1>
+  constexpr std::simd<float, 1>
     operator""_f1(long double x)
   { return float(x); }
 
-  constexpr simd::simd<float, 4>
+  constexpr std::simd<float, 4>
     operator""_f4(long double x)
   { return float(x); }
 
@@ -578,26 +570,26 @@ namespace math_tests
       { return value; }
     };
 
-  static_assert(std::same_as<simd::simd<float, 2>,
+  static_assert(std::same_as<std::simd<float, 2>,
                              simd::__detail::__math_common_simd_t<
-                               short, holder<float>, holder<simd::simd<float, 2>>>
+                               short, holder<float>, holder<std::simd<float, 2>>>
                             >);
 
-  static_assert(std::same_as<simd::simd<float, 3>,
+  static_assert(std::same_as<std::simd<float, 3>,
                              simd::__detail::__math_common_simd_t<
-                               holder<simd::simd<float, 3>>, float, holder<short>>
+                               holder<std::simd<float, 3>>, float, holder<short>>
                             >);
 
-  static_assert(std::same_as<simd::simd<float, 3>,
+  static_assert(std::same_as<std::simd<float, 3>,
                              simd::__detail::__math_common_simd_t<
-                               holder<simd::simd<float, 3>>, float, holder<short>,
-                               simd::simd<char, 3>>
+                               holder<std::simd<float, 3>>, float, holder<short>,
+                               std::simd<char, 3>>
                             >);
 
-  static_assert(std::same_as<simd::simd<float, 3>,
+  static_assert(std::same_as<std::simd<float, 3>,
                              simd::__detail::__math_common_simd_t<
-                               simd::simd<char, 3>,
-                               holder<simd::simd<float, 3>>, float, holder<short>>
+                               std::simd<char, 3>,
+                               holder<std::simd<float, 3>>, float, holder<short>>
                             >);
 
   static_assert(simd::floor(1.1_f1)[0] == std::floor(1.1f));
@@ -612,11 +604,11 @@ namespace math_tests
   static_assert(simd::hypot(1.2_f1, 1_cw)[0] == std::hypot(1.f, 1.2f));
   static_assert(simd::hypot(holder {1.f}, 1.2_f1)[0] == std::hypot(1.f, 1.2f));
   // the following must not be valid. if you want simd<double> be explicit about it:
-  static_assert(not hypot_invocable<int, simd::simd<float, 1>>);
-  static_assert(not hypot_invocable<int, simd::simd<float, 1>, simd::simd<float, 1>>);
+  static_assert(not hypot_invocable<int, std::simd<float, 1>>);
+  static_assert(not hypot_invocable<int, std::simd<float, 1>, std::simd<float, 1>>);
 
-  static_assert(hypot_invocable_r<simd::simd<float, 1>, holder<float>,
-                                  vir::constexpr_wrapper<2>, simd::simd<float, 1>>);
-  static_assert(hypot_invocable_r<simd::simd<float, 1>, holder<short>,
-                                  simd::simd<float, 1>, float>);
+  static_assert(hypot_invocable_r<std::simd<float, 1>, holder<float>,
+                                  vir::constexpr_wrapper<2>, std::simd<float, 1>>);
+  static_assert(hypot_invocable_r<std::simd<float, 1>, holder<short>,
+                                  std::simd<float, 1>, float>);
 }

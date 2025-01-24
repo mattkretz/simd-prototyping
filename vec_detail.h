@@ -268,6 +268,18 @@ namespace std::__detail
              });
     }
 
+  template <size_t _Bytes, __vec_builtin _TV>
+    _GLIBCXX_SIMD_INTRINSIC constexpr __vec_builtin_type_bytes<__value_type_of<_TV>, _Bytes>
+    __vec_lo(_TV __x)
+    {
+      using _Tp = __value_type_of<_TV>;
+      constexpr int __new_width = _Bytes / sizeof(_Tp);
+      static_assert(sizeof(_TV) >= _Bytes);
+      return _GLIBCXX_SIMD_INT_PACK(__new_width, _Is, {
+               return __builtin_shufflevector(__x, __x, _Is...);
+             });
+    }
+
   template <__vec_builtin _TV>
     _GLIBCXX_SIMD_INTRINSIC constexpr __vec_builtin_type_bytes<__value_type_of<_TV>, 16>
     __vec_lo128(_TV __x)
@@ -680,6 +692,11 @@ namespace std::__detail
   template <__vec_builtin _V>
     requires std::floating_point<__value_type_of<_V>>
     constexpr _V _S_absmask = __vec_andnot(_S_signmask<_V>, _S_allbits<_V>);
+
+  template <__vec_builtin _V, __value_type_of<_V> _Offset = {}>
+    constexpr _V _S_vec_iota = []<int... _Is>(integer_sequence<int, _Is...>) {
+      return _V{static_cast<__value_type_of<_V>>(_Is + _Offset)...};
+    }(make_integer_sequence<int, __width_of<_V>>());
 }
 
 #endif  // PROTOTYPE_VEC_DETAIL_H_

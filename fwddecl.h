@@ -157,7 +157,7 @@ namespace std
       using __deduce_t = typename _DeduceAbi<_Tp, _Np>::type;
   }
 
-  template <typename _Abi0, __detail::_SimdSizeType _Np>
+  template <typename _Abi0, int _Np>
     struct _AbiArray;
 
   template <__detail::_SimdSizeType _Np, typename _Tag>
@@ -171,7 +171,7 @@ namespace std
     class basic_simd_mask;
 
   template <typename... _Flags>
-    struct flags;
+    struct simd_flags;
 
   template <typename _Tp>
     struct is_simd
@@ -335,55 +335,6 @@ namespace std
     constexpr _Tp
     reduce_max(const basic_simd<_Tp, _Abi>& __x,
                const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
-
-  template <std::ranges::range _Rg, typename... _Tp>
-    requires (not std::ranges::contiguous_range<_Rg>)
-    constexpr void
-    load(_Rg&&, const _Tp&...)
-      = _GLIBCXX_DELETE_MSG(
-          "std::load(range, flags = {}) requires a contiguous range"
-          ", either by passing the range, begin and end iterators, or begin and size.");
-
-  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
-    requires std::ranges::output_range<_Rg, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range, flags<_Flags...> __flags = {});
-
-  template <typename _Tp, typename _Abi, ranges::contiguous_range _Rg, typename... _Flags>
-    requires std::ranges::output_range<_Rg, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _Rg&& __range,
-          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {});
-
-  template <typename _Tp, typename _Abi, contiguous_iterator _First, sentinel_for<_First> _Last,
-            typename... _Flags>
-    requires std::output_iterator<_First, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _First __first, _Last __last,
-          flags<_Flags...> __flags = {})
-    { store(__v, std::span(__first, __last), __flags); }
-
-  template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
-    requires std::output_iterator<_First, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _First __first, size_t __size,
-          flags<_Flags...> __flags = {})
-    { store(__v, std::span(__first, __size), __flags); }
-
-  template <typename _Tp, typename _Abi, contiguous_iterator _First, sentinel_for<_First> _Last,
-            typename... _Flags>
-    requires std::output_iterator<_First, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _First __first, _Last __last,
-          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
-    { store(__v, std::span(__first, __last), __k, __flags); }
-
-  template <typename _Tp, typename _Abi, contiguous_iterator _First, typename... _Flags>
-    requires std::output_iterator<_First, _Tp>
-    constexpr void
-    store(const basic_simd<_Tp, _Abi>& __v, _First __first, size_t __size,
-          const typename basic_simd<_Tp, _Abi>::mask_type& __k, flags<_Flags...> __flags = {})
-    { store(__v, std::span(__first, __size), __k, __flags); }
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

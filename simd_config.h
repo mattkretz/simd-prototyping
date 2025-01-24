@@ -357,10 +357,6 @@
   _GLIBCXX_SIMD_LIST_ARITHMETICS(__macro) static_assert(true)
 #endif
 
-#if defined __GXX_CONDITIONAL_IS_OVERLOADABLE__ and SIMD_CONDITIONAL_OPERATOR
-#define simd_select_impl operator?:
-#endif
-
 #define _GLIBCXX_SIMD_INT_PACK(N, pack, code)                                                      \
   [&]<int... pack> [[__gnu__::__always_inline__]] (std::integer_sequence<int, pack...>)            \
     code (std::make_integer_sequence<int, N>())

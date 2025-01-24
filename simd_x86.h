@@ -180,13 +180,13 @@ namespace std
 #if __x86_64__ or __i386__
 namespace std::__detail
 {
-  template <typename _Abi, auto _Flags>
+  template <typename _Abi, _BuildFlags _Flags>
     struct _SimdMaskTraits<sizeof(float), _Abi, _Flags>
     : _SimdTraits<conditional_t<_Flags._M_have_avx() and not _Flags._M_have_avx2(),
                                 float, __mask_integer_from<sizeof(float)>>, _Abi, _Flags>
     {};
 
-  template <typename _Abi, auto _Flags>
+  template <typename _Abi, _BuildFlags _Flags>
     struct _SimdMaskTraits<sizeof(double), _Abi, _Flags>
     : _SimdTraits<conditional_t<_Flags._M_have_avx() and not _Flags._M_have_avx2(),
                                 double, __mask_integer_from<sizeof(double)>>, _Abi, _Flags>
@@ -211,10 +211,15 @@ namespace std::__detail
     _NearbyInt = _CurDirection | _NoException,
   };
 
-  template <typename _Abi, auto _Flags>
-    struct _ImplBuiltin : _ImplBuiltinBase<_Abi>
+  template <typename _Abi, _BuildFlags _Flags>
+    struct _ImplBuiltin : _ImplBuiltinBase<_Abi, _Flags>
     {
-      using _Base = _ImplBuiltinBase<_Abi>;
+      using _Base = _ImplBuiltinBase<_Abi, _Flags>;
+
+      using abi_type = typename _Base::abi_type;
+
+      template <typename _Tp>
+        using _TypeTag = _Tp*;
 
       template <typename _Tp>
         using _SimdMember = typename _Abi::template _SimdMember<_Tp>;
@@ -224,6 +229,7 @@ namespace std::__detail
         using _MaskMember = typename _Abi::template _MaskMember<__value_type_of<_Tp>>;
 
       static constexpr _SimdSizeType _S_size = _Abi::_S_size;
+      static_assert(_S_size > 1);
 
       static constexpr _SimdSizeType _S_full_size = _Abi::_S_full_size;
 
@@ -244,32 +250,196 @@ namespace std::__detail
         _S_to_bitmask(_Tp __k)
         { return __k; }
 
-      template <typename _Tp>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
-        _S_load(const bool* __mem)
+      template <typename _Tp, typename _Up>
+        _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
+        _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
         {
-          if constexpr (_S_use_bitmasks)
+          constexpr bool __have_masked_load = _S_use_bitmasks
+                                                or (sizeof(_Up) >= 4 and _Flags._M_have_avx());
+          constexpr bool __use_two_loads = not _Flags._M_have_avx2()
+                                             and sizeof(_SimdMember<_Tp>) == 32;
+          constexpr bool __need_cvt = not is_same_v<_Tp, _Up>
+                                        and not (is_integral_v<_Tp> and is_integral_v<_Up>
+                                                   and sizeof(_Tp) == sizeof(_Up));
+
+          if constexpr (not __have_masked_load)
             {
-              if (__builtin_is_constant_evaluated())
+#if 1 // allow out-of-bounds read when it cannot lead to a #GP
+              if (__ptr_is_aligned_to(__mem, sizeof(_Up) * _S_full_size))
+                return _S_bit_and(_Base::_S_load(__mem, __tag),
+                                  reinterpret_cast<_SimdMember<_Tp>>(
+                                    _S_mask_with_n_true<_Tp>(__mem_size)));
+              else
+#endif
+                return _Base::_S_partial_load(__mem, __mem_size, __tag);
+            }
+
+          else if constexpr (__need_cvt)
+            {
+              using _UImpl = typename __deduced_traits<_Up, _S_size>::_SimdImpl;
+              constexpr _TypeTag<_Up> __utag = nullptr;
+              constexpr _SimdConverter<_Up, typename _UImpl::abi_type, _Tp, abi_type> __cvt;
+              return __cvt(_UImpl::_S_partial_load(__mem, __mem_size, __utag));
+            }
+
+          else if constexpr (__use_two_loads)
+            {
+              using _Traits2 = __deduced_traits<_Tp, _S_full_size / 2>;
+              using _Impl2 = typename _Traits2::_SimdImpl;
+              using _SM2 = typename _Traits2::_SimdMember;
+              if (__mem_size <= _S_full_size / 2)
                 {
-                  return _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                           return ((_MaskMember<_Tp>(__mem[_Is]) << _Is) | ...);
-                         });
+                  const auto __k = _Impl2::template _S_mask_with_n_true<
+                                     __mask_integer_from<sizeof(_Up)>>(__mem_size);
+                  const auto __low = _Impl2::_S_masked_load( __k, __mem, __tag);
+                  const _SM2 __high = {};
+                  return __vec_concat(__low, __high);
                 }
               else
                 {
-                  using _BV = __vec_builtin_type_bytes<__make_signed_int_t<bool>,
-                                                       _S_full_size * sizeof(bool)>;
-                  _BV __bools = {};
-                  __builtin_memcpy(&__bools, __mem, _S_size * sizeof(bool));
-                  return _S_not_equal_to(__bools, _BV());
+                  using _Ip = __mask_integer_from<sizeof(_Up)>;
+                  const _SM2 __low = _Impl2::_S_load(__mem, __tag);
+                  const auto __k
+                    = _Impl2::_S_less(
+                        _S_vec_iota<typename _VecAbi<_S_full_size / 2>::template _SimdMember<_Ip>,
+                                    _S_full_size / 2>,
+                        __vec_broadcast<_S_full_size / 2>(_Ip(__mem_size)));
+                  const _SM2 __high
+                    = _Impl2::_S_masked_load(__k, __mem + _S_full_size / 2, __tag);
+                  return __vec_concat(__low, __high);
                 }
             }
+
           else
-            return _Base::template _S_load<_Tp>(__mem);
+            return _S_masked_load(_S_mask_with_n_true<__mask_integer_from<sizeof(_Up)>>(__mem_size),
+                                  __mem, __tag);
         }
 
-      using _Base::_S_load;
+      template <typename _Tp, typename _Up>
+        static inline _SimdMember<_Tp>
+        _S_masked_load(_MaskMember<_SimdMember<_Up>> __k, const _Up* __mem, _TypeTag<_Tp> __tag)
+        {
+          using _TV = _SimdMember<_Tp>;
+          constexpr bool __bitwise_conversion = sizeof(_Tp) == sizeof(_Up)
+                                                  and is_integral_v<_Tp> == is_integral_v<_Up>;
+          constexpr bool __need_cvt = not is_same_v<_Tp, _Up> and not __bitwise_conversion;
+          if constexpr (__need_cvt)
+            {
+              //using _UTraits = _SimdTraits<_Up, _NativeAbi<_Up>>;
+              using _UImpl = typename __deduced_traits<_Up>::_SimdImpl;
+              /*              constexpr _TypeTag<_Up> __utag = nullptr;
+              constexpr int __chunk_size = _UTraits::_S_size);
+              if constexpr (_S_size > __chunk_size)
+                { // needs multiple loads
+                  if constexpr (_S_size / __chunk_size <= 2)
+                    {
+                      if (__mem_size >= __chunk_size)
+                        {
+                          _UImpl::_S_load(__mem, __utag);
+                          _UImpl::_S_masked_load(__k, __mem, __utag);
+
+                        }
+                    }
+                  _UImpl::template _S_masked_load<_Up>(__k, __mem, nullptr);
+                }
+              else*/
+                return __builtin_convertvector(_UImpl::template _S_masked_load<_Up>(
+                                                 __k, __mem, nullptr), _TV);
+            }
+          else
+            {
+              constexpr auto __vecbytes = sizeof(_SimdMember<_Tp>);
+              const auto __kk = _S_to_bitmask(__k);
+
+#define _GLIBCXX_SIMD_MASK_LOAD(type, type2)                                                       \
+  if constexpr (__vecbytes <= 16)                                                                  \
+    {                                                                                              \
+      const auto __v                                                                               \
+              = __builtin_ia32_load##type##128_mask(reinterpret_cast<const type2*>(__mem),         \
+                                                     __vec_builtin_type_bytes<type2, 16>(), __kk); \
+      if constexpr (__vecbytes < 16)                                                               \
+        return reinterpret_cast<_TV>(__vec_lo<__vecbytes>(__v));                                   \
+      else                                                                                         \
+        return reinterpret_cast<_TV>(__v);                                                         \
+    }                                                                                              \
+  else if constexpr (__vecbytes == 32)                                                             \
+    return reinterpret_cast<_TV>(__builtin_ia32_load##type##256_mask(                              \
+                                   reinterpret_cast<const type2*>(__mem),                          \
+                                   __vec_builtin_type_bytes<type2, 32>(), __kk));                  \
+  else if constexpr (__vecbytes == 64)                                                             \
+    return reinterpret_cast<_TV>(__builtin_ia32_load##type##512_mask(                              \
+                                   reinterpret_cast<const type2*>(__mem),                          \
+                                   __vec_builtin_type_bytes<type2, 64>(), __kk));                  \
+  else                                                                                             \
+    static_assert(false)
+
+              if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
+                              and sizeof(_Tp) == 1)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(dquqi, char);
+                }
+              else if constexpr (_Flags._M_have_avx512bw() and _Flags._M_have_avx512vl()
+                                   and sizeof(_Tp) == 2)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(dquhi, short);
+                }
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
+                                   and is_integral_v<_Up>)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(dqusi, int);
+                }
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 4
+                                   and is_floating_point_v<_Up>)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(ups, float);
+                }
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 8
+                                   and is_integral_v<_Up>)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(dqudi, long long);
+                }
+              else if constexpr (_Flags._M_have_avx512vl() and sizeof(_Tp) == 8
+                                   and is_floating_point_v<_Up>)
+                {
+                  _GLIBCXX_SIMD_MASK_LOAD(upd, double);
+                }
+              else
+                {
+                  static_assert(not _S_use_bitmasks);
+                  using _IV = __vec_builtin_type<
+                                conditional_t<sizeof(_Up) == 4, int, long long>, _S_full_size>;
+                  const auto __vk = reinterpret_cast<_IV>(__k);
+                  if constexpr (_Flags._M_have_avx2() and is_integral_v<_Up> and sizeof(_Up) >= 4)
+                    {
+                      const auto* __vmem = reinterpret_cast<const _IV*>(__mem);
+                      if constexpr (sizeof(_Up) == 4 and __vecbytes == 32)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadd256(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 4 and __vecbytes == 16)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadd(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 8 and __vecbytes == 32)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadq256(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 8 and __vecbytes == 16)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadq(__vmem, __vk));
+                    }
+                  else if constexpr (_Flags._M_have_avx() and sizeof(_Up) >= 4)
+                    {
+                      using _FV = __vec_builtin_type<
+                                    conditional_t<sizeof(_Up) == 4, float, double>, _S_full_size>;
+                      const auto* __vmem = reinterpret_cast<const _FV*>(__mem);
+                      if constexpr (sizeof(_Up) == 4 and __vecbytes == 32)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadps256(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 4 and __vecbytes == 16)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadps(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 8 and __vecbytes == 32)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadpd256(__vmem, __vk));
+                      else if constexpr (sizeof(_Up) == 8 and __vecbytes == 16)
+                        return reinterpret_cast<_TV>(__builtin_ia32_maskloadpd(__vmem, __vk));
+                    }
+                  return _Base::_S_masked_load(__k, __mem, __tag);
+                }
+#undef _GLIBCXX_SIMD_MASK_LOAD
+            }
+        }
 
       template <__vec_builtin _TV, typename _Up>
         static inline _TV
@@ -422,6 +592,8 @@ namespace std::__detail
           else
             __merge = _Base::_S_masked_load(__merge, __k, __mem);
           return __merge;
+#undef _GLIBCXX_SIMD_MASK_LOAD
+#undef _GLIBCXX_SIMD_MASK_LOAD_FLT
         }
 
       // Returns: __k ? __a : __b
@@ -2142,7 +2314,6 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_sqrt(_TV __x)
         {
-          using _Tp = __value_type_of<_TV>;
           if constexpr (__vec_builtin_sizeof<_TV, 2, 64> and _Flags._M_have_avx512fp16())
             return __builtin_ia32_sqrtph512_mask_round(__x, _TV(), -1, _X86Round::_CurDirection);
           else if constexpr (__vec_builtin_sizeof<_TV, 4, 64>)
@@ -3495,6 +3666,25 @@ namespace std::__detail
               else
                 return __highest_bit(__bits);
             }
+        }
+
+      template <__vectorizable _Tp>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr typename _Abi::template _MaskMember<_Tp>
+        _S_mask_with_n_true(auto __n)
+        {
+          __glibcxx_simd_precondition(unsigned(__n) < _S_size, "");
+          if constexpr (not _S_use_bitmasks)
+            return _Base::template _S_mask_with_n_true<_Tp>(__n);
+          else if constexpr (_S_size <= 32 and _Flags._M_have_bmi2())
+            return __builtin_ia32_bzhi_si(~0u >> (32 - _S_size), unsigned(__n));
+          else if constexpr (_S_size <= 64 and _Flags._M_have_bmi2())
+            return __builtin_ia32_bzhi_di(~0ull >> (64 - _S_size), unsigned(__n));
+          else if constexpr (_S_size <= 32)
+            return (1u << unsigned(__n)) - 1;
+          else if constexpr (_S_size <= 64)
+            return (1ull << unsigned(__n)) - 1;
+          else
+            static_assert(false);
         }
 
       // AVX-512 needs to generate a bit-mask

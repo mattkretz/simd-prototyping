@@ -65,8 +65,8 @@ template <typename V>
 
       constexpr V x = std::simd_iota<V>;
 
-      verify_equal(simd::reduce_min_index(x == x), 0);
-      verify_equal(simd::reduce_max_index(x == x), V::size - 1);
+      verify_equal(std::reduce_min_index(x == x), 0);
+      verify_equal(std::reduce_max_index(x == x), V::size - 1);
 
       auto test = [](auto ii) {
         log_start();
@@ -78,33 +78,33 @@ template <typename V>
 
           // constexpr
           static_assert(k[i] == true);
-          static_assert(simd::reduce_min_index(k) == i);
-          static_assert(simd::reduce_max_index(k) == i);
-          static_assert(simd::reduce_min_index(k || k0) == 0);
-          static_assert(simd::reduce_max_index(k || k0) == i);
+          static_assert(std::reduce_min_index(k) == i);
+          static_assert(std::reduce_max_index(k) == i);
+          static_assert(std::reduce_min_index(k || k0) == 0);
+          static_assert(std::reduce_max_index(k || k0) == i);
           static_assert(all_of(k == k));
           static_assert(none_of((not k) == k));
           static_assert(all_of((k | k) == k));
           static_assert(all_of((k & k) == k));
           static_assert(none_of(k ^ k));
-          static_assert(simd::reduce_count(k) == 1);
-          static_assert(simd::reduce_count(not k) == V::size - 1);
+          static_assert(std::reduce_count(k) == 1);
+          static_assert(std::reduce_count(not k) == V::size - 1);
           static_assert(any_of(k));
           static_assert(any_of(k & k0) ^ (i != 0));
 
           // constprop
           verify_equal(k[i], true);
-          verify_equal(simd::reduce_min_index(k), i)(k);
-          verify_equal(simd::reduce_max_index(k), i)(k);
-          verify_equal(simd::reduce_min_index(k || k0), 0);
-          verify_equal(simd::reduce_max_index(k || k0), i);
+          verify_equal(std::reduce_min_index(k), i)(k);
+          verify_equal(std::reduce_max_index(k), i)(k);
+          verify_equal(std::reduce_min_index(k || k0), 0);
+          verify_equal(std::reduce_max_index(k || k0), i);
           verify_equal(k, k);
           verify_not_equal(not k, k);
           verify_equal(k | k, k);
           verify_equal(k & k, k);
           verify(none_of(k ^ k));
-          verify_equal(simd::reduce_count(k), 1);
-          verify_equal(simd::reduce_count(not k), V::size - 1);
+          verify_equal(std::reduce_count(k), 1);
+          verify_equal(std::reduce_count(not k), V::size - 1);
           verify(any_of(k));
           verify(bool(any_of(k & k0) ^ (i != 0)));
         }
@@ -115,20 +115,20 @@ template <typename V>
 
           verify_equal(k[i], true);
           verify_equal(std::as_const(k)[i], true);
-          verify_equal(simd::reduce_min_index(k), i)(k);
-          verify_equal(simd::reduce_max_index(k), i)(k);
-          verify_equal(simd::reduce_min_index(k || k0), 0);
-          verify_equal(simd::reduce_max_index(k || k0), i);
+          verify_equal(std::reduce_min_index(k), i)(k);
+          verify_equal(std::reduce_max_index(k), i)(k);
+          verify_equal(std::reduce_min_index(k || k0), 0);
+          verify_equal(std::reduce_max_index(k || k0), i);
           verify_equal(k, k);
           verify_not_equal(not k, k);
           verify_equal(k | k, k);
           verify_equal(k & k, k);
           verify(none_of(k ^ k));
-          verify_equal(simd::reduce_count(k), 1);
-          verify_equal(-simd::reduce(-k), 1)(k, -k);
-          verify_equal(simd::reduce_count(not k), V::size - 1)(not k);
+          verify_equal(std::reduce_count(k), 1);
+          verify_equal(-std::reduce(-k), 1)(k, -k);
+          verify_equal(std::reduce_count(not k), V::size - 1)(not k);
           if constexpr (V::size <= 128)
-            verify_equal(-simd::reduce(-not k), V::size - 1)(-not k);
+            verify_equal(-std::reduce(-not k), V::size - 1)(-not k);
           verify(any_of(k));
           verify(bool(any_of(k & k0) ^ (i != 0)));
 
@@ -142,8 +142,8 @@ template <typename V>
           verify_equal(std::as_const(k)[i], true);
           verify_equal(k[0], true);
           verify_equal(std::as_const(k)[0], true);
-          verify_equal(simd::reduce_min_index(k), 0)(k);
-          verify_equal(simd::reduce_max_index(k), i)(k);
+          verify_equal(std::reduce_min_index(k), 0)(k);
+          verify_equal(std::reduce_max_index(k), i)(k);
         }
       };
       _GLIBCXX_SIMD_INT_PACK(V::size, is, { (test(vir::cw<is>), ...); });
@@ -164,32 +164,32 @@ template <typename V>
       auto it = mem.begin();
       auto end = mem.end();
 
-      auto x = simd::load<V>(mem);
+      auto x = std::simd_unchecked_load<V>(mem);
       verify_equal(x, V());
 
-      auto x2 = simd::load<V>(mem, simd::flag_aligned);
+      auto x2 = std::simd_unchecked_load<V>(mem, std::simd_flag_aligned);
       verify_equal(x2, V());
 
-      auto x3 = simd::load<V>(mem, simd::flag_overaligned<256>);
+      auto x3 = std::simd_unchecked_load<V>(mem, std::simd_flag_overaligned<256>);
       verify_equal(x3, V());
 
-      auto x4 = simd::load<V>(it + 1, end);
+      auto x4 = std::simd_unchecked_load<V>(it + 1, end);
       verify_equal(x4, V());
 
       std::array<int, V::size * 2> ints = {};
-      auto x5 = simd::load<V>(ints, simd::flag_convert);
+      auto x5 = std::simd_unchecked_load<V>(ints, std::simd_flag_convert);
       verify_equal(x5, V());
 
       if constexpr (requires {T() + T(1);})
         {
           std::iota(it, end, T());
-          x = simd::load<V>(mem);
+          x = std::simd_unchecked_load<V>(mem);
           verify_equal(x, std::simd_iota<V>);
 
-          x = simd::load<V>(it + 1, end);
+          x = std::simd_unchecked_load<V>(it + 1, end);
           verify_equal(x, std::simd_iota<V> + T(1));
 
-          x = simd::load<V>(mem, simd::flag_aligned);
+          x = std::simd_unchecked_load<V>(mem, std::simd_flag_aligned);
           verify_equal(x, std::simd_iota<V>);
         }
     }
