@@ -320,20 +320,61 @@ namespace std::__detail
    * Return vector builtin with all values from \p __a and \p __b.
    */
   template <__vec_builtin _Tp>
-    _GLIBCXX_SIMD_INTRINSIC constexpr auto
+    _GLIBCXX_SIMD_INTRINSIC constexpr
+    __vec_builtin_type<__value_type_of<_Tp>, __width_of<_Tp> * 2>
     __vec_concat(_Tp __a, _Tp __b)
     {
-#ifdef __clang__
       constexpr int _N0 = __width_of<_Tp>;
+#ifdef __clang__
       using _RV = __vec_builtin_type<__value_type_of<_Tp>, _N0 * 2>;
-      return _GLIBCXX_SIMD_INT_PACK(_N0 * 2, _Is, {
-               return _RV{__vec_get(_Is < _N0 ? __a : __b, _Is % _N0)...};
-             });
+      if constexpr (_N0 == 1)
+        return _RV{__a[0], __b[0]};
+      else if constexpr (_N0 == 2)
+        return _RV{__a[0], __a[1], __b[0], __b[1]};
+      else if constexpr (_N0 == 4)
+        return _RV{__a[0], __a[1], __a[2], __a[3],
+                   __b[0], __b[1], __b[2], __b[3]};
+      else if constexpr (_N0 == 8)
+        return _RV{__a[0], __a[1], __a[2], __a[3], __a[4], __a[5], __a[6], __a[7],
+                   __b[0], __b[1], __b[2], __b[3], __b[4], __b[5], __b[6], __b[7]};
+      else if constexpr (_N0 == 16)
+        return _RV{__a[0], __a[1], __a[2], __a[3], __a[4], __a[5], __a[6], __a[7],
+                   __a[8], __a[9], __a[10], __a[11], __a[12], __a[13], __a[14], __a[15],
+                   __b[0], __b[1], __b[2], __b[3], __b[4], __b[5], __b[6], __b[7],
+                   __b[8], __b[9], __b[10], __b[11], __b[12], __b[13], __b[14], __b[15]};
+      else if constexpr (_N0 == 32)
+        return _RV{__a[0], __a[1], __a[2], __a[3], __a[4], __a[5], __a[6], __a[7],
+                   __a[8], __a[9], __a[10], __a[11], __a[12], __a[13], __a[14], __a[15],
+                   __a[16], __a[17], __a[18], __a[19], __a[20], __a[21], __a[22], __a[23],
+                   __a[24], __a[25], __a[26], __a[27], __a[28], __a[29], __a[30], __a[31],
+                   __b[0], __b[1], __b[2], __b[3], __b[4], __b[5], __b[6], __b[7],
+                   __b[8], __b[9], __b[10], __b[11], __b[12], __b[13], __b[14], __b[15],
+                   __b[16], __b[17], __b[18], __b[19], __b[20], __b[21], __b[22], __b[23],
+                   __b[24], __b[25], __b[26], __b[27], __b[28], __b[29], __b[30], __b[31]};
 #else
-      return _GLIBCXX_SIMD_INT_PACK(__width_of<_Tp> * 2, _Is, {
-               return __builtin_shufflevector(__a, __b, _Is...);
-             });
+      if constexpr (_N0 == 1)
+        return __builtin_shufflevector(__a, __b, 0, 1);
+      else if constexpr (_N0 == 2)
+        return __builtin_shufflevector(__a, __b, 0, 1, 2, 3);
+      else if constexpr (_N0 == 4)
+        return __builtin_shufflevector(__a, __b, 0, 1, 2, 3, 4, 5, 6, 7);
+      else if constexpr (_N0 == 8)
+        return __builtin_shufflevector(__a, __b,
+                                       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+      else if constexpr (_N0 == 16)
+        return __builtin_shufflevector(__a, __b,
+                                       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                                       18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
+      else if constexpr (_N0 == 32)
+        return __builtin_shufflevector(__a, __b,
+                                       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                                       18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+                                       33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+                                       48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
+                                       63);
 #endif
+      else
+        static_assert(false);
     }
 
   template <int _Offset, __vec_builtin _Tp>
