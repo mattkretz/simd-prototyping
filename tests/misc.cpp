@@ -22,7 +22,7 @@ template <typename V>
     {
       log_start();
 
-      auto x = simd::iota_v<V>;
+      auto x = std::simd_iota<V>;
       verify_equal(x, x);
       if constexpr (std::same_as<T, std::byte>)
         verify_not_equal(x, x | V(T(1)));
@@ -63,7 +63,7 @@ template <typename V>
     {
       log_start();
 
-      constexpr V x = simd::iota_v<V>;
+      constexpr V x = std::simd_iota<V>;
 
       verify_equal(simd::reduce_min_index(x == x), 0);
       verify_equal(simd::reduce_max_index(x == x), V::size - 1);
@@ -73,8 +73,8 @@ template <typename V>
         constexpr int i = ii;
 
         {
-          constexpr M k = simd::iota_v<V> == T(i);
-          constexpr M k0 = simd::iota_v<V> == T(0);
+          constexpr M k = std::simd_iota<V> == T(i);
+          constexpr M k0 = std::simd_iota<V> == T(0);
 
           // constexpr
           static_assert(k[i] == true);
@@ -110,8 +110,8 @@ template <typename V>
         }
 
         { // runtime
-          M k = make_value_unknown(simd::iota_v<V> == T(i));
-          M k0 = make_value_unknown(simd::iota_v<V> == T(0));
+          M k = make_value_unknown(std::simd_iota<V> == T(i));
+          M k0 = make_value_unknown(std::simd_iota<V> == T(0));
 
           verify_equal(k[i], true);
           verify_equal(std::as_const(k)[i], true);
@@ -184,13 +184,13 @@ template <typename V>
         {
           std::iota(it, end, T());
           x = simd::load<V>(mem);
-          verify_equal(x, simd::iota_v<V>);
+          verify_equal(x, std::simd_iota<V>);
 
           x = simd::load<V>(it + 1, end);
-          verify_equal(x, simd::iota_v<V> + T(1));
+          verify_equal(x, std::simd_iota<V> + T(1));
 
           x = simd::load<V>(mem, simd::flag_aligned);
-          verify_equal(x, simd::iota_v<V>);
+          verify_equal(x, std::simd_iota<V>);
         }
     }
   };

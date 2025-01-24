@@ -23,7 +23,7 @@ template <typename V>
           constexpr int max = sizeof(T) == 8 ? 64 : 32;
           auto test_shift = [](auto _shift) {
             log_start();
-            const auto x = simd::iota_v<V>;
+            const auto x = std::simd_iota<V>;
             const auto y = ~x;
             constexpr int shift = _shift;
             constexpr V vshift = T(shift);
@@ -53,9 +53,9 @@ template <typename V>
             (test_shift(vir::cw<shift>), ...);
           });
           log_start();
-          for (int shift : simd::iota_v<std::array<int, max>>)
+          for (int shift : std::simd_iota<std::simd<int, max>>)
             {
-              const auto x = simd::iota_v<V>;
+              const auto x = std::simd_iota<V>;
               const auto y = ~x;
               shift = make_value_unknown(shift);
               const V vshift = T(shift);
