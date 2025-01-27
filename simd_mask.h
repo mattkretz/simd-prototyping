@@ -381,13 +381,13 @@ namespace std
 
   template <typename _Tp, typename _Up>
     constexpr auto
-    select(bool __c, const _Tp& __x0, const _Up& __x1) noexcept
+    simd_select(bool __c, const _Tp& __x0, const _Up& __x1) noexcept
     -> remove_cvref_t<decltype(__c ? __x0 : __x1)>
     { return __c ? __x0 : __x1; }
 
   template <size_t _Np, typename _A0>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    select(const basic_simd_mask<_Np, _A0>& __k, const auto& __x0, const auto& __x1) noexcept
+    simd_select(const basic_simd_mask<_Np, _A0>& __k, const auto& __x0, const auto& __x1) noexcept
     -> decltype(select_impl(__k, __x0, __x1))
     { return select_impl(__k, __x0, __x1); }
 }

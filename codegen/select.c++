@@ -21,10 +21,10 @@ V0 test0a(V0::mask_type a)
 { return +a; }
 
 V0 test0b(V0::mask_type a)
-{ return select(a, char(1), char()); }
+{ return simd_select(a, char(1), char()); }
 
 V0 test0c(V0::mask_type a)
-{ return select(a, V0(1_cw), V0()); }
+{ return simd_select(a, V0(1_cw), V0()); }
 
 /* codegen
 ^test1a(
@@ -47,7 +47,7 @@ V1 test1a(V1::mask_type a)
 { return +a; }
 
 V1 test1b(V1::mask_type a)
-{ return select(a, char(1), char()); }
+{ return simd_select(a, char(1), char()); }
 
 V1 test1c(V1::mask_type a)
-{ return select(a, V1(1_cw), V1()); }
+{ return simd_select(a, V1(1_cw), V1()); }

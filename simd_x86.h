@@ -250,6 +250,8 @@ namespace std::__detail
         _S_to_bitmask(_Tp __k)
         { return __k; }
 
+      using _Base::_S_load;
+
       template <typename _Tp, typename _Up>
         _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
         _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
@@ -262,11 +264,13 @@ namespace std::__detail
                                         and not (is_integral_v<_Tp> and is_integral_v<_Up>
                                                    and sizeof(_Tp) == sizeof(_Up));
 
-          if constexpr (not __have_masked_load)
+          if (__mem_size >= _S_size) [[unlikely]]
+            return _S_load(__mem, __tag);
+          else if constexpr (not __have_masked_load)
             {
 #if 1 // allow out-of-bounds read when it cannot lead to a #GP
               if (__ptr_is_aligned_to(__mem, sizeof(_Up) * _S_full_size))
-                return _S_bit_and(_Base::_S_load(__mem, __tag),
+                return _S_bit_and(_S_load(__mem, __tag),
                                   reinterpret_cast<_SimdMember<_Tp>>(
                                     _S_mask_with_n_true<_Tp>(__mem_size)));
               else

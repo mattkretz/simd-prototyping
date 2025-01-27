@@ -119,7 +119,7 @@ namespace std
                                     == _Tp(2),
                                   "The given identity_element needs to preserve identity over the "
                                   "given binary operation.");
-      return reduce(select(__k, __x, __identity_element), __binary_op);
+      return reduce(simd_select(__k, __x, __identity_element), __binary_op);
     }
 
   // NaN inputs are precondition violations (_Tp satisfies and models totally_ordered)
@@ -128,7 +128,7 @@ namespace std
     reduce_min(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       return reduce(__x, []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
-               return select(__a < __b, __a, __b);
+               return simd_select(__a < __b, __a, __b);
              });
     }
 
@@ -137,9 +137,9 @@ namespace std
     reduce_min(const basic_simd<_Tp, _Abi>& __x,
                const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
     {
-      return reduce(select(__k, __x, std::__finite_max_v<_Tp>),
+      return reduce(simd_select(__k, __x, std::__finite_max_v<_Tp>),
                     []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
-                      return select(__a < __b, __a, __b);
+                      return simd_select(__a < __b, __a, __b);
                     });
     }
 
@@ -148,7 +148,7 @@ namespace std
     reduce_max(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       return reduce(__x, []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
-               return select(__a < __b, __b, __a);
+               return simd_select(__a < __b, __b, __a);
              });
     }
 
@@ -157,9 +157,9 @@ namespace std
     reduce_max(const basic_simd<_Tp, _Abi>& __x,
                const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept
     {
-      return reduce(select(__k, __x, std::__finite_min_v<_Tp>),
+      return reduce(simd_select(__k, __x, std::__finite_min_v<_Tp>),
                     []<totally_ordered _UV>(const _UV& __a, const _UV& __b) {
-                      return select(__a < __b, __b, __a);
+                      return simd_select(__a < __b, __b, __a);
                     });
     }
 }

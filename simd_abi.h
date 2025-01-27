@@ -1249,6 +1249,25 @@ namespace std
                      });
           }
 
+        template <__vectorizable _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
+          _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
+          {
+            if (__mem_size >= _Np) [[unlikely]]
+              return _S_load(__mem, __tag);
+            else
+              return _SimdMember<_Tp>::_S_forall(
+                       [&] [[__gnu__::__always_inline__]] (auto __meta, auto& __chunk) {
+                         if (__mem_size > size_t(__meta._S_size + __meta._S_offset))
+                           __chunk = __meta._S_load(__mem + __meta._S_offset, __tag);
+                         else if (__mem_size <= size_t(__meta._S_offset))
+                           __chunk = __meta._S_broadcast(_Tp());
+                         else
+                           __chunk = __meta._S_partial_load(__mem + __meta._S_offset,
+                                                            __mem_size - __meta._S_offset, __tag);
+                       });
+          }
+
         template <typename _Tp, typename... _As, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static _SimdTuple<_Tp, _As...>
           _S_masked_load(const _MaskMember __bits, const _Up* __mem, _TypeTag<_Tp> __tag)

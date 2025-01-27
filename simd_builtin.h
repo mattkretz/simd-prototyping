@@ -915,24 +915,29 @@ namespace std::__detail
             __lhs = __vec_andnot(__builtin_bit_cast(_TV, __k), __lhs);
           else if (_S_is_constprop_all_equal(__lhs, 0))
             {
-              if (sizeof(__lhs) >= 8 and __builtin_constant_p(__rhs) and __is_power2_minus_1(__rhs))
+              if constexpr (is_integral_v<__value_type_of<_TV>>)
                 {
-                  using _Up = __make_unsigned_int_t<__value_type_of<_TV>>;
-                  auto __ku = __vec_bitcast<_Up>(__k);
-                  const int __zeros = std::__countl_zero(__builtin_bit_cast(_Up, __rhs));
-                  __lhs = __builtin_bit_cast(_TV, _SuperImpl::_S_bit_shift_right(__ku, __zeros));
+                  if (sizeof(__lhs) >= 8 and __builtin_constant_p(__rhs)
+                        and __is_power2_minus_1(__rhs))
+                    {
+                      using _Up = __make_unsigned_int_t<__value_type_of<_TV>>;
+                      auto __ku = __vec_bitcast<_Up>(__k);
+                      const int __zeros = std::__countl_zero(__builtin_bit_cast(_Up, __rhs));
+                      __lhs = reinterpret_cast<_TV>(_SuperImpl::_S_bit_shift_right(__ku, __zeros));
+                      return;
+                    }
+                  else if constexpr (sizeof(_TV) < 8)
+                    {
+                      using _Up = __make_unsigned_int_t<_TV>;
+                      _Up __tmp = __builtin_bit_cast(_Up, __k)
+                                    & _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                                        return ((_Up(__rhs) << (_Is * __CHAR_BIT__)) | ...);
+                                      });
+                      __lhs = __builtin_bit_cast(_TV, __tmp);
+                      return;
+                    }
                 }
-              else if constexpr (sizeof(_TV) < 8)
-                {
-                  using _Up = __make_unsigned_int_t<_TV>;
-                  _Up __tmp = __builtin_bit_cast(_Up, __k)
-                                & _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                    return ((_Up(__rhs) << (_Is * __CHAR_BIT__)) | ...);
-                                  });
-                  __lhs = __builtin_bit_cast(_TV, __tmp);
-                }
-              else
-                __lhs = __vec_and(__builtin_bit_cast(_TV, __k), __vec_broadcast<_S_size>(__rhs));
+              __lhs = __vec_and(__builtin_bit_cast(_TV, __k), __vec_broadcast<_S_size>(__rhs));
             }
           else
             __lhs = __k ? __vec_broadcast<_S_size>(__rhs) : __lhs;

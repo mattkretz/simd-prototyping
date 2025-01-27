@@ -353,7 +353,7 @@ namespace simd_reduction_tests
   static_assert(reduce(std::simd<int, 4>(2), std::simd_mask<int, 4>(false), std::multiplies<>()) == 1);
   static_assert(reduce(std::simd<int, 4>(2), std::simd_mask<int, 4>(false), std::bit_and<>()) == ~0);
   static_assert(reduce(std::simd<int, 4>(2), std::simd_mask<int, 4>(false), [](auto a, auto b) {
-                  return select(a < b, a, b);
+                  return simd_select(a < b, a, b);
                 }, INT_MAX) == INT_MAX);
 
   template <typename BinaryOperation>
@@ -417,13 +417,13 @@ static_assert(all_of(simd::cat(std::simd_iota<std::simd<double, 4>>,
                                    std::simd_iota<std::simd<double, 4>> + 4)
                        == std::simd_iota<std::simd<double, 8>>));
 
-// select ////////////////////////
+// simd_select ////////////////////////
 
 static_assert(all_of(std::simd<long long, 8>(std::array{0, 0, 0, 0, 4, 4, 4, 4})
-                       == select(std::simd_iota<std::simd<double, 8>> < 4, 0ll, 4ll)));
+                       == simd_select(std::simd_iota<std::simd<double, 8>> < 4, 0ll, 4ll)));
 
 static_assert(all_of(std::simd<int, 8>(std::array{0, 0, 0, 0, 4, 4, 4, 4})
-                       == select(std::simd_iota<std::simd<float, 8>> < 4.f, 0, 4)));
+                       == simd_select(std::simd_iota<std::simd<float, 8>> < 4.f, 0, 4)));
 
 // interleave /////////////////////
 

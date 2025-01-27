@@ -166,31 +166,50 @@ template <typename V>
 
       auto x = std::simd_unchecked_load<V>(mem);
       verify_equal(x, V());
+      verify_equal(std::simd_partial_load<V>(mem), V());
 
       auto x2 = std::simd_unchecked_load<V>(mem, std::simd_flag_aligned);
       verify_equal(x2, V());
+      verify_equal(std::simd_partial_load<V>(mem, std::simd_flag_aligned), V());
 
       auto x3 = std::simd_unchecked_load<V>(mem, std::simd_flag_overaligned<256>);
       verify_equal(x3, V());
+      verify_equal(std::simd_partial_load<V>(mem, std::simd_flag_overaligned<256>), V());
 
       auto x4 = std::simd_unchecked_load<V>(it + 1, end);
       verify_equal(x4, V());
+      verify_equal(std::simd_partial_load<V>(it + 1, end), V());
+      verify_equal(std::simd_partial_load<V>(it + 1, it + 1), V());
+      verify_equal(std::simd_partial_load<V>(it + 1, it + 2), V());
 
       std::array<int, V::size * 2> ints = {};
       auto x5 = std::simd_unchecked_load<V>(ints, std::simd_flag_convert);
       verify_equal(x5, V());
+      verify_equal(std::simd_partial_load<V>(ints, std::simd_flag_convert), V());
 
       if constexpr (requires {T() + T(1);})
         {
-          std::iota(it, end, T());
-          x = std::simd_unchecked_load<V>(mem);
-          verify_equal(x, std::simd_iota<V>);
+          std::iota(ints.begin(), ints.end(), T(1));
+          std::iota(it, end, T(1));
+          constexpr V ref = std::simd_iota<V> + vir::cw<1>;
+          constexpr V ref1 = std::simd_select(ref == T(1), T(1), T());
 
-          x = std::simd_unchecked_load<V>(it + 1, end);
-          verify_equal(x, std::simd_iota<V> + T(1));
+          verify_equal(std::simd_unchecked_load<V>(mem), ref);
+          verify_equal(std::simd_partial_load<V>(mem), ref);
 
-          x = std::simd_unchecked_load<V>(mem, std::simd_flag_aligned);
-          verify_equal(x, std::simd_iota<V>);
+          verify_equal(std::simd_unchecked_load<V>(it + 1, end), ref + T(1));
+          verify_equal(std::simd_partial_load<V>(it + 1, end), ref + T(1));
+          verify_equal(std::simd_partial_load<V>(it, it + 1), ref1);
+
+          verify_equal(std::simd_unchecked_load<V>(mem, std::simd_flag_aligned), ref);
+          verify_equal(std::simd_partial_load<V>(mem, std::simd_flag_aligned), ref);
+
+          verify_equal(std::simd_unchecked_load<V>(ints, std::simd_flag_convert), ref);
+          verify_equal(std::simd_partial_load<V>(ints, std::simd_flag_convert), ref);
+          verify_equal(std::simd_partial_load<V>(
+                         ints.begin(), ints.begin(), std::simd_flag_convert), V());
+          verify_equal(std::simd_partial_load<V>(
+                         ints.begin(), ints.begin() + 1, std::simd_flag_convert), ref1);
         }
     }
   };
