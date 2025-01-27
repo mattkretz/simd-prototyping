@@ -19,11 +19,39 @@ namespace std::__detail
   ///////////////////////////////////////////////////////////////////////////////////////////////
 
   /**
+   * Reduce template instantiations for internal code by folding all _Float64 and _Float32
+   * implementations to double and float.
+   */
+  template <typename _Tp>
+    struct __canonical_vec_type
+    { using type = _Tp; };
+
+  template <>
+    struct __canonical_vec_type<_Float64>
+    { using type = double; };
+
+  template <>
+    struct __canonical_vec_type<_Float32>
+    { using type = float; };
+
+  template <typename _Tp>
+    using __canonical_vec_type_t = typename __canonical_vec_type<_Tp>::type;
+
+  /**
+   * For use in implementation code in place of __vectorizable. This ensures the implementation code
+   * is leaner and simpler.
+   */
+  template <typename _Tp>
+    concept __vectorizable_canon
+      = __vectorizable<_Tp> and same_as<_Tp, __canonical_vec_type_t<_Tp>>;
+
+  /**
    * Alias for a vector builtin with given value type and total sizeof.
    */
   template <__vectorizable _Tp, size_t _Bytes>
     requires (__has_single_bit(_Bytes))
-    using __vec_builtin_type_bytes [[__gnu__::__vector_size__(_Bytes)]] = _Tp;
+    using __vec_builtin_type_bytes [[__gnu__::__vector_size__(_Bytes)]]
+      = __canonical_vec_type_t<_Tp>;
 
   /**
    * Alias for a vector builtin with given value type \p _Tp and \p _Width.

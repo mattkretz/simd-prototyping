@@ -131,7 +131,7 @@ namespace std
 
       using _MaskImpl = _Impl;
 
-      template <__detail::__vectorizable _Up>
+      template <__detail::__vectorizable_canon _Up>
         using _Rebind = std::conditional_t<
                           _Avx512Abi<_S_size>::template _IsValid<_Up>::value,
                           _Avx512Abi<_S_size>, __detail::__deduce_t<_Up, _S_size>>;
@@ -146,7 +146,7 @@ namespace std
 
       // The template argument exists because _VecAbi::_S_implicit_mask needs it. And _ImplBuiltin
       // below needs to work generically for _VecAbi and _Avx512Abi.
-      template <__detail::__vectorizable>
+      template <__detail::__vectorizable_canon>
         static constexpr _MaskInteger _S_implicit_mask
           = _S_mask_is_partial ? _MaskInteger((1ULL << _S_size) - 1) : ~_MaskInteger();
 
@@ -260,7 +260,8 @@ namespace std::__detail
                                                 or (sizeof(_Up) >= 4 and _Flags._M_have_avx());
           constexpr bool __use_two_loads = not _Flags._M_have_avx2()
                                              and sizeof(_SimdMember<_Tp>) == 32;
-          constexpr bool __need_cvt = not is_same_v<_Tp, _Up>
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt = not is_same_v<_Tp, _Ucanon>
                                         and not (is_integral_v<_Tp> and is_integral_v<_Up>
                                                    and sizeof(_Tp) == sizeof(_Up));
 
@@ -280,9 +281,9 @@ namespace std::__detail
 
           else if constexpr (__need_cvt)
             {
-              using _UImpl = typename __deduced_traits<_Up, _S_size>::_SimdImpl;
-              constexpr _TypeTag<_Up> __utag = nullptr;
-              constexpr _SimdConverter<_Up, typename _UImpl::abi_type, _Tp, abi_type> __cvt;
+              using _UImpl = typename __deduced_traits<_Ucanon, _S_size>::_SimdImpl;
+              constexpr _TypeTag<_Ucanon> __utag = nullptr;
+              constexpr _SimdConverter<_Ucanon, typename _UImpl::abi_type, _Tp, abi_type> __cvt;
               return __cvt(_UImpl::_S_partial_load(__mem, __mem_size, __utag));
             }
 
@@ -321,17 +322,19 @@ namespace std::__detail
 
       template <typename _Tp, typename _Up>
         static inline _SimdMember<_Tp>
-        _S_masked_load(_MaskMember<_SimdMember<_Up>> __k, const _Up* __mem, _TypeTag<_Tp> __tag)
+        _S_masked_load(_MaskMember<_SimdMember<__canonical_vec_type_t<_Up>>> __k, const _Up* __mem,
+                       _TypeTag<_Tp> __tag)
         {
           using _TV = _SimdMember<_Tp>;
           constexpr bool __bitwise_conversion = sizeof(_Tp) == sizeof(_Up)
                                                   and is_integral_v<_Tp> == is_integral_v<_Up>;
-          constexpr bool __need_cvt = not is_same_v<_Tp, _Up> and not __bitwise_conversion;
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt = not is_same_v<_Tp, _Ucanon> and not __bitwise_conversion;
           if constexpr (__need_cvt)
             {
               //using _UTraits = _SimdTraits<_Up, _NativeAbi<_Up>>;
-              using _UImpl = typename __deduced_traits<_Up>::_SimdImpl;
-              /*              constexpr _TypeTag<_Up> __utag = nullptr;
+              using _UImpl = typename __deduced_traits<_Ucanon>::_SimdImpl;
+              /*              constexpr _TypeTag<_Ucanon> __utag = nullptr;
               constexpr int __chunk_size = _UTraits::_S_size);
               if constexpr (_S_size > __chunk_size)
                 { // needs multiple loads
@@ -347,7 +350,7 @@ namespace std::__detail
                   _UImpl::template _S_masked_load<_Up>(__k, __mem, nullptr);
                 }
               else*/
-                return __builtin_convertvector(_UImpl::template _S_masked_load<_Up>(
+                return __builtin_convertvector(_UImpl::template _S_masked_load<_Ucanon>(
                                                  __k, __mem, nullptr), _TV);
             }
           else
@@ -450,7 +453,8 @@ namespace std::__detail
         _S_masked_load(_TV __merge, _MaskMember<_TV> __k, const _Up* __mem)
         {
           using _Tp = __value_type_of<_TV>;
-          constexpr bool __no_conversion = is_same_v<_Tp, _Up>;
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __no_conversion = is_same_v<_Tp, _Ucanon>;
           constexpr bool __bitwise_conversion = sizeof(_Tp) == sizeof(_Up)
                                                   and is_integral_v<_Tp> == is_integral_v<_Up>;
           if constexpr (__no_conversion or __bitwise_conversion)
@@ -3672,7 +3676,7 @@ namespace std::__detail
             }
         }
 
-      template <__vectorizable _Tp>
+      template <__vectorizable_canon _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr typename _Abi::template _MaskMember<_Tp>
         _S_mask_with_n_true(auto __n)
         {
@@ -3692,7 +3696,7 @@ namespace std::__detail
         }
 
       // AVX-512 needs to generate a bit-mask
-      template <__vectorizable _Tp, typename _Fp>
+      template <__vectorizable_canon _Tp, typename _Fp>
         requires requires { typename _Abi::_MaskInteger; }
         _GLIBCXX_SIMD_INTRINSIC static constexpr auto
         _S_mask_generator(_Fp&& __gen)
@@ -3842,47 +3846,47 @@ namespace std::__detail
 
     };
 
-  template <__vectorizable _From, __vectorizable _To, int _Width>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width>
     struct _SimdConverter<_From, _Avx512Abi<_Width>, _To, _Avx512Abi<_Width>>
     : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Width>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width>
     struct _SimdConverter<_From, _Avx512Abi<_Width>, _To, _VecAbi<_Width>>
     : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Width>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width>
     struct _SimdConverter<_From, _VecAbi<_Width>, _To, _Avx512Abi<_Width>>
     : _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width, int _Np>
     struct _SimdConverter<_From, _AbiArray<_Avx512Abi<_Width>, _Np>, _To, _Avx512Abi<_Width * _Np>>
     : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width, int _Np>
     struct _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _Avx512Abi<_Width * _Np>>
     : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width, int _Np>
     struct _SimdConverter<_From, _AbiArray<_Avx512Abi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
     : _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Np, int _Mp>
     struct _SimdConverter<_From, _AbiCombine<_Np, _Avx512Abi<_Mp>>, _To, _Avx512Abi<_Np>>
     : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Np, int _Mp>
     struct _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _Avx512Abi<_Np>>
     : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
     {};
 
-  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Np, int _Mp>
     struct _SimdConverter<_From, _AbiCombine<_Np, _Avx512Abi<_Mp>>, _To, _VecAbi<_Np>>
     : _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
     {};

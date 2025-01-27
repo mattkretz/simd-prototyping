@@ -115,7 +115,7 @@ namespace std
     template <_SimdSizeType _Np, typename _Tag, _BuildFlags = {}>
       struct _MaskImplAbiCombine;
 
-    template <typename _Tp, __valid_abi_tag<_Tp>... _As>
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp>... _As>
       struct _SimdTuple;
 
     template <typename _Tp, _SimdSizeType _Np>
@@ -191,10 +191,10 @@ namespace std
                                      return {};
                                    }(make_index_sequence<_Np>()));
 
-      template <typename _Tp>
+      template <__detail::__vectorizable_canon _Tp>
         using _SimdMember = std::array<typename _Abi0::template _SimdMember<_Tp>, _Np>;
 
-      template <typename _Tp>
+      template <__detail::__vectorizable_canon _Tp>
         using _MaskMember = std::array<typename _Abi0::template _MaskMember<_Tp>, _Np>;
 
       template <typename _Tp>
@@ -277,10 +277,10 @@ namespace std
 
       using _MaskImpl = __detail::_MaskImplAbiCombine<_Np, _Tag>;
 
-      template <typename _Tp>
+      template <__detail::__vectorizable_canon _Tp>
         using _SimdMember = __detail::__fixed_size_storage_t<_Tp, _Np>;
 
-      template <typename>
+      template <__detail::__vectorizable_canon>
         using _MaskMember = __detail::_SanitizedBitMask<_Np>;
 
       template <typename _Tp>
@@ -349,7 +349,7 @@ namespace std
         template <typename _Tp>
           using _TypeTag = _Tp*;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           using _SimdMember = typename abi_type::template _SimdMember<_Tp>;
 
         template <typename _Tp> // std::array of __vec_builtin
@@ -359,7 +359,7 @@ namespace std
           struct _MaskMemberImpl
           { using type = typename abi_type::template _MaskMember<_ValueTypeOf<_Tp>>; };
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           struct _MaskMemberImpl<_Tp>
           { using type = typename abi_type::template _MaskMember<_Tp>; };
 
@@ -374,12 +374,12 @@ namespace std
 
         using _MaskImpl = typename abi_type::_MaskImpl;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_broadcast(_Tp __x) noexcept
           { return {((void)_Is, _Impl0::_S_broadcast(__x))...}; }
 
-        template <__vectorizable _Tp, typename _Fp>
+        template <__vectorizable_canon _Tp, typename _Fp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_generator(_Fp&& __gen)
           {
@@ -388,12 +388,12 @@ namespace std
                     })...};
           }
 
-        template <__vectorizable _Tp, typename _Up>
+        template <__vectorizable_canon _Tp, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
           _S_load(const _Up* __mem, _TypeTag<_Tp> __tag) noexcept
           { return {_Impl0::_S_load(__mem + _Is * _S_chunk_size, __tag)...}; }
 
-        template <__vectorizable _Tp, typename _Up>
+        template <__vectorizable_canon _Tp, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
           _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
           {
@@ -649,16 +649,16 @@ namespace std
         template <typename _Ts>
           using mask_type = std::basic_simd_mask<sizeof(_Ts), _Abi0>;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           using _MaskMember0 = typename _Abi0::template _MaskMember<_Tp>;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           using _SimdMember0 = typename _Abi0::template _SimdMember<_Tp>;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           using _MaskMember = std::array<_MaskMember0<_Tp>, _Np>;
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           using _SimdMember = typename abi_type::template _SimdMember<_Tp>;
 
         static constexpr _SimdSizeType _S_size = abi_type::_S_size;
@@ -818,7 +818,7 @@ namespace std
             return std::reduce_max_index(_S_submask(__masks, 0));
           }
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           _GLIBCXX_SIMD_INTRINSIC static _MaskMember<_Tp>
           _S_mask_with_n_true(unsigned __n)
           {
@@ -939,7 +939,7 @@ namespace std
               }
           }
 
-        template <__vectorizable _Tp, typename _Fp>
+        template <__vectorizable_canon _Tp, typename _Fp>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
           _S_mask_generator(_Fp&& __gen)
           {
@@ -1015,7 +1015,7 @@ namespace std
         { return basic_simd<_Tp, _A0>(__private_init, __x0); }
       };
 
-    template <typename _Tp, __valid_abi_tag<_Tp>... _As>
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp>... _As>
       struct _SimdTuple
       {
         static_assert(sizeof...(_As) == 0);
@@ -1029,10 +1029,10 @@ namespace std
         { return true; }
       };
 
-    template <typename _Tp, __valid_abi_tag<_Tp>... _As>
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp>... _As>
       struct _SimdTupleData;
 
-    template <typename _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp> _A1,
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp> _A1,
               __valid_abi_tag<_Tp>... _As>
       struct _SimdTupleData<_Tp, _A0, _A1, _As...>
       {
@@ -1043,14 +1043,14 @@ namespace std
         _SimdTuple<_Tp, _A1, _As...> _M_tail;
       };
 
-    template <typename _Tp, __valid_abi_tag<_Tp> _A0>
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp> _A0>
       struct _SimdTupleData<_Tp, _A0>
       {
         typename _A0::template _SimdMember<_Tp> _M_x;
         static constexpr _SimdTuple<_Tp> _M_tail = {};
       };
 
-    template <typename _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp>... _As>
+    template <__vectorizable_canon _Tp, __valid_abi_tag<_Tp> _A0, __valid_abi_tag<_Tp>... _As>
       struct _SimdTuple<_Tp, _A0, _As...> : _SimdTupleData<_Tp, _A0, _As...>
       {
         using _Base = _SimdTupleData<_Tp, _A0, _As...>;
@@ -1249,7 +1249,7 @@ namespace std
                      });
           }
 
-        template <__vectorizable _Tp, typename _Up>
+        template <__vectorizable_canon _Tp, typename _Up>
           _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
           _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
           {
@@ -1856,7 +1856,7 @@ namespace std
           _S_find_last_set(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
 
-        template <__vectorizable _Tp>
+        template <__vectorizable_canon _Tp>
           _GLIBCXX_SIMD_INTRINSIC static _MaskMember
           _S_mask_with_n_true(unsigned __n)
           {

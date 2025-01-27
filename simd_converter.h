@@ -10,10 +10,11 @@
 
 namespace std::__detail
 {
-  template <__vectorizable _From, __simd_abi_tag _FAbi, __vectorizable _To, __simd_abi_tag _TAbi>
+  template <__vectorizable_canon _From, __simd_abi_tag _FAbi,
+            __vectorizable_canon _To, __simd_abi_tag _TAbi>
     struct _SimdConverter;
 
-  template <__vectorizable _Tp, __simd_abi_tag _TAbi>
+  template <__vectorizable_canon _Tp, __simd_abi_tag _TAbi>
     struct _SimdConverter<_Tp, _TAbi, _Tp, _TAbi>
     {
       using _TV = typename _TAbi::template _SimdMember<_Tp>;
@@ -23,7 +24,7 @@ namespace std::__detail
       { return __x; }
     };
 
-  template <__vectorizable _From, __vectorizable _To, int _Width>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width>
     struct _SimdConverter<_From, _VecAbi<_Width>, _To, _VecAbi<_Width>>
     {
       using _FromV = typename _VecAbi<_Width>::template _SimdMember<_From>;
@@ -34,7 +35,7 @@ namespace std::__detail
       { return __vec_convert<_ToV>(__from); }
     };
 
-  template <__vectorizable _From, __vectorizable _To, int _Width, int _Np>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Width, int _Np>
     struct _SimdConverter<_From, _AbiArray<_VecAbi<_Width>, _Np>, _To, _VecAbi<_Width * _Np>>
     {
       using _FromV = typename _VecAbi<_Width>::template _SimdMember<_From>;
@@ -45,7 +46,7 @@ namespace std::__detail
       { return _GLIBCXX_SIMD_INT_PACK(_Np, _Is, { return __vec_convert<_ToV>(__x[_Is]...); }); }
     };
 
-  template <__vectorizable _From, __vectorizable _To, int _Np, int _Mp>
+  template <__vectorizable_canon _From, __vectorizable_canon _To, int _Np, int _Mp>
     struct _SimdConverter<_From, _AbiCombine<_Np, _VecAbi<_Mp>>, _To, _VecAbi<_Np>>
     {
       // _FromV is a _SimdTuple specialization
@@ -83,7 +84,8 @@ namespace std::__detail
     };
 
   // fallback (not optimized)
-  template <__vectorizable _From, __simd_abi_tag _FAbi, __vectorizable _To, __simd_abi_tag _TAbi>
+  template <__vectorizable_canon _From, __simd_abi_tag _FAbi,
+            __vectorizable_canon _To, __simd_abi_tag _TAbi>
     struct _SimdConverter
     {
       using _Impl = typename _TAbi::_SimdImpl;

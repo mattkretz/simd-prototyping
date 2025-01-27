@@ -154,15 +154,15 @@ namespace std
 
       static constexpr bool _S_is_partial = _S_full_size > _S_size;
 
-      template <__detail::__vectorizable _Up>
+      template <__detail::__vectorizable_canon _Up>
         using _Rebind = std::conditional_t<
                           _VecAbi<_S_size>::template _IsValid<_Up>::value,
                           _VecAbi<_S_size>, __detail::__deduce_t<_Up, _S_size>>;
 
-      template <__detail::__vectorizable _Tp>
+      template <__detail::__vectorizable_canon _Tp>
         using _SimdMember = _Vp<_Tp>;
 
-      template <__detail::__vectorizable _Tp>
+      template <__detail::__vectorizable_canon _Tp>
         using _MaskMember = _Vp<__detail::__mask_integer_from<sizeof(_Tp)>>;
 
       template <typename _Tp>
@@ -260,9 +260,10 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdMember<_Tp>
         _S_load(const _Up* __mem, _TypeTag<_Tp> __tag)
         {
-          constexpr bool __need_cvt = not is_same_v<_Tp, _Up>
-                                        and not (is_integral_v<_Tp> and is_integral_v<_Up>
-                                                   and sizeof(_Tp) == sizeof(_Up));
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt
+            = not is_same_v<_Tp, _Ucanon>
+                and not (is_integral_v<_Tp> and is_integral_v<_Up> and sizeof(_Tp) == sizeof(_Up));
 
           if (__builtin_is_constant_evaluated())
             {
@@ -271,9 +272,9 @@ namespace std::__detail
             }
           else if constexpr (__need_cvt)
             {
-              using _UImpl = typename __deduced_traits<_Up, _S_size>::_SimdImpl;
-              constexpr _TypeTag<_Up> __utag = nullptr;
-              constexpr _SimdConverter<_Up, typename _UImpl::abi_type, _Tp, abi_type> __cvt;
+              using _UImpl = typename __deduced_traits<_Ucanon, _S_size>::_SimdImpl;
+              constexpr _TypeTag<_Ucanon> __utag = nullptr;
+              constexpr _SimdConverter<_Ucanon, typename _UImpl::abi_type, _Tp, abi_type> __cvt;
               return __cvt(_UImpl::_S_load(__mem, __utag));
             }
           else if constexpr (not __has_single_bit(_S_size))
@@ -294,10 +295,14 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static _SimdMember<_Tp>
         _S_partial_load(const _Up* __mem, size_t __mem_size, _TypeTag<_Tp> __tag)
         {
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt
+            = not is_same_v<_Tp, _Ucanon>
+                and not (is_integral_v<_Tp> and is_integral_v<_Up> and sizeof(_Tp) == sizeof(_Up));
+
           if (__mem_size >= _S_size) [[unlikely]]
             return _S_load(__mem, __tag);
-          else if constexpr (is_same_v<_Tp, _Up> or (is_integral_v<_Tp> and is_integral_v<_Up>
-                                                       and sizeof(_Tp) == sizeof(_Up)))
+          else if constexpr (not __need_cvt)
             return [&] {
               _SimdMember<_Tp> __r = {};
               __builtin_memcpy(&__r, __mem, sizeof(_Up) * __mem_size);
@@ -305,7 +310,7 @@ namespace std::__detail
             }();
           else
             return [&] {
-              __vec_builtin_type<_Up, _S_full_size> __tmp = {};
+              __vec_builtin_type<_Ucanon, _S_full_size> __tmp = {};
               __builtin_memcpy(&__tmp, __mem, sizeof(_Up) * __mem_size);
               return __builtin_convertvector(__tmp, _SimdMember<_Tp>);
             }();
@@ -343,25 +348,18 @@ namespace std::__detail
         _S_store(_TV __v, _Up* __mem, _TypeTag<__value_type_of<_TV>>) noexcept
         {
           using _Tp = __value_type_of<_TV>;
-          if constexpr (std::is_same_v<_Tp, _Up>)
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt
+            = not is_same_v<_Tp, _Ucanon>
+                and not (is_integral_v<_Tp> and is_integral_v<_Up> and sizeof(_Tp) == sizeof(_Up));
+          if constexpr (not __need_cvt)
             __builtin_memcpy(__mem, &__v, sizeof(_Tp) * _S_size);
           else
             {
               const auto __tmp
-                = __builtin_convertvector(__v, __vec_builtin_type<_Up, _S_full_size>);
+                = __builtin_convertvector(__v, __vec_builtin_type<_Ucanon, _S_full_size>);
               __builtin_memcpy(__mem, &__tmp, sizeof(_Up) * _S_size);
             }
-        }
-
-      template <typename _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr void
-        _S_masked_store_nocvt(_TV __v, __value_type_of<_TV>* __mem, _MaskMember<_TV> __k)
-        {
-          _S_bit_iteration(
-            _SuperImpl::_S_to_bits(__k),
-            [&] [[__gnu__::__always_inline__]] (auto __i) {
-              __mem[__i] = __v[__i];
-            });
         }
 
       template <__vec_builtin _TV, typename _Up>
@@ -369,11 +367,21 @@ namespace std::__detail
         _S_masked_store(const _TV __v, _Up* __mem, const _MaskMember<_TV> __k)
         {
           using _Tp = __value_type_of<_TV>;
-          if constexpr (is_same_v<_Tp, _Up>)
-            _S_masked_store_nocvt(__v, __mem, __k);
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt
+            = not is_same_v<_Tp, _Ucanon>
+                and not (is_integral_v<_Tp> and is_integral_v<_Up> and sizeof(_Tp) == sizeof(_Up));
+          if constexpr (not __need_cvt)
+            {
+              _S_bit_iteration(
+                _SuperImpl::_S_to_bits(__k),
+                [&] [[__gnu__::__always_inline__]] (auto __i) {
+                  __mem[__i] = __v[__i];
+                });
+            }
           else
             {
-              const auto __uv = __vec_convert<_Up>(__v);
+              const auto __uv = __vec_convert<_Ucanon>(__v);
               _S_bit_iteration(
                 _SuperImpl::_S_to_bits(__k),
                 [&] [[__gnu__::__always_inline__]] (auto __i) {
@@ -1114,7 +1122,7 @@ namespace std::__detail
         _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
         { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
 
-      template <__vectorizable _Tp>
+      template <__vectorizable_canon _Tp>
         _GLIBCXX_SIMD_INTRINSIC static constexpr typename _Abi::template _MaskMember<_Tp>
         _S_mask_with_n_true(__type_identity_t<_Tp> __n)
         {

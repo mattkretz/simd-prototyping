@@ -51,9 +51,10 @@ namespace std
       static_assert(__detail::__vectorizable<_Tp> and __detail::__valid_abi_tag<_Abi, _Tp>);
 #endif
 
-      using _Traits = __detail::_SimdTraits<_Tp, _Abi>;
+      using _Tcanon = __detail::__canonical_vec_type_t<_Tp>;
+      using _Traits = __detail::_SimdTraits<_Tcanon, _Abi>;
 
-      static constexpr _Tp* _S_type_tag = nullptr;
+      static constexpr __detail::__canonical_vec_type_t<_Tp>* _S_type_tag = nullptr;
 
     public:
       using _MemberType = typename _Traits::_SimdMember;
@@ -126,7 +127,7 @@ namespace std
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
 #endif
         basic_simd(_Up&& __x) noexcept
-        : _M_data(_Impl::_S_broadcast(value_type(static_cast<_Up&&>(__x))))
+        : _M_data(_Impl::_S_broadcast(_Tcanon(static_cast<_Up&&>(__x))))
         {}
 
       template <__detail::__value_preserving_convertible_to<value_type> _U0,
@@ -151,7 +152,7 @@ namespace std
       template <__detail::__simd_generator_invokable<value_type, size()> _Fp>
         constexpr explicit
         basic_simd(_Fp&& __gen) noexcept
-        : _M_data(_Impl::template _S_generator<value_type>(static_cast<_Fp&&>(__gen)))
+        : _M_data(_Impl::template _S_generator<_Tcanon>(static_cast<_Fp&&>(__gen)))
         {}
 
       template <__detail::__almost_simd_generator_invokable<value_type, size()> _Fp>
@@ -199,7 +200,7 @@ namespace std
                                                       value_type, _Flags...>
         constexpr explicit
         basic_simd(std::from_range_t, _Rg&& __range, simd_flags<_Flags...> __flags = {})
-        : _M_data(_Impl::template _S_generator<value_type>(
+        : _M_data(_Impl::template _S_generator<_Tcanon>(
                     [&__range, __it = std::ranges::begin(__range)] (int __i) mutable {
                       __glibcxx_simd_precondition(__it != std::ranges::end(__range),
                                                   "Input range is too small.");
@@ -502,7 +503,7 @@ namespace std
           __glibcxx_simd_precondition(all_of(__idx < _Up(size)), "out-of-bounds");
           using _Rp = resize_simd_t<__simd_size_v<_Up, _Ap>, basic_simd>;
           return _Rp(__detail::__private_init,
-                     _Rp::_Impl::template _S_generator<value_type>([&](int __i) {
+                     _Rp::_Impl::template _S_generator<_Tcanon>([&](int __i) {
                        return _Impl::_S_get(_M_data, __idx[__i]);
                      }));
         }
