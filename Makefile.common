@@ -90,6 +90,16 @@ gettype = $(subst -, ,$(subst --,::,$(subst .,,$(basename $(notdir $(1))))))
 getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
+ifneq ($(MAKE_TERMOUT),)
+msg_build := \e[31;1mBuild\e[0m
+msg_link  := \e[33;1m Link\e[0m
+msg_run   := \e[32;1m  Run\e[0m
+else
+msg_build := Build
+msg_link  := -Link
+msg_run   := --Run
+endif
+
 diag_postprocess := 2>&1; echo $$$$?>&2; } | sed -e 's/\(, \)\?std::__detail::__build_flags{[^,]*,[^}]*}//g' -e 's/\<std:://g' -e 's/\<__detail:://g'; } 3>&2 2>&1 1>&3 | { read s; exit $$$$s; }
 
 define pch_template
@@ -104,7 +114,7 @@ obj/$(1).depend: obj/$(1).hpp
 include obj/$(1).depend
 
 obj/$(1).hpp.gch: obj/$(1).hpp | print_compiler_info
-	@echo "Build pre-compiled header for $(1)"
+	@printf -- '$$(msg_build) pre-compiled header for $(1)\n'
 	@{ { $$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@ $(diag_postprocess)
 
 endef
@@ -114,15 +124,21 @@ $(foreach arch,$(testarchs),\
 
 # arguments: test, arch
 define exe_template
-obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
-	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
-	@mkdir -p $$(dir $$@)
-	@{ { $$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$< $(diag_postprocess)
+check/$(1).$(2)/%: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
+	@printf -- '$$(msg_build) $(if $(DIRECT),and link )$$@\n'
+	@mkdir -p $$(dir $$(@:check/%=obj/%.exe))
+	@{ { $$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$(@:check/%=obj/%.exe),-c -o $$(@:check/%=obj/%.o)) $$< $(diag_postprocess)
 ifeq ($(DIRECT),)
-	@echo " Link $$(@:obj/%.exe=check/%)"
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
-	@rm $$(@:.exe=.o)
+	@printf -- '$$(msg_link) $$@\n'
+	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$(@:check/%=obj/%.exe) $$(@:check/%=obj/%.o)
+	@rm $$(@:check/%=obj/%.o)
 endif
+	@mkdir -p $$(dir $$@)
+	@{ \
+		printf -- '$$(msg_run) $$@\n'; \
+		$$(icerun) $$(@:check/%=obj/%.exe); \
+	} | tee $$@
+	@tail -n1 $$@ | grep -qv '^Failed tests: [^0]'
 
 endef
 
@@ -162,18 +178,8 @@ obj/codegen.depend: obj $(codegen_files)
 include obj/codegen.depend
 
 $(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\') obj/%.hpp.gch
-	@echo "Build constexpr tests for $*"
+	@printf -- '$$(msg_build) constexpr tests for $*\n'
 	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.hpp -S -o $@ constexpr_tests.c++
-
-check/%: obj/%.exe always-remake
-	@mkdir -p $(dir $@)
-	@{ \
-		echo "================================================================";\
-		echo "  Run check/$*"; \
-		echo "================================================================";\
-		$(icerun) obj/$*.exe; \
-	} | tee $@
-	@tail -n1 $@ | grep -qv '^Failed tests: [^0]'
 
 .PHONY: always-remake
 always-remake: ;

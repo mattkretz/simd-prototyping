@@ -57,12 +57,7 @@ more_checks := check check10 check1 check-failed check-passed check-untested
 $(more_checks): $(check_targets)
 	@$(MAKE) -f Makefile.more --no-print-directory $@
 
-# run-missing sets exe_template to "" so that binaries are not rebuild but still a dependency of the check/% targets
-.PHONY: check-run-missing
-check-run-missing: $(check_targets)
-	@$(MAKE) -f Makefile.more --no-print-directory exe_template= $@
-
-helptargets := $(more_checks) check-run-missing $(codegen_targets) check-constexpr
+helptargets := $(more_checks) $(codegen_targets) check-constexpr
 
 define simple_check_template
 check-$(1): $(2)
@@ -123,8 +118,6 @@ $(check_targets): obj/compile_commands.json $(wildcard tests/*.cpp) Makefile Mak
 	$(file >$@)
 	$(foreach t,$(tests),$(foreach w,$(testwidths),$(foreach y,$(testtypes),$(foreach a,$(testarchs),\
 		$(file >>$@,check/$t.$a/$y.$w)))))
-
-.NOTINTERMEDIATE: $(subst check,obj,$(patsubst %,%.exe,$(shell cat $(check_targets))))
 
 REPORTFLAGS=-fmem-report -ftime-report -Q
 
