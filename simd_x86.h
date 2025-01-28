@@ -962,7 +962,7 @@ namespace std::__detail
                 {
                   const auto __xi = reinterpret_cast<int>(__x);
                   const auto __yi = reinterpret_cast<int>(__y);
-                  return reinterpret_cast<__vec_builtin_type<_Tp, 3>>(
+                  return reinterpret_cast<__vec_builtin_type<_Tp, 4>>(
                            ((__xi * __yi) & 0xff)
                              | (((__xi >> 8) * (__yi & 0xff00)) & 0xff00)
                              | ((__xi >> 16) * (__yi & 0xff0000)));
