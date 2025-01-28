@@ -90,6 +90,8 @@ gettype = $(subst -, ,$(subst --,::,$(subst .,,$(basename $(notdir $(1))))))
 getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
+diag_postprocess := 2>&1; echo $$$$?>&2; } | sed -e 's/\(, \)\?std::__detail::__build_flags{[^,]*,[^}]*}//g' -e 's/\<std:://g' -e 's/\<__detail:://g'; } 3>&2 2>&1 1>&3 | { read s; exit $$$$s; }
+
 define pch_template
 obj/$(1).hpp: tests/unittest*.h tests/*.cpp | obj
 	@echo "Generate $$@"
@@ -103,7 +105,7 @@ include obj/$(1).depend
 
 obj/$(1).hpp.gch: obj/$(1).hpp | print_compiler_info
 	@echo "Build pre-compiled header for $(1)"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@
+	@{ { $$(CXX) $$(CXXFLAGS) -march=$(1) -c $$< -o $$@ $(diag_postprocess)
 
 endef
 
@@ -115,7 +117,7 @@ define exe_template
 obj/$(1).$(2)/%.exe: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
 	@echo "Build $(if $(DIRECT),and link )$$(@:obj/%.exe=check/%)"
 	@mkdir -p $$(dir $$@)
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$<
+	@{ { $$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$@,-c -o $$(@:.exe=.o)) $$< $(diag_postprocess)
 ifeq ($(DIRECT),)
 	@echo " Link $$(@:obj/%.exe=check/%)"
 	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$@ $$(@:.exe=.o)
