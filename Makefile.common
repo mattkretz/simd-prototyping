@@ -91,7 +91,7 @@ getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
 ifneq ($(MAKE_TERMOUT),)
-msg_build := \e[31;1mBuild\e[0m
+msg_build := \e[34;1mBuild\e[0m
 msg_link  := \e[33;1m Link\e[0m
 msg_run   := \e[32;1m  Run\e[0m
 else
@@ -136,7 +136,7 @@ endif
 	@mkdir -p $$(dir $$@)
 	@{ \
 		printf -- '$$(msg_run) $$@\n'; \
-		$$(icerun) $$(@:check/%=obj/%.exe); \
+		$$(@:check/%=obj/%.exe); \
 	} | tee $$@
 	@tail -n1 $$@ | grep -qv '^Failed tests: [^0]'
 
