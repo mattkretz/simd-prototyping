@@ -1,4 +1,4 @@
-CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes
+CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes $(FLAGS)
 CXXFLAGS_clang := -Wno-unknown-pragmas --gcc-toolchain=/home/mkretz/.local/gcc-master
 CXXFLAGS_gcc := -fconcepts-diagnostics-depth=3
 
@@ -92,14 +92,14 @@ gettest = $(basename $(subst /,,$(dir $(1))))
 
 ifneq ($(MAKE_TERMOUT),)
 msg_build := \e[34;1mBuild\e[0m
-msg_link  := \e[33;1m Link\e[0m
-msg_run   := \e[32;1m  Run\e[0m
-msg_runf  := \e[31;1m  Run\e[0m
+msg_link  := \e[33;1mLink \e[0m
+msg_run   := \e[32;1mRun✔️ \e[0m
+msg_runf  := \e[31;1mRun❌\e[0m
 else
 msg_build := Build
-msg_link  := -Link
-msg_run   := --Run
-msg_runf  := --Run
+msg_link  := Link-
+msg_run   := Run✔️-
+msg_runf  := Run❌
 endif
 
 diag_postprocess := 2>&1; echo $$$$?>&2; } | sed -e 's/\(, \)\?std::__detail::__build_flags{[^,]*,[^}]*}//g' -e 's/\<std:://g' -e 's/\<__detail:://g'; } 3>&2 2>&1 1>&3 | { read s; exit $$$$s; }
@@ -136,9 +136,9 @@ ifeq ($(DIRECT),)
 	@rm $$(@:check/%=obj/%.o)
 endif
 	@mkdir -p $$(dir $$@)
-	@$$(@:check/%=obj/%.exe) >$$@ 2>&1
-	@tail -n1 $$@ | grep -qv '^Failed tests: [^0]' && printf -- '$$(msg_run) $$@ ✔️\n' || { \
-		printf -- '$$(msg_runf) $$@ ❌\n'; \
+	@$$(@:check/%=obj/%.exe) >$$@ 2>&1 && \
+		printf -- '$$(msg_run) $$@\n' || { \
+		printf -- '$$(msg_runf) $$@\n'; \
 		cat $$@; \
 		false; \
 	}
