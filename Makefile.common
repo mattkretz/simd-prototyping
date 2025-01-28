@@ -94,10 +94,12 @@ ifneq ($(MAKE_TERMOUT),)
 msg_build := \e[34;1mBuild\e[0m
 msg_link  := \e[33;1m Link\e[0m
 msg_run   := \e[32;1m  Run\e[0m
+msg_runf  := \e[31;1m  Run\e[0m
 else
 msg_build := Build
 msg_link  := -Link
 msg_run   := --Run
+msg_runf  := --Run
 endif
 
 diag_postprocess := 2>&1; echo $$$$?>&2; } | sed -e 's/\(, \)\?std::__detail::__build_flags{[^,]*,[^}]*}//g' -e 's/\<std:://g' -e 's/\<__detail:://g'; } 3>&2 2>&1 1>&3 | { read s; exit $$$$s; }
@@ -134,11 +136,12 @@ ifeq ($(DIRECT),)
 	@rm $$(@:check/%=obj/%.o)
 endif
 	@mkdir -p $$(dir $$@)
-	@{ \
-		printf -- '$$(msg_run) $$@\n'; \
-		$$(@:check/%=obj/%.exe); \
-	} | tee $$@
-	@tail -n1 $$@ | grep -qv '^Failed tests: [^0]'
+	@$$(@:check/%=obj/%.exe) >$$@ 2>&1
+	@tail -n1 $$@ | grep -qv '^Failed tests: [^0]' && printf -- '$$(msg_run) $$@ ✔️\n' || { \
+		printf -- '$$(msg_runf) $$@ ❌\n'; \
+		cat $$@; \
+		false; \
+	}
 
 endef
 
@@ -178,7 +181,7 @@ obj/codegen.depend: obj $(codegen_files)
 include obj/codegen.depend
 
 $(shell $(CXX) $(CXXFLAGS) -MM -MT "obj/constexpr.%.s" constexpr_tests.c++|tr -d '\\') obj/%.hpp.gch
-	@printf -- '$$(msg_build) constexpr tests for $*\n'
+	@printf -- '$(msg_build) constexpr tests for $*\n'
 	@$(CXX) $(CXXFLAGS) -march=$* -include obj/$*.hpp -S -o $@ constexpr_tests.c++
 
 .PHONY: always-remake
