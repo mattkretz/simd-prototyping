@@ -364,6 +364,28 @@ namespace std::__detail
 
       template <__vec_builtin _TV, typename _Up>
         _GLIBCXX_SIMD_INTRINSIC static constexpr void
+        _S_partial_store(_TV __v, _Up* __mem, size_t __mem_size,
+                         _TypeTag<__value_type_of<_TV>> __tag)
+        {
+          using _Tp = __value_type_of<_TV>;
+          using _Ucanon = __canonical_vec_type_t<_Up>;
+          constexpr bool __need_cvt
+            = not is_same_v<_Tp, _Ucanon>
+                and not (is_integral_v<_Tp> and is_integral_v<_Up> and sizeof(_Tp) == sizeof(_Up));
+          if (__mem_size >= _S_size) [[unlikely]]
+            _S_store(__v, __mem, __tag);
+          else if constexpr (not __need_cvt)
+            __builtin_memcpy(__mem, &__v, sizeof(_Tp) * __mem_size);
+          else
+            {
+              const auto __tmp
+                = __builtin_convertvector(__v, __vec_builtin_type<_Ucanon, _S_full_size>);
+              __builtin_memcpy(__mem, &__tmp, sizeof(_Up) * __mem_size);
+            }
+        }
+
+      template <__vec_builtin _TV, typename _Up>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr void
         _S_masked_store(const _TV __v, _Up* __mem, const _MaskMember<_TV> __k)
         {
           using _Tp = __value_type_of<_TV>;

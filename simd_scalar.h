@@ -161,6 +161,11 @@ namespace std::__detail
 
     template <typename _Tp, typename _Up>
       _GLIBCXX_SIMD_INTRINSIC static constexpr void
+      _S_partial_store(_Tp __v, _Up* __mem, size_t __mem_size, _TypeTag<_Tp>) noexcept
+      { if (__mem_size > 0) __mem[0] = static_cast<_Up>(__v); }
+
+    template <typename _Tp, typename _Up>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr void
       _S_masked_store(const _Tp __v, _Up* __mem, const bool __k) noexcept
       { if (__k) __mem[0] = __v; }
 

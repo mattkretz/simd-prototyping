@@ -160,7 +160,9 @@ template <typename V>
     {
       log_start();
 
+      static_assert(std::simd_alignment_v<V> <= 256);
       alignas(256) std::array<T, V::size * 2> mem = {};
+
       auto it = mem.begin();
       auto end = mem.end();
 
@@ -214,4 +216,57 @@ template <typename V>
     }
   };
 
-auto tests = register_tests<misc, mask_reductions, loads>();
+template <typename V>
+  struct stores
+  {
+    using T = typename V::value_type;
+
+    static void
+    run() requires requires {T() + T(1);}
+    {
+      log_start();
+
+      static_assert(std::simd_alignment_v<V> <= 256);
+      alignas(256) std::array<T, V::size * 2> mem = {};
+      alignas(256) std::array<int, V::size * 2> ints = {};
+
+      const V v = std::simd_iota<V> + T(1);
+      std::simd_unchecked_store(v, mem);
+      std::simd_unchecked_store(v, mem.begin() + V::size(), mem.end(), std::simd_flag_aligned);
+      std::simd_unchecked_store(v, ints, std::simd_flag_convert);
+      std::simd_partial_store(v, ints.begin() + V::size() + 1, ints.end(),
+                              std::simd_flag_convert | std::simd_flag_overaligned<alignof(T)>);
+      for (int i = 0; i < V::size; ++i)
+        {
+          verify_equal(mem[i], T(i + 1));
+          verify_equal(ints[i], int(T(i + 1)));
+        }
+      for (int i = 0; i < V::size; ++i)
+        {
+          verify_equal(mem[V::size + i], T(i + 1));
+          verify_equal(ints[V::size + i], int(T(i)));
+        }
+
+      std::simd_unchecked_store(V(), ints.begin(), V::size(), std::simd_flag_convert);
+      std::simd_unchecked_store(V(), ints.begin() + V::size(), V::size(), std::simd_flag_convert);
+      for (int i = 0; i < 2 * V::size; ++i)
+        verify_equal(ints[i], 0)("i =", i);
+
+      if constexpr (V::size() > 1)
+        {
+          std::simd_partial_store(v, ints.begin() + 1, V::size() - 2, std::simd_flag_convert);
+          for (int i = 0; i < V::size - 2; ++i)
+            verify_equal(ints[i], i);
+          verify_equal(ints[V::size - 1], 0);
+          verify_equal(ints[V::size], 0);
+        }
+      else
+        {
+          std::simd_partial_store(v, ints.begin() + 1, 0, std::simd_flag_convert);
+          verify_equal(ints[0], 0);
+          verify_equal(ints[1], 0);
+        }
+    }
+  };
+
+auto tests = register_tests<misc, mask_reductions, loads, stores>();

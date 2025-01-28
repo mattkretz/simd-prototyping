@@ -432,6 +432,22 @@ namespace std
           _S_store(const array<_TV, _Np>& __v, _Up* __mem, _TypeTag<__value_type_of<_TV>> __tag) noexcept
           { (_Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size, __tag), ...); }
 
+        template <__vec_builtin _TV, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_partial_store(const array<_TV, _Np>& __v, _Up* __mem, size_t __mem_size,
+                           _TypeTag<__value_type_of<_TV>> __tag)
+          {
+            if (__mem_size >= _S_size) [[unlikely]]
+              _S_store(__v, __mem, __tag);
+            else
+              ((__mem_size < _Is * _S_chunk_size
+                  ? []{}()
+                  : (__mem_size < (_Is + 1) * _S_chunk_size
+                       ? _Impl0::_S_partial_store(__v[_Is], __mem + _Is * _S_chunk_size,
+                                                  __mem_size - _Is * _S_chunk_size, __tag)
+                       : _Impl0::_S_store(__v[_Is], __mem + _Is * _S_chunk_size, __tag))), ...);
+          }
+
         template <typename _Tp, typename _Up>
           static constexpr inline void
           _S_masked_store(_Tp const& __v, _Up* __mem, const _MaskMember<_Tp> __k) noexcept
@@ -1309,6 +1325,25 @@ namespace std
             __v._M_forall([&] [[__gnu__::__always_inline__]] (auto __meta, auto __chunk) {
               __meta._S_store(__chunk, __mem + __meta._S_offset, _TypeTag<_Tp>());
             });
+          }
+
+        template <typename _Tp, typename _Up>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_partial_store(const _SimdMember<_Tp>& __v, _Up* __mem, size_t __mem_size,
+                           _TypeTag<_Tp> __tag)
+          {
+            if (__mem_size >= _Np) [[unlikely]]
+              _S_store(__v, __mem, __tag);
+            else
+              __v._M_forall([&] [[__gnu__::__always_inline__]] (auto __meta, auto __chunk) {
+                if (__mem_size > size_t(__meta._S_size + __meta._S_offset))
+                  __meta._S_store(__chunk, __mem + __meta._S_offset, __tag);
+                else if (__mem_size <= size_t(__meta._S_offset))
+                  /*nothing*/;
+                else
+                  __meta._S_partial_store(__chunk, __mem + __meta._S_offset,
+                                          __mem_size - __meta._S_offset, __tag);
+              });
           }
 
         template <typename _Tp, typename... _As, typename _Up>
