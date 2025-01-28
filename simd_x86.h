@@ -828,7 +828,10 @@ namespace std::__detail
           using _Tp = __value_type_of<_TV>;
           if constexpr (_S_use_bitmasks)
             __lhs = _S_select_bitmask(__k, __vec_broadcast<_S_size>(__rhs), __lhs);
-          else if (_Base::_S_is_constprop_none_of(__k))
+          else if (__builtin_is_constant_evaluated())
+            __lhs = __k ? __vec_broadcast<_S_size>(__rhs) : __lhs;
+          else if (_Base::_S_is_constprop_none_of(__k)
+                     or _Base::_S_is_constprop_all_equal(__lhs, __rhs))
             return;
           else if (_Base::_S_is_constprop_all_of(__k))
             __lhs = __vec_broadcast<_S_size>(__rhs);
