@@ -231,8 +231,8 @@ template <typename V>
       alignas(256) std::array<int, V::size * 2> ints = {};
 
       const V v = std::simd_iota<V> + T(1);
-      std::simd_unchecked_store(v, mem);
-      std::simd_unchecked_store(v, mem.begin() + V::size(), mem.end(), std::simd_flag_aligned);
+      std::simd_unchecked_store(v, mem, std::simd_flag_aligned);
+      std::simd_unchecked_store(v, mem.begin() + V::size(), mem.end());
       std::simd_unchecked_store(v, ints, std::simd_flag_convert);
       std::simd_partial_store(v, ints.begin() + V::size() + 1, ints.end(),
                               std::simd_flag_convert | std::simd_flag_overaligned<alignof(T)>);
