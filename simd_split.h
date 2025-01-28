@@ -42,16 +42,16 @@ namespace std
             return __builtin_bit_cast(_Rp, __x);
           else
             return [&]<size_t... _Is>(std::index_sequence<_Is...>) {
-              return _Rp {generate<_V>([&](auto __i) { return __x[__i + __out * _Is]; })...};
+              return _Rp {_V([&](auto __i) { return __x[__i + __out * _Is]; })...};
             }(std::make_index_sequence<__in / __out>());
         }
       else // -> tuple
         return [&]<size_t... _Is>(std::index_sequence<_Is...>) {
           using _Rem = std::resize_simd_t<__rem, _V>;
           using _Rp = std::tuple<__detail::__repeat_type<_V, _Is>..., _Rem>;
-          return _Rp {generate<_V>([&](auto __i) {
+          return _Rp {_V([&](auto __i) {
                         return __x[__i + __out * _Is];
-                      })..., generate<_Rem>([&](auto __i) {
+                      })..., _Rem([&](auto __i) {
                                return __x[__i + __in - __rem];
                              })};
         }(std::make_index_sequence<__in / __out>());
@@ -150,7 +150,7 @@ namespace std
       else if constexpr (__size <= __simd_size_v<_Tp, __detail::_NativeAbi<_Tp>>)
         return __detail::__cat_recursive(__xs...);
       else
-        return generate<simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>>(
+        return simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>(
                  [&] [[__gnu__::__always_inline__]] (auto __i) {
                    return __detail::__get_simd_element_from_pack(__i, __xs...);
                  });

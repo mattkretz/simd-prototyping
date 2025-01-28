@@ -583,32 +583,6 @@ namespace std
     : std::integral_constant<size_t, alignof(simd<__detail::__make_unsigned_int_t<bool>,
                                                   basic_simd_mask<_Bs, _Abi>::size()>)>
     {};
-
-  template <same_as<void> = void, typename _Fp>
-    requires __detail::__simd_generator_invokable<
-               _Fp, decltype(declval<_Fp&&>()(__detail::__ic<0>)),
-               simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>::size()>
-    constexpr simd<decltype(declval<_Fp&&>()(__detail::__ic<0>))>
-    generate(_Fp&& __gen)
-    {
-      using _Tp = decltype(declval<_Fp&&>()(__detail::__ic<0>));
-      using _Vp = simd<_Tp>;
-      return _Vp(__detail::__private_init,
-                 _Vp::_Impl::template _S_generator<_Tp>(static_cast<_Fp&&>(__gen)));
-    }
-
-  template <__detail::__simd_or_mask _Vp = void,
-            __detail::__simd_generator_invokable<typename _Vp::value_type, _Vp::size()> _Fp>
-    constexpr _Vp
-    generate(_Fp&& __gen)
-    {
-      if constexpr (__detail::__simd_type<_Vp>)
-        return _Vp(__detail::__private_init,
-                   _Vp::_Impl::template _S_generator<typename _Vp::value_type>(
-                     static_cast<_Fp&&>(__gen)));
-      else
-        return _Vp(static_cast<_Fp&&>(__gen));
-    }
 }
 
 #endif  // PROTOTYPE_SIMD2_H_

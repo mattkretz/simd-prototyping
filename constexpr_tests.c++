@@ -231,7 +231,7 @@ static_assert(
                 return std::array{true, true, false, false}[i];
               })));
 
-static_assert(all_of((std::generate<std::simd<int, 4>>([](int i) { return i << 10; }) >> 10)
+static_assert(all_of((std::simd<int, 4>([](int i) { return i << 10; }) >> 10)
                 == std::simd_iota<std::simd<int, 4>>));
 
 // simd iterators /////////////////////
@@ -265,7 +265,7 @@ static_assert([] constexpr {
   static_assert(b[1] == -(1 < 3));
   static_assert(b[2] == -(2 < 3));
   static_assert(b[3] == -(3 < 3));
-  return all_of(b == std::generate<std::simd<int, 7>>([](int i) { return -int(i < 3); }));
+  return all_of(b == std::simd<int, 7>([](int i) { return -int(i < 3); }));
 }());
 
 static_assert([] constexpr {
@@ -275,7 +275,7 @@ static_assert([] constexpr {
   static_assert(b[1] == ~int(1 < 3));
   static_assert(b[2] == ~int(2 < 3));
   static_assert(b[3] == ~int(3 < 3));
-  return all_of(b == std::generate<std::simd<int, 7>>([](int i) { return ~int(i < 3); }));
+  return all_of(b == std::simd<int, 7>([](int i) { return ~int(i < 3); }));
 }());
 
 static_assert([] constexpr {
@@ -332,7 +332,7 @@ static_assert([] constexpr {
   static_assert(b[1] == ~int(1 < 2));
   static_assert(b[2] == ~int(2 < 2));
   static_assert(b[3] == ~int(3 < 2));
-  return all_of(b == std::generate<std::simd<int, 4>>([](int i) { return ~int(i < 2); }));
+  return all_of(b == std::simd<int, 4>([](int i) { return ~int(i < 2); }));
 }());
 
 // simd reductions ///////////////////
@@ -376,14 +376,14 @@ static_assert(reduce_max_index(std::simd<float>() == std::simd<float>()) == std:
 // split ////////////////////////
 
 static_assert([] {
-  constexpr auto a = std::generate<std::simd<int, 8>>([] (int i) { return i; });
+  constexpr auto a = std::simd<int, 8>([] (int i) { return i; });
   auto a4 = split<std::simd<int, 4>>(a);
   auto a3 = split<std::simd<int, 3>>(a);
   return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
-           and all_of(std::get<0>(a3) == std::generate<std::simd<int, 3>>([] (int i) { return i; }))
-           and all_of(std::get<1>(a3) == std::generate<std::simd<int, 3>>([] (int i) { return i + 3; }))
-           and all_of(std::get<2>(a3) == std::generate<std::simd<int, 2>>([] (int i) { return i + 6; }));
+           and all_of(std::get<0>(a3) == std::simd<int, 3>([] (int i) { return i; }))
+           and all_of(std::get<1>(a3) == std::simd<int, 3>([] (int i) { return i + 3; }))
+           and all_of(std::get<2>(a3) == std::simd<int, 2>([] (int i) { return i + 6; }));
 }());
 
 static_assert([] {
@@ -451,7 +451,7 @@ static_assert(
 
 static_assert(
   all_of(simd::permute(std::simd_iota<std::simd<int>>, simd::permutations::swap_neighbors<1>)
-           == std::generate<std::simd<int>>([](int i) { return i ^ 1; })));
+           == std::simd<int>([](int i) { return i ^ 1; })));
 
 static_assert(
   all_of(simd::permute(std::simd_iota<std::simd<int, 8>>,
@@ -478,7 +478,7 @@ static_assert(
 
 static_assert(
   all_of(simd::permute(std::simd_iota<std::simd<int>>, simd::permutations::reverse)
-           == std::generate<std::simd<int>>([](int i) { return int(std::simd<int>::size()) - 1 - i; })));
+           == std::simd<int>([](int i) { return int(std::simd<int>::size()) - 1 - i; })));
 
 static_assert(
   all_of(simd::permute(std::simd_iota<std::simd<int>>, simd::permutations::rotate<1>)

@@ -37,7 +37,7 @@ namespace std
     {
       constexpr unsigned __n = 1 + sizeof...(_More);
       return [&]<size_t... _Offsets>(std::index_sequence<_Offsets...>) {
-        return std::tuple{generate<_Vp>([&](auto __i) {
+        return std::tuple{_Vp([&](auto __i) {
                             constexpr size_t __j = __i + _Offsets * _Vp::size();
                             return __pack_subscript<__j % __n>(__a, __more...)[__j / __n];
                           })...};
