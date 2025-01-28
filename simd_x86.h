@@ -1002,7 +1002,7 @@ namespace std::__detail
                   using _ShortW = __vec_builtin_type<short, _Np>;
                   const _ShortW __even = __vec_bitcast<short, _Np>(__x)
                                            * __vec_bitcast<short, _Np>(__y);
-                  const _ShortW __high_byte = _ShortW() - 256;
+                  constexpr _ShortW __high_byte = _ShortW() - 256;
                   const _ShortW __odd
                     = (__vec_bitcast<short, _Np>(__x) >> 8)
                         * (__vec_bitcast<short, _Np>(__y) & __high_byte);
@@ -1010,7 +1010,8 @@ namespace std::__detail
                     return _S_select_bitmask(0xaaaa'aaaa'aaaa'aaaaLL,
                                              __vec_bitcast<_Tp>(__odd), __vec_bitcast<_Tp>(__even));
                   else if constexpr (_Flags._M_have_sse4_1() and sizeof(_TV) > 2)
-                    return reinterpret_cast<_TV>(__high_byte ? __odd : __even);
+                    return reinterpret_cast<_TV>(__high_byte) ? reinterpret_cast<_TV>(__odd)
+                                                              : reinterpret_cast<_TV>(__even);
                   else
                     return reinterpret_cast<_TV>(__vec_or(__vec_andnot(__high_byte, __even), __odd));
                 }
