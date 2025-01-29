@@ -23,6 +23,12 @@ CXXFLAGS += $(CXXFLAGS_$(compiler))
 
 icerun := $(shell which icerun)
 
+ifeq ($(ICECC_CXX),)
+LINK_CXX := $(CXX)
+else
+LINK_CXX := $(ICECC_CXX)
+endif
+
 ifeq ($(icerun)$(shell which icecc),)
 # without icecream (icerun and icecc) set DIRECT=1
 DIRECT := 1
@@ -91,18 +97,21 @@ getarch = $(subst .,,$(suffix $(subst /,,$(dir $(1)))))
 gettest = $(basename $(subst /,,$(dir $(1))))
 
 ifneq ($(MAKE_TERMOUT),)
+CXXFLAGS += -fdiagnostics-color=always
 msg_build := \e[34;1mBuild\e[0m
 msg_link  := \e[33;1mLink \e[0m
 msg_run   := \e[32;1mRun✔️ \e[0m
 msg_runf  := \e[31;1mRun❌\e[0m
 else
-msg_build := Build
-msg_link  := Link-
-msg_run   := Run✔️-
-msg_runf  := Run❌
+msg_build := Build:
+msg_link  := Link :
+msg_run   := Run (:
+msg_runf  := Run ):
 endif
 
 diag_postprocess := 2>&1; echo $$$$?>&2; } | sed -e 's/\(, \)\?std::__detail::__build_flags{[^,]*,[^}]*}//g' -e 's/\<std:://g' -e 's/\<__detail:://g'; } 3>&2 2>&1 1>&3 | { read s; exit $$$$s; }
+
+print_progress := true
 
 define pch_template
 obj/$(1).hpp: tests/unittest*.h tests/*.cpp | obj
@@ -128,18 +137,23 @@ $(foreach arch,$(testarchs),\
 define exe_template
 check/$(1).$(2)/%: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
 	@printf -- '$$(msg_build) $(if $(DIRECT),and link )$$@\n'
-	@mkdir -p $$(dir $$(@:check/%=obj/%.exe))
+	@mkdir -p $$(dir $$(@:check/%=obj/%.exe)) $$(dir $$@)
+	@rm -f $$(@:check/%=obj/%.exe) $$@
 	@{ { $$(CXX) $$(CXXFLAGS) -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).hpp $(if $(DIRECT),-o $$(@:check/%=obj/%.exe),-c -o $$(@:check/%=obj/%.o)) $$< $(diag_postprocess)
 ifeq ($(DIRECT),)
-	@printf -- '$$(msg_link) $$@\n'
-	@$$(CXX) $$(CXXFLAGS) -march=$(2) -o $$(@:check/%=obj/%.exe) $$(@:check/%=obj/%.o)
+	@true || printf -- '$$(msg_link) $$@\n'
+	@$$(LINK_CXX) $$(CXXFLAGS) -march=$(2) -o $$(@:check/%=obj/%.exe) $$(@:check/%=obj/%.o)
+	@touch -r $$(@:check/%=obj/%.o) $$(@:check/%=obj/%.exe)
 	@rm $$(@:check/%=obj/%.o)
 endif
-	@mkdir -p $$(dir $$@)
-	@$$(@:check/%=obj/%.exe) >$$@ 2>&1 && \
-		printf -- '$$(msg_run) $$@\n' || { \
+	@rm -f $$@.failed
+	@$$(@:check/%=obj/%.exe) >$$@ 2>&1 && { \
+		printf -- '$$(msg_run) %-60s %s\n' '$$@' "$$$$($$(print_progress))"; \
+		touch -r $$(@:check/%=obj/%.exe) $$@; \
+	} || { \
 		printf -- '$$(msg_runf) $$@\n'; \
 		cat $$@; \
+		mv $$@ $$@.failed; \
 		false; \
 	}
 

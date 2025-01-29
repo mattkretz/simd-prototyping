@@ -51,7 +51,7 @@ debug:
 	@echo "type=$(call gettype,shift_left.core2/std--float32_t.34)"
 	@$(MAKE) -f Makefile.more $@
 
-more_checks := check check10 check1 check-failed check-passed check-untested
+more_checks := check check10 check1 check-failed check-passed check-untested rerun
 
 .PHONY: $(more_checks)
 $(more_checks): $(check_targets)
