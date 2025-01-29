@@ -270,21 +270,21 @@ namespace std
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_simd<_Tp, _Abi>& __x) noexcept;
+    simd_split(const basic_simd<_Tp, _Abi>& __x) noexcept;
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
+    simd_split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
     simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>
-    cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept;
+    simd_cat(const basic_simd<_Tp, _Abis>&... __xs) noexcept;
 
   template <size_t _Bs, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
     simd_mask<__detail::__mask_integer_from<_Bs>, (basic_simd_mask<_Bs, _Abis>::size.value + ...)>
-    cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept;
+    simd_cat(const basic_simd_mask<_Bs, _Abis>&... __xs) noexcept;
 
   namespace __detail
   {

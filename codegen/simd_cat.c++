@@ -21,17 +21,17 @@ namespace simd = std;
 void g(auto);
 
 void f0(simd::simd<int, 4> a, simd::simd<int, 4> b) {
-  g(cat(a, b));
+  g(simd_cat(a, b));
 }
 
 void f1(simd::simd<float, 4> a, simd::simd<float, 4> b) {
-  g(cat(a, b));
+  g(simd_cat(a, b));
 }
 
 void f2(simd::simd<float, 2> a, simd::simd<float, 2> b) {
-  g(cat(a, b));
+  g(simd_cat(a, b));
 }
 
 void f3(simd::simd<float, 3> a, simd::simd<float, 1> b) {
-  g(cat(a, b));
+  g(simd_cat(a, b));
 }
