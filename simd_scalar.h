@@ -190,6 +190,20 @@ namespace std::__detail
       { return std::max(__a, __b); }
 
     template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr void
+      _S_minmax(_Tp& __min, _Tp& __max)
+      {
+        const _Tp __lo = std::min(__min, __max);
+        __max = std::max(__min, __max);
+        __min = __lo;
+      }
+
+    template <typename _Tp>
+      _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+      _S_clamp(const _Tp __v, const _Tp __lo, const _Tp __hi)
+      { return std::clamp(__v, __lo, __hi); }
+
+    template <typename _Tp>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
       _S_complement(_Tp __x) noexcept
       { return static_cast<_Tp>(~__x); }

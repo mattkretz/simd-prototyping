@@ -65,6 +65,10 @@ template <std::__detail::__vec_builtin V>
   std::ostream& operator<<(std::ostream& s, V v)
   { return s << std::simd<std::__detail::__value_type_of<V>, std::__detail::__width_of<V>>(v); }
 
+template <typename T, typename U>
+  std::ostream& operator<<(std::ostream& s, const std::pair<T, U>& x)
+  { return s << '{' << x.first << ", " << x.second << '}'; }
+
 static std::int64_t passed_tests = 0;
 static std::int64_t failed_tests = 0;
 
@@ -131,6 +135,7 @@ verify(auto&& k, std::source_location loc = std::source_location::current())
 additional_info
 verify_equal(auto&& x, auto&& y,
              std::source_location loc = std::source_location::current())
+  requires requires { {std::all_of(x == y)} -> std::same_as<bool>; }
 {
   if (std::all_of(x == y) and std::none_of(x != y))
     {
@@ -140,6 +145,21 @@ verify_equal(auto&& x, auto&& y,
   else
     return log_failure(x, y, loc, "not equal: ");
 }
+
+template <typename T, typename U>
+  [[gnu::always_inline]]
+  additional_info
+  verify_equal(const std::pair<T, U>& x, const std::pair<T, U>& y,
+               std::source_location loc = std::source_location::current())
+  {
+    if (std::all_of(x.first == y.first) and std::all_of(x.second == y.second))
+      {
+        ++passed_tests;
+        return {};
+      }
+    else
+      return log_failure(x, y, loc, "not equal: ");
+  }
 
 [[gnu::always_inline]]
 additional_info

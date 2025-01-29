@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-/* Copyright © 2023-2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+/* Copyright © 2023-2025 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
  *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
@@ -478,7 +478,7 @@ namespace std
       { return _M_to_array(); }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd
-      select_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
+      __select_impl(const mask_type& __k, const basic_simd& __t, const basic_simd& __f)
       {
         auto __ret = __f;
         _Impl::_S_masked_assign(__data(__k), __ret._M_data, __t._M_data);

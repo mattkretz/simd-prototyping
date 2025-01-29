@@ -555,12 +555,22 @@ namespace std::__detail
       template <__vec_builtin _TV>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
         _S_max(_TV __x, _TV __y)
-        { return __x > __y ? __x : __y; }
+        { return __x < __y ? __y : __x; }
 
       template <__vec_builtin _TV>
-        _GLIBCXX_SIMD_INTRINSIC static constexpr pair<_TV, _TV>
-        _S_minmax(_TV __x, _TV __y)
-        { return {__x < __y ? __x : __y, __x < __y ? __y : __x}; }
+        _GLIBCXX_SIMD_INTRINSIC static constexpr void
+        _S_minmax(_TV& __min, _TV& __max)
+        {
+          auto __need_swap = __max < __min;
+          auto __lo = __need_swap ? __max : __min;
+          __max = __need_swap ? __min : __max;
+          __min = __lo;
+        }
+
+      template <__vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static constexpr _TV
+        _S_clamp(_TV __v, _TV __lo, _TV __hi)
+        { return __v < __lo ? __lo : __v < __hi ? __v : __hi; }
 
       template <__vec_builtin _TV>
         static constexpr _MaskMember<_TV>

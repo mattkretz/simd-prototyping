@@ -653,6 +653,26 @@ namespace std
             static_assert(_Np <= 128);
             return std::reduce(basic_simd<_Tp, _Abi0>(__private_init, __x[0]), __binary_op);
           }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_min(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_min(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_max(_Tp const& __x, _Tp const& __y) noexcept
+          { return {_Impl0::_S_max(__x[_Is], __y[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_minmax(_Tp& __min, _Tp& __max) noexcept
+          { (_Impl0::_S_minmax(__min[_Is], __max[_Is]), ...); }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
+          _S_clamp(_Tp const& __v, _Tp const& __lo, _Tp const& __hi) noexcept
+          { return {_Impl0::_S_clamp(__v[_Is], __lo[_Is], __hi[_Is])...}; }
       };
 
     template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
@@ -1155,6 +1175,27 @@ namespace std
           }
 
         template <vir::constexpr_value<int> _Cv = decltype(0_cw)>
+          _GLIBCXX_SIMD_INTRINSIC constexpr _SimdTuple&
+          _M_forall(const _SimdTuple& __a, const _SimdTuple& __b,
+                    auto&& __fun, _Cv __total_offset = {})
+          {
+            __fun(_SimdTupleMeta<_Tp, _A0, __total_offset>(), _M_x, __a._M_x, __b._M_x);
+            if constexpr (_S_recurse)
+              _M_tail._M_forall(__a._M_tail, __b._M_tail, __fun, __total_offset + _S_size);
+            return *this;
+          }
+
+        template <vir::constexpr_value<int> _Cv = decltype(0_cw)>
+          _GLIBCXX_SIMD_INTRINSIC constexpr _SimdTuple&
+          _M_forall(_SimdTuple& __a, auto&& __fun, _Cv __total_offset = {})
+          {
+            __fun(_SimdTupleMeta<_Tp, _A0, __total_offset>(), _M_x, __a._M_x);
+            if constexpr (_S_recurse)
+              _M_tail._M_forall(__a._M_tail, __fun, __total_offset + _S_size);
+            return *this;
+          }
+
+        template <vir::constexpr_value<int> _Cv = decltype(0_cw)>
           _GLIBCXX_SIMD_INTRINSIC constexpr const _SimdTuple&
           _M_forall(auto&& __fun, _Cv __total_offset = {}) const
           {
@@ -1464,18 +1505,41 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdTuple<_Tp, _As...>
           _S_min(_SimdTuple<_Tp, _As...> __a, const _SimdTuple<_Tp, _As...>& __b)
           {
-            return __a._M_forall(__b, [] [[__gnu__::__always_inline__]] (auto __meta, auto& __aa, auto __bb) {
-                 __aa = __meta._S_min(__aa, __bb);
-               });
+            return __a._M_forall(__b, [] [[__gnu__::__always_inline__]]
+                                        (auto __meta, auto& __aa, auto __bb) {
+                     __aa = __meta._S_min(__aa, __bb);
+                   });
           }
 
         template <typename _Tp, typename... _As>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdTuple<_Tp, _As...>
           _S_max(_SimdTuple<_Tp, _As...> __a, const _SimdTuple<_Tp, _As...>& __b)
           {
-            return __a._M_forall(__b, [] [[__gnu__::__always_inline__]] (auto __meta, auto& __aa, auto __bb) {
-                 __aa = __meta._S_max(__aa, __bb);
-               });
+            return __a._M_forall(__b, [] [[__gnu__::__always_inline__]]
+                                        (auto __meta, auto& __aa, auto __bb) {
+                     __aa = __meta._S_max(__aa, __bb);
+                   });
+          }
+
+        template <typename _Tp, typename... _As>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr void
+          _S_minmax(_SimdTuple<_Tp, _As...>& __min, _SimdTuple<_Tp, _As...>& __max)
+          {
+            __min._M_forall(__max, [] [[__gnu__::__always_inline__]]
+                                     (auto __meta, auto& __aa, auto& __bb) {
+              __meta._S_minmax(__aa, __bb);
+            });
+          }
+
+        template <typename _Tp, typename... _As>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdTuple<_Tp, _As...>
+          _S_clamp(_SimdTuple<_Tp, _As...> __v,
+                   const _SimdTuple<_Tp, _As...>& __lo, const _SimdTuple<_Tp, _As...>& __hi)
+          {
+            return __v._M_forall(__lo, __hi, [] [[__gnu__::__always_inline__]]
+                                               (auto __meta, auto& __vv, auto __ll, auto __hh) {
+                     __vv = __meta._S_clamp(__vv, __ll, __hh);
+                   });
           }
 
         template <typename _Tp, typename... _As>

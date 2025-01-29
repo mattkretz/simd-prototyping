@@ -316,7 +316,7 @@ namespace std
 
       // [simd.mask.cond]
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      select_impl(const basic_simd_mask& __k, const basic_simd_mask& __t,
+      __select_impl(const basic_simd_mask& __k, const basic_simd_mask& __t,
                        const basic_simd_mask& __f) noexcept
       {
         basic_simd_mask __ret = __f;
@@ -325,7 +325,7 @@ namespace std
       }
 
       _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr basic_simd_mask
-      select_impl(const basic_simd_mask& __k, same_as<bool> auto __t,
+      __select_impl(const basic_simd_mask& __k, same_as<bool> auto __t,
                        same_as<bool> auto __f) noexcept
       {
         if (__t == __f)
@@ -345,7 +345,7 @@ namespace std
                                                 size.value>>)
         _GLIBCXX_SIMD_ALWAYS_INLINE friend constexpr
         simd<__detail::__nopromot_common_type_t<_T0, _T1>, size.value>
-        select_impl(const basic_simd_mask& __k, const _T0& __t, const _T1& __f) noexcept
+        __select_impl(const basic_simd_mask& __k, const _T0& __t, const _T1& __f) noexcept
         {
           using _Rp = __detail::__nopromot_common_type_t<_T0, _T1>;
           using _RV = simd<_Rp, size.value>;
@@ -378,18 +378,6 @@ namespace std
     struct is_mask<basic_simd_mask<_Bs, _Abi>>
     : is_default_constructible<basic_simd_mask<_Bs, _Abi>>
     {};
-
-  template <typename _Tp, typename _Up>
-    constexpr auto
-    simd_select(bool __c, const _Tp& __x0, const _Up& __x1) noexcept
-    -> remove_cvref_t<decltype(__c ? __x0 : __x1)>
-    { return __c ? __x0 : __x1; }
-
-  template <size_t _Np, typename _A0>
-    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_select(const basic_simd_mask<_Np, _A0>& __k, const auto& __x0, const auto& __x1) noexcept
-    -> decltype(select_impl(__k, __x0, __x1))
-    { return select_impl(__k, __x0, __x1); }
 }
 
 #endif  // PROTOTYPE_SIMD_MASK2_H_

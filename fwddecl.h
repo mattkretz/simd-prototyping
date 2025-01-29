@@ -335,6 +335,34 @@ namespace std
     constexpr _Tp
     reduce_max(const basic_simd<_Tp, _Abi>& __x,
                const typename basic_simd<_Tp, _Abi>::mask_type& __k) noexcept;
+
+  // [simd.alg], Algorithms
+  template <totally_ordered _Tp, typename _Abi>
+    constexpr basic_simd<_Tp, _Abi>
+    min(const basic_simd<_Tp, _Abi>& __a, const basic_simd<_Tp, _Abi>& __b) noexcept;
+
+  template <totally_ordered _Tp, typename _Abi>
+    constexpr basic_simd<_Tp, _Abi>
+    max(const basic_simd<_Tp, _Abi>& __a, const basic_simd<_Tp, _Abi>& __b) noexcept;
+
+  template <totally_ordered _Tp, typename _Abi>
+    constexpr pair<basic_simd<_Tp, _Abi>, basic_simd<_Tp, _Abi>>
+    minmax(const basic_simd<_Tp, _Abi>& __a, const basic_simd<_Tp, _Abi>& __b) noexcept;
+
+  template <totally_ordered _Tp, typename _Abi>
+    constexpr basic_simd<_Tp, _Abi>
+    clamp(const basic_simd<_Tp, _Abi>& __v, const basic_simd<_Tp, _Abi>& __lo,
+          const basic_simd<_Tp, _Abi>& __hi);
+
+  template <typename _Tp, typename _Up>
+    constexpr auto
+    simd_select(bool __c, const _Tp& __a, const _Up& __b)
+    -> remove_cvref_t<decltype(__c ? __a : __b)>;
+
+  template <size_t _Bytes, typename _Abi, typename _Tp, typename _Up>
+    constexpr auto
+    simd_select(const basic_simd_mask<_Bytes, _Abi>& __k, const _Tp& __a, const _Up& __b) noexcept
+    -> decltype(__select_impl(__k, __a, __b));
 }
 
 #endif  // PROTOTYPE_FWDDECL_H_

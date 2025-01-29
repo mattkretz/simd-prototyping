@@ -9,6 +9,7 @@
 #define __cpp_lib_simd 202402L
 
 #include "simd.h"
+#include "simd_alg.h"
 #include "mask_reductions.h"
 #include "simd_reductions.h"
 #include "interleave.h"
