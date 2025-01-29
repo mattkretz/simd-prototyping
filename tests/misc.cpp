@@ -256,7 +256,7 @@ template <typename V>
         {
           std::simd_partial_store(v, ints.begin() + 1, V::size() - 2, std::simd_flag_convert);
           for (int i = 0; i < V::size - 2; ++i)
-            verify_equal(ints[i], i);
+            verify_equal(ints[i], int(T(i)));
           verify_equal(ints[V::size - 1], 0);
           verify_equal(ints[V::size], 0);
         }
