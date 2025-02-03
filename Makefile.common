@@ -1,4 +1,4 @@
-CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -O2 -g0 -Wno-attributes $(FLAGS)
+CXXFLAGS+=-std=c++26 -Wall -Wextra -Wno-psabi -Werror -O2 -g0 -Wno-attributes $(FLAGS)
 CXXFLAGS_clang := -Wno-unknown-pragmas --gcc-toolchain=/home/mkretz/.local/gcc-master
 CXXFLAGS_gcc := -fconcepts-diagnostics-depth=3
 
