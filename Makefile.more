@@ -22,12 +22,14 @@ start_time := $(shell date +%s)
 $(file > .progress,$(init_progress))
 print_progress := flock .progress ./increment.sh .progress | \
 		  { read p && \
-		    remain=$$(($(totaltests)-$$p)) && \
-		    rate=$$((60 * ($$p - $(init_progress)) / ($$(date +%s) - $(start_time)))) && \
-		    printf "[%3d%%|%2d%%/day|ETA %s]" \
-			   $$((100 * $$p / $(totaltests))) \
+		    remain=$$(($(totaltests)-p)) && \
+		    rate=$$((60 * (p - $(init_progress)) / ($$(date +%s) - $(start_time)))) && \
+		    done=$$(((1000 * p / $(totaltests)))) && \
+		    timeremain=$$((remain/rate)) && \
+		    printf "[%2d.%d%% %2d%%/day %dh%02d remain]" \
+			   $$((done / 10)) $$((done % 10)) \
 			   $$((144000 * rate / $(totaltests))) \
-			   $$(date --date=now+$$((remain/rate))min +%H:%M); \
+			   $$((timeremain / 60)) $$((timeremain % 60)); \
 		  }
 endif
 
