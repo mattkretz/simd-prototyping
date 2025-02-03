@@ -1855,7 +1855,7 @@ namespace std
 
         template <typename>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember
-          _S_broadcast(bool __x)
+          _S_mask_broadcast(bool __x)
           { return __x ? ~_MaskMember() : _MaskMember(); }
 
         template <typename _Tp, typename _Fp>
