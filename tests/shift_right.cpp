@@ -23,7 +23,7 @@ template <typename V>
           auto test_shift = [=](auto _shift) {
             log_start();
 
-            const auto x = std::simd_iota<V>;
+            const auto x = test_iota<V>;
             const auto y = ~x;
             constexpr T tmax = std::numeric_limits<T>::max();
             const auto z = tmax - x;

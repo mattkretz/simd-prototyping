@@ -284,6 +284,45 @@ template <typename T>
     return y;
   }
 
+/**
+ * The value of the largest element in test_iota<V, Init>.
+ */
+template <typename V, int Init = 0>
+  constexpr int test_iota_max
+    = sizeof(typename V::value_type) < sizeof(int)
+        ? std::min(V::size() + Init - 1, int(std::numeric_limits<typename V::value_type>::max()))
+        : V::size() + Init - 1;
+
+/**
+ * Starts iota sequence at Init.
+ *
+ * With `Max <= 0`: Wrap-around on overflow
+ * Otherwise: [Init..Max, Init..Max, ...] (inclusive)
+ *
+ * Use simd_iota if a non-monotonic sequence is a bug.
+ */
+template <typename V, int Init = 0, int Max = test_iota_max<V, Init>>
+  constexpr V test_iota = V([](int i) {
+              i += Init;
+              static_assert(Max <= 0 or Max > Init);
+              if constexpr (Max > Init)
+                {
+                  while (i > Max)
+                    i -= Max - Init + 1;
+                }
+              return static_cast<typename V::value_type>(i);
+            });
+
+/**
+ * A data-parallel object initialized with {values..., values..., ...}
+ */
+template <typename V, auto... values>
+  constexpr V vec = [] {
+    using T = typename V::value_type;
+    constexpr std::array<T, sizeof...(values)> arr = {values...};
+    return V([&](size_t i) { return arr[i % arr.size()]; });
+  }();
+
 template <template<typename> class Test>
   void
   instantiate_tests_for_value_type();

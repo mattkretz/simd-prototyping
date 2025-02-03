@@ -16,18 +16,16 @@
 namespace std
 {
   template <typename _Tp>
-    concept __simd_iota_constructible
-      = regular<_Tp> and __detail::__vectorizable<_Tp> and (_Tp(1uz) == _Tp() + _Tp(1uz));
+    requires is_arithmetic_v<_Tp>
+      or (__detail::__valid_simd<_Tp> and is_arithmetic_v<typename _Tp::value_type>)
+    constexpr _Tp simd_iota = _Tp();
 
-  template <typename _Tp>
-    constexpr _Tp simd_iota;
-
-  template <__simd_iota_constructible _Tp>
-    constexpr _Tp simd_iota<_Tp> = _Tp();
-
-  template <__simd_iota_constructible _Tp, typename _Abi>
-    constexpr basic_simd<_Tp, _Abi> simd_iota<basic_simd<_Tp, _Abi>>
-      = basic_simd<_Tp, _Abi>([](_Tp __i) -> _Tp { return __i; });
+  template <typename _Tp, typename _Abi>
+    constexpr basic_simd<_Tp, _Abi>
+    simd_iota<basic_simd<_Tp, _Abi>>([](_Tp __i) -> _Tp {
+      static_assert (__simd_size_v<_Tp, _Abi> - 1 <= numeric_limits<_Tp>::max(), "iota object would overflow");
+      return __i;
+    });
 }
 
 #endif  // PROTOTYPE_IOTA_H_
