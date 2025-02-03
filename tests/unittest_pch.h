@@ -106,7 +106,7 @@ template <typename X, typename Y>
     if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
       {
         std::cout << "\n   expected: ";
-        if constexpr (is_character_type_v<X>)
+        if constexpr (is_character_type_v<Y>)
           std::cout << int(y);
         else
           std::cout << y;
