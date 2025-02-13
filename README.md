@@ -26,19 +26,6 @@ detect reliably with UBsan. You can change that to a 'trap' if
 `_GLIBCXX_HARDEN` is `>= 3`, or to a more verbose assertion failure by defining 
 `_GLIBCXX_ASSERTIONS`.
 
-## `-D SIMD_BROADCAST_CONDITIONAL_EXPLICIT=0`
-
-P1928 only allows implicit broadcast from value-preserving argument types. A 
-better alternative would be allowing all possible conversion, but making 
-non-value-preserving conversions explicit.
-
-## `-D SIMD_IMPLICIT_INTRINSICS_CONVERSION=0`
-
-P1928 recommends conversions to/from intrinsics (or vector builtin types) to be 
-marked `explicit`. That's very inconvenient and doesn't follow the upcoming 
-policy on `explicit`. This implementation therefore deviates from P1928. You 
-can restore the conforming behavior with the above flag.
-
 ## `-D SIMD_IN_STD=1`
 
 Per default the `simd` namespace is nested into the `cpp26` namespace. With 

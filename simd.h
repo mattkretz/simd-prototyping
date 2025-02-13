@@ -105,27 +105,22 @@ namespace std
       // ABI-specific conversions
       template <typename _Up>
         requires requires { _Traits::template _S_simd_conversion<_Up>(_M_data); }
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _GLIBCXX_SIMD_IMPLDEF_CONV_EXPLICIT
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         operator _Up() const
         { return _Traits::template _S_simd_conversion<_Up>(_M_data); }
 
       template <typename _Up>
         requires (_Traits::template _S_is_simd_ctor_arg<_Up>)
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr _GLIBCXX_SIMD_IMPLDEF_CONV_EXPLICIT
+        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         basic_simd(_Up __x)
         : _M_data(_Traits::_S_simd_construction(__x))
         {}
 
       // implicit broadcast constructor
-#if SIMD_BROADCAST_CONDITIONAL_EXPLICIT
       template <typename _Up>
         requires constructible_from<value_type, _Up>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
         explicit(not __detail::__broadcast_constructible<_Up, value_type>)
-#else
-      template <__detail::__broadcast_constructible<value_type> _Up>
-        _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
-#endif
         basic_simd(_Up&& __x) noexcept
         : _M_data(_Impl::_S_broadcast(_Tcanon(static_cast<_Up&&>(__x))))
         {}
