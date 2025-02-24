@@ -115,6 +115,9 @@ endef
 
 print_progress := true
 
+obj/%.fast-math.hpp: obj/%.hpp
+	@cp $< $@
+
 define pch_template
 obj/$(1).hpp: tests/unittest*.h tests/*.cpp | obj
 	@echo "Generate $$@"
@@ -129,6 +132,10 @@ include obj/$(1).depend
 obj/$(1).hpp.gch: obj/$(1).hpp | print_compiler_info
 	@printf -- '$$(msg_build) pre-compiled header for $(1)\n'
 	@$$(call call_compiler, $$(CXXFLAGS) -march=$(1) -c $$< -o $$@)
+
+obj/$(1).fast-math.hpp.gch: obj/$(1).fast-math.hpp | print_compiler_info
+	@printf -- '$$(msg_build) pre-compiled fast-math header for $(1)\n'
+	@$$(call call_compiler, $$(CXXFLAGS) -ffast-math -march=$(1) -c $$< -o $$@)
 
 endef
 
@@ -145,6 +152,28 @@ check/$(1).$(2)/%: tests/$(1).cpp obj/$(2).hpp.gch tests/unittest*.h
 ifeq ($(DIRECT),)
 	@true || printf -- '$$(msg_link) $$@\n'
 	@$$(LINK_CXX) $$(CXXFLAGS) -march=$(2) -o $$(@:check/%=obj/%.exe) $$(@:check/%=obj/%.o)
+	@touch -r $$(@:check/%=obj/%.o) $$(@:check/%=obj/%.exe)
+	@rm $$(@:check/%=obj/%.o)
+endif
+	@rm -f $$@.failed
+	@$$(@:check/%=obj/%.exe) >$$@ 2>&1 && { \
+		printf -- '$$(msg_run) %-60s %s\n' '$$@' "$$$$($$(print_progress))"; \
+		touch -r $$(@:check/%=obj/%.exe) $$@; \
+	} || { \
+		printf -- '$$(msg_runf) $$@\n'; \
+		cat $$@; \
+		mv $$@ $$@.failed; \
+		false; \
+	}
+
+check/fast-math/$(1).$(2)/%: tests/$(1).cpp obj/$(2).fast-math.hpp.gch tests/unittest*.h
+	@printf -- '$$(msg_build) $(if $(DIRECT),and link )$$(@:check/%=  obj/%.exe)\n'
+	@mkdir -p $$(dir $$(@:check/%=obj/%.exe)) $$(dir $$@)
+	@rm -f $$(@:check/%=obj/%.exe) $$@
+	@$$(call call_compiler,$$(CXXFLAGS) -ffast-math -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).fast-math.hpp $(if $(DIRECT),-o $$(@:check/%=obj/%.exe),-c -o $$(@:check/%=obj/%.o)) $$<)
+ifeq ($(DIRECT),)
+	@true || printf -- '$$(msg_link) $$@\n'
+	@$$(LINK_CXX) $$(CXXFLAGS) -ffast-math -march=$(2) -o $$(@:check/%=obj/%.exe) $$(@:check/%=obj/%.o)
 	@touch -r $$(@:check/%=obj/%.o) $$(@:check/%=obj/%.exe)
 	@rm $$(@:check/%=obj/%.o)
 endif
