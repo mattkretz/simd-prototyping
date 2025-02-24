@@ -18,11 +18,6 @@
 #define IFNDR_SIMD_PRECONDITIONS 1
 #endif
 
-#ifndef SIMD_DISABLED_HAS_API
-// FIXME: not conforming to P1928
-#define SIMD_DISABLED_HAS_API 1
-#endif
-
 #ifndef SIMD_HAS_SUBSCRIPT_GATHER
 // cf. P2664
 #define SIMD_HAS_SUBSCRIPT_GATHER 0

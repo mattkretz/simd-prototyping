@@ -133,12 +133,7 @@ template <typename T>
   struct test_usable_simd
   {
     static_assert(not usable_simd<std::simd<T, 0>>);
-#if SIMD_DISABLED_HAS_API
-    static_assert(has_static_size<std::simd<T, 0>>);
-    static_assert(std::simd<T, 0>::size() == 0);
-#else
     static_assert(not has_static_size<std::simd<T, 0>>);
-#endif
     static_assert(usable_simd<std::simd<T, 1>>);
     static_assert(usable_simd<std::simd<T, 2>>);
     static_assert(usable_simd<std::simd<T, 3>>);
@@ -150,12 +145,7 @@ template <typename T>
     static_assert(usable_simd<std::simd<T, 63>>);
     static_assert(usable_simd<std::simd<T, 64>>);
 
-#if SIMD_DISABLED_HAS_API
-    static_assert(has_static_size<std::simd_mask<T, 0>>);
-    static_assert(std::simd_mask<T, 0>::size() == 0);
-#else
     static_assert(not has_static_size<std::simd_mask<T, 0>>);
-#endif
     static_assert(usable_simd_or_mask<std::simd_mask<T, 1>>);
     static_assert(usable_simd_or_mask<std::simd_mask<T, 2>>);
     static_assert(usable_simd_or_mask<std::simd_mask<T, 3>>);

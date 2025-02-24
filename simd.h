@@ -16,12 +16,12 @@
 
 namespace std
 {
-#if not SIMD_DISABLED_HAS_API
   // not supported:
   // - deleted: dctor, dtor, cctor, cassign
   // - no members except value_type, abi_type, and mask_type
   template <typename _Tp, typename _Abi>
-    requires (__detail::_SimdTraits<_Tp, _Abi>::_S_size == 0)
+    requires (not __detail::__vectorizable<_Tp> or
+              __detail::_SimdTraits<__detail::__canonical_vec_type_t<_Tp>, _Abi>::_S_size == 0)
     class basic_simd<_Tp, _Abi>
     {
     public:
@@ -40,16 +40,13 @@ namespace std
 
       basic_simd& operator=(const basic_simd&) = delete;
     };
-#endif
 
   // --------------------------------------------------------------
   // supported
   template <typename _Tp, typename _Abi>
     class basic_simd
     {
-#if not SIMD_DISABLED_HAS_API
       static_assert(__detail::__vectorizable<_Tp> and __detail::__valid_abi_tag<_Abi, _Tp>);
-#endif
 
       using _Tcanon = __detail::__canonical_vec_type_t<_Tp>;
       using _Traits = __detail::_SimdTraits<_Tcanon, _Abi>;
