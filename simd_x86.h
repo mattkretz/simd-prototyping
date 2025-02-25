@@ -169,9 +169,13 @@ namespace std
           using _Tp = __detail::__value_type_of<_TV>;
           if constexpr (not _S_is_partial)
             return __x;
+          else if (__builtin_is_constant_evaluated() or __builtin_constant_p(__x))
+            return _GLIBCXX_SIMD_INT_PACK(_S_full_size, _Is, {
+                     return _TV{(_Is < _S_size ? __detail::__vec_get(__x, _Is) : _Tp(1))...};
+                   });
           else
-            return _Impl::_S_select(_S_implicit_mask<_Tp>, __x,
-                                    _Impl::_S_broadcast(_Tp(1)));
+            return _Impl::_S_select_bitmask_noconstprop(_S_implicit_mask<_Tp>, __x,
+                                                        _Impl::_S_broadcast(_Tp(1)));
         }
     };
 #endif
@@ -631,9 +635,17 @@ namespace std::__detail
                 == _Abi::template _S_implicit_mask<_Tp>)
             return __a;
 
+          return _S_select_bitmask_noconstprop(__k, __a, __b);
+        }
+
+      template <std::integral _Kp, __vec_builtin _TV>
+        _GLIBCXX_SIMD_INTRINSIC static _TV
+        _S_select_bitmask_noconstprop(const _Kp __k, const _TV __a, const _TV __b)
+        {
 #ifdef __clang__
           return _S_convert_mask<__mask_vec_from<_TV>>(_BitMask<_S_size>(__k)) ? __a : __b;
 #else
+          using _Tp = __value_type_of<_TV>;
           using _IntT = __x86_builtin_int_t<_Tp>;
           using _IntV = __vec_builtin_type_bytes<_IntT, sizeof(__b)>;
           [[maybe_unused]] const auto __aa = reinterpret_cast<_IntV>(__b);
