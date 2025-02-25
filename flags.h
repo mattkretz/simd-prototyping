@@ -42,7 +42,16 @@ namespace std::__detail
     template <typename _Tp, typename _Up>
       _GLIBCXX_SIMD_INTRINSIC static constexpr _Up*
       _S_adjust_pointer(_Up* __ptr)
-      { return static_cast<_Up*>(__builtin_assume_aligned(__ptr, simd_alignment_v<_Tp, _Up>)); }
+      {
+        if consteval
+          {
+            return __ptr;
+          }
+        else
+          {
+            return static_cast<_Up*>(__builtin_assume_aligned(__ptr, simd_alignment_v<_Tp, _Up>));
+          }
+      }
   };
 
   template <std::size_t _Np>
@@ -54,7 +63,16 @@ namespace std::__detail
       template <typename, typename _Up>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _Up*
         _S_adjust_pointer(_Up* __ptr)
-        { return static_cast<_Up*>(__builtin_assume_aligned(__ptr, _Np)); }
+        {
+          if consteval
+            {
+              return __ptr;
+            }
+          else
+            {
+              return static_cast<_Up*>(__builtin_assume_aligned(__ptr, _Np));
+            }
+        }
     };
 
   struct _Streaming

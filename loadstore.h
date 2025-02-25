@@ -367,21 +367,24 @@ namespace std
             throw std::out_of_range("std::simd_unchecked_store: Output range is too small.");
         }
 
+      if (__builtin_is_constant_evaluated())
+        {
+          for (unsigned __i = 0; __i < (__allow_out_of_bounds ? __rg_size : _TV::size()); ++__i)
+            __ptr[__i] = static_cast<std::ranges::range_value_t<_Rg>>(__v[__i]);
+        }
 #ifdef __AVX512F__
-      if constexpr (__allow_out_of_bounds)
+      else if constexpr (__allow_out_of_bounds)
         {
           const typename _TV::mask_type __k([&](unsigned __i) { return __i < __rg_size; });
           _TV::_Impl::_S_masked_store(__v._M_data, __ptr, __k._M_data);
-          return;
         }
 #endif
-
-      if constexpr ((__static_size != dynamic_extent and __static_size >= _TV::size())
-                   or not __allow_out_of_bounds)
+      else if constexpr ((__static_size != dynamic_extent and __static_size >= _TV::size())
+                        or not __allow_out_of_bounds)
         _TV::_Impl::_S_store(__v._M_data, __ptr, __type_tag);
       else if (__rg_size >= _TV::size())
         _TV::_Impl::_S_store(__v._M_data, __ptr, __type_tag);
-      else if (__builtin_is_constant_evaluated() or __builtin_constant_p(__rg_size))
+      else if (__builtin_constant_p(__rg_size))
         {
           for (unsigned __i = 0; __i < __rg_size; ++__i)
             __ptr[__i] = static_cast<std::ranges::range_value_t<_Rg>>(__v[__i]);
