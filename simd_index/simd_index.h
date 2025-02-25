@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1 */
-// Copyright © 2023–2024 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
+// Copyright © 2023–2025 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
 //                       Matthias Kretz <m.kretz@gsi.de>
 
 #ifndef PROTOTYPE_SIMD_INDEX_SIMD_INDEX_H_
