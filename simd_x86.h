@@ -731,11 +731,11 @@ namespace std::__detail
           else if (__builtin_constant_p(__ia) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ia[_Is] == 0) and ...);
                                                   }))
-            return __vec_andnot(reinterpret_cast<_TV>(__k), __b);
+            return __vec_andnot(reinterpret_cast<_TV>(__k < 0), __b);
           else if (__builtin_constant_p(__ib) and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
                                                     return ((__ib[_Is] == 0) and ...);
                                                   }))
-            return __vec_and(reinterpret_cast<_TV>(__k), __a);
+            return __vec_and(reinterpret_cast<_TV>(__k < 0), __a);
           else if constexpr (_Flags._M_have_sse4_1()) // for vblend
             {
               using _IV = __vec_builtin_type_bytes<char, sizeof(_TV)>;
@@ -768,6 +768,9 @@ namespace std::__detail
         _GLIBCXX_SIMD_INTRINSIC static _TV
         _S_select(const _MaskMember<_TV> __k, const _TV __a, const _TV __b)
         {
+          __glibcxx_simd_precondition(_GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
+                    return ((__k[_Is] == -1 or __k[_Is] == 0) or ...);
+                  }), "_S_select called with invalid mask, values must be 0 or -1");
           const auto __ia = reinterpret_cast<_MaskMember<_TV>>(__a);
           const auto __ib = reinterpret_cast<_MaskMember<_TV>>(__b);
           using _Tp = __value_type_of<_TV>;
@@ -792,11 +795,7 @@ namespace std::__detail
                   const _IV __ki = reinterpret_cast<_IV>(__k);
                   const _IV __ai = reinterpret_cast<_IV>(__a);
                   const _IV __bi = reinterpret_cast<_IV>(__b);
-                  if (sizeof(_Tp) != 1 and _GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                                             return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
-                                           }))
-                    __invoke_ub("Undefined behavior: invalid mask value(s)");
-                  else if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2())
+                  if constexpr (sizeof(_TV) == 32 and _Flags._M_have_avx2())
                     return reinterpret_cast<_TV>(__builtin_ia32_pblendvb256(__bi, __ai, __ki));
                   else if constexpr (sizeof(_TV) == 16)
                     return reinterpret_cast<_TV>(__builtin_ia32_pblendvb128(__bi, __ai, __ki));
@@ -814,10 +813,6 @@ namespace std::__detail
               else
                 static_assert(false);
             }
-          else if (_GLIBCXX_SIMD_INT_PACK(_S_size, _Is, {
-                     return ((__k[_Is] != -1 and __k[_Is] != 0) or ...);
-                   }))
-            __invoke_ub("Undefined behavior: invalid mask value(s)");
           else
             return __k ? __a : __b;
         }
@@ -1407,14 +1402,14 @@ namespace std::__detail
                   auto __mask = reinterpret_cast<_TV>(__vec_bitcast<short>(__y) << 5);
                   auto __x4 = reinterpret_cast<_TV>(__vec_bitcast<short>(__x) << 4);
                   __x4 &= char(0xf0);
-                  __x = _S_select(reinterpret_cast<_MV>(__mask), __x4, __x);
+                  __x = _S_select_on_msb(reinterpret_cast<_MV>(__mask), __x4, __x);
                   __mask += __mask;
                   auto __x2 = reinterpret_cast<_TV>(__vec_bitcast<short>(__x) << 2);
                   __x2 &= char(0xfc);
-                  __x = _S_select(reinterpret_cast<_MV>(__mask), __x2, __x);
+                  __x = _S_select_on_msb(reinterpret_cast<_MV>(__mask), __x2, __x);
                   __mask += __mask;
                   auto __x1 = __x + __x;
-                  __x = _S_select(reinterpret_cast<_MV>(__mask), __x1, __x);
+                  __x = _S_select_on_msb(reinterpret_cast<_MV>(__mask), __x1, __x);
                   return __x & ((__y & char(0xf8)) == 0); // y > 7 nulls the result
                 }
               else if constexpr (sizeof(__x) == 16)
@@ -1603,10 +1598,10 @@ namespace std::__detail
                            and _Base::_S_is_constprop_all_of(__y < __CHAR_BIT__ * sizeof(_Tp))))
             return __x >> __y;
 
-/*          else if (__builtin_constant_p(__y) and _GLIBCXX_SIMD_INT_PACK(_Np - 1, _Is, {
+          else if (__builtin_constant_p(__y) and _GLIBCXX_SIMD_INT_PACK(_Np - 1, _Is, {
                                                    return ((__y[_Is + 1] == __y[0]) and ...);
                                                  }))
-            return _S_bit_shift_right(__x, int(__y[0]));*/
+            return _S_bit_shift_right(__x, int(__y[0]));
 
           else if constexpr (sizeof(_Tp) == 1)
             {
@@ -1706,31 +1701,33 @@ namespace std::__detail
                 }
               else if constexpr (_Flags._M_have_sse4_1() and is_unsigned_v<_Tp> and sizeof(__x) > 2)
                 {
-                  using _Impl16 = _VecAbi<16>::_Impl;
-                  using _MV = __vec_builtin_type_bytes<__mask_integer_from<1>, 16>;
-                  auto __x128 = __vec_zero_pad_to_16(__x);
-                  auto __mask = __vec_bitcast<_Tp>(__vec_bitcast<unsigned short>(__iy) << 5);
+                  __v16char __x128 = reinterpret_cast<__v16char>(__vec_zero_pad_to_16(__x));
+                  __v16uchar __mask = reinterpret_cast<__v16uchar>(
+                                        reinterpret_cast<__v8uint16>(__iy) << 5);
                   constexpr unsigned short __ff0f = 0xff0f;
                   constexpr unsigned short __ff3f = 0xff3f;
                   constexpr unsigned short __ff7f = 0xff7f;
                   auto __x4 = __vec_bitcast<_Tp>(
                                 (__vec_bitcast<unsigned short>(__x128) >> 4) & __ff0f);
-                  __x128 = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __x4, __x128);
+                  __x128 = __builtin_ia32_pblendvb128(__x128, reinterpret_cast<__v16char>(__x4),
+                                                      reinterpret_cast<__v16char>(__mask));
                   __mask += __mask;
                   auto __x2 = __vec_bitcast<_Tp>(
                                 (__vec_bitcast<unsigned short>(__x128) >> 2) & __ff3f);
-                  __x128 = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __x2, __x128);
+                  __x128 = __builtin_ia32_pblendvb128(__x128, reinterpret_cast<__v16char>(__x2),
+                                                      reinterpret_cast<__v16char>(__mask));
                   __mask += __mask;
                   auto __x1 = __vec_bitcast<_Tp>(
                                 (__vec_bitcast<unsigned short>(__x128) >> 1) & __ff7f);
-                  __x128 = _Impl16::_S_select(reinterpret_cast<_MV>(__mask), __x1, __x128);
+                  __x128 = __builtin_ia32_pblendvb128(__x128, reinterpret_cast<__v16char>(__x1),
+                                                      reinterpret_cast<__v16char>(__mask));
                   // y > 7 nulls the result
-                  return __vec_bitcast_trunc<_TV>(__x128 & ((__vec_zero_pad_to_16(__y)
-                                                               & char(0xf8)) == 0));
+                  return __vec_bitcast_trunc<_TV>(
+                           reinterpret_cast<__v16uchar>(__x128)
+                             & ((__vec_zero_pad_to_16(__y) & char(0xf8)) == 0));
                 }
               else if constexpr (_Flags._M_have_sse4_1() and is_signed_v<_Tp> and sizeof(__x) > 2)
                 {
-                  using _Impl8 = _VecAbi<8>::_Impl;
                   using _MV = __v8int16;
                   auto __mask = reinterpret_cast<__v16uchar>(
                                   reinterpret_cast<__v8uint16>(__iy) << 5);
@@ -1738,18 +1735,36 @@ namespace std::__detail
                   auto __xl = __xh << 8;
                   auto __xh4 = __xh >> 4;
                   auto __xl4 = __xl >> 4;
-                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh4, __xh);
-                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl4, __xl);
+                  __xh = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xh), reinterpret_cast<__v16char>(__xh4),
+                             reinterpret_cast<__v16char>(__mask)));
+                  __xl = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xl), reinterpret_cast<__v16char>(__xl4),
+                             reinterpret_cast<__v16char>(reinterpret_cast<_MV>(__mask) << 8)));
                   __mask += __mask;
                   auto __xh2 = __xh >> 2;
                   auto __xl2 = __xl >> 2;
-                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh2, __xh);
-                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl2, __xl);
+                  __xh = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xh), reinterpret_cast<__v16char>(__xh2),
+                             reinterpret_cast<__v16char>(__mask)));
+                  __xl = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xl), reinterpret_cast<__v16char>(__xl2),
+                             reinterpret_cast<__v16char>(reinterpret_cast<_MV>(__mask) << 8)));
                   __mask += __mask;
                   auto __xh1 = __xh >> 1;
                   auto __xl1 = __xl >> 1;
-                  __xh = _Impl8::_S_select(reinterpret_cast<_MV>(__mask), __xh1, __xh);
-                  __xl = _Impl8::_S_select(reinterpret_cast<_MV>(__mask) << 8, __xl1, __xl);
+                  __xh = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xh), reinterpret_cast<__v16char>(__xh1),
+                             reinterpret_cast<__v16char>(__mask)));
+                  __xl = reinterpret_cast<__v8int16>(
+                           __builtin_ia32_pblendvb128(
+                             reinterpret_cast<__v16char>(__xl), reinterpret_cast<__v16char>(__xl1),
+                             reinterpret_cast<__v16char>(reinterpret_cast<_MV>(__mask) << 8)));
                   // y > 7 must return either 0 or -1 depending on the sign bit of __x
                   return __vec_bitcast_trunc<_TV>(
                            _VecAbi<16>::_Impl::_S_select(
