@@ -2895,7 +2895,7 @@ namespace std::__detail
         _S_isunordered([[maybe_unused]] _TV __x, [[maybe_unused]] _TV __y)
         {
 #if __FINITE_MATH_ONLY__
-          return {}; // false
+          return _MaskMember<_TV>{}; // false
 #else
           using _Tp = __value_type_of<_TV>;
           const auto __xi = __to_x86_intrin(__x);
