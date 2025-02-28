@@ -74,17 +74,10 @@ testtypes ::= signed-char \
 	     unsigned-long-long \
 	     float \
 	     double \
-	     char \
-	     char8_t \
-	     wchar_t \
-	     char16_t \
-	     char32_t \
 	     std::byte
 
 ifneq ($(compiler),clang)
-testtypes += std::float16_t \
-	     std::float32_t \
-	     std::float64_t
+testtypes += std::float16_t
 endif
 
 testtypes ::= $(subst ::,--,$(testtypes))

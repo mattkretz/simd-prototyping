@@ -137,7 +137,8 @@ namespace std
         explicit(not __detail::__value_preserving_convertible_to<_Up, value_type>
                    || __detail::__higher_rank_than<_Up, value_type>)
         basic_simd(const basic_simd<_Up, _UAbi>& __x) noexcept
-        : _M_data(__detail::_SimdConverter<_Up, _UAbi, _Tp, _Abi>()(__data(__x)))
+        : _M_data(__detail::_SimdConverter<__detail::__canonical_vec_type_t<_Up>, _UAbi,
+                                           _Tcanon, _Abi>()(__data(__x)))
         {}
 
       // generator constructor

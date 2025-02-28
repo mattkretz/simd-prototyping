@@ -27,6 +27,29 @@ namespace std::__detail
     { using type = _Tp; };
 
   template <>
+    struct __canonical_vec_type<char>
+    { using type = conditional_t<is_signed_v<char>, signed char, unsigned char>; };
+
+  template <>
+    struct __canonical_vec_type<char8_t>
+    { using type = unsigned char; };
+
+  template <>
+    struct __canonical_vec_type<char16_t>
+    { using type = uint_least16_t; };
+
+  template <>
+    struct __canonical_vec_type<char32_t>
+    { using type = uint_least32_t; };
+
+  template <>
+    struct __canonical_vec_type<wchar_t>
+    {
+      using type = conditional_t<is_signed_v<wchar_t>,
+                                 __make_signed_int_t<wchar_t>, __make_unsigned_int_t<wchar_t>>;
+    };
+
+  template <>
     struct __canonical_vec_type<_Float64>
     { using type = double; };
 
@@ -50,8 +73,7 @@ namespace std::__detail
    */
   template <__vectorizable _Tp, size_t _Bytes>
     requires (__has_single_bit(_Bytes))
-    using __vec_builtin_type_bytes [[__gnu__::__vector_size__(_Bytes)]]
-      = __canonical_vec_type_t<_Tp>;
+    using __vec_builtin_type_bytes [[__gnu__::__vector_size__(_Bytes)]] = _Tp;
 
   /**
    * Alias for a vector builtin with given value type \p _Tp and \p _Width.
