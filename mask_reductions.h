@@ -174,8 +174,8 @@ namespace std
       if constexpr (__size == 2)
         return __k[0] ? 0 : 1;
 
-      else if constexpr (requires {_Abi::_MaskImpl::_S_find_first_set(__k);})
-        return _Abi::_MaskImpl::_S_find_first_set(__k);
+      else if constexpr (requires {_Abi::_MaskImpl::_S_reduce_min_index(__k);})
+        return _Abi::_MaskImpl::_S_reduce_min_index(__k);
 
       else
         return __detail::__lowest_bit(_Abi::_MaskImpl::_S_to_bits(__data(__k))._M_to_bits());
@@ -210,8 +210,8 @@ namespace std
       if constexpr (__size == 2)
         return __k[1] ? 1 : 0;
 
-      else if constexpr (requires {_Abi::_MaskImpl::_S_find_last_set(__k);})
-        return _Abi::_MaskImpl::_S_find_last_set(__k);
+      else if constexpr (requires {_Abi::_MaskImpl::_S_reduce_max_index(__k);})
+        return _Abi::_MaskImpl::_S_reduce_max_index(__k);
 
       else
         return __detail::__highest_bit(

@@ -3675,7 +3675,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static int
-        _S_find_first_set(basic_simd_mask<_Bs, _Abi> __k)
+        _S_reduce_min_index(basic_simd_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
             return __lowest_bit(__data(__k));
@@ -3691,7 +3691,7 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static int
-        _S_find_last_set(basic_simd_mask<_Bs, _Abi> __k)
+        _S_reduce_max_index(basic_simd_mask<_Bs, _Abi> __k)
         {
           if constexpr (_S_use_bitmasks)
             return __highest_bit(_Abi::_S_masked(__data(__k)));

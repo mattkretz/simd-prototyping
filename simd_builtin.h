@@ -1146,12 +1146,12 @@ namespace std::__detail
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_first_set(basic_simd_mask<_Bs, abi_type> __k)
+        _S_reduce_min_index(basic_simd_mask<_Bs, abi_type> __k)
         { return __lowest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_to_bits()); }
 
       template <size_t _Bs>
         _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-        _S_find_last_set(basic_simd_mask<_Bs, abi_type> __k)
+        _S_reduce_max_index(basic_simd_mask<_Bs, abi_type> __k)
         { return __highest_bit(_SuperImpl::_S_to_bits(__data(__k))._M_sanitized()._M_to_bits()); }
 
       template <__vectorizable_canon _Tp>

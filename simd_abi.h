@@ -820,38 +820,30 @@ namespace std
               return (std::reduce_count(_S_submask(__k, _Is)) + ...);
           }
 
-        template <size_t _Bs>
+        template <int _Idx = 0, size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_first_set(basic_simd_mask<_Bs, abi_type> const& __masks)
+          _S_reduce_min_index(basic_simd_mask<_Bs, abi_type> const& __masks)
           {
-            if (std::any_of(_S_submask(__masks, 0)))
-              return std::reduce_min_index(_S_submask(__masks, 0));
-
-            for (int __i = 1; __i < _Np - 1; ++__i)
-              {
-                if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size + std::reduce_min_index(
-                                                 _S_submask(__masks, __i));
-              }
-            return (_Np - 1) * _S_chunk_size
-                     + std::reduce_min_index(_S_submask(__masks, _Np - 1));
+            const auto __k = _S_submask(__masks, _Idx);
+            if constexpr (_Idx == _Np - 1)
+              return std::reduce_min_index(__k) + _Idx * _S_chunk_size;
+            else if (std::any_of(__k))
+              return std::reduce_min_index(__k) + _Idx * _S_chunk_size;
+            else
+              return _S_reduce_min_index<_Idx + 1, _Bs>(__masks);
           }
 
-        template <size_t _Bs>
+        template <int _Idx = _Np - 1, size_t _Bs>
           static constexpr _SimdSizeType
-          _S_find_last_set(basic_simd_mask<_Bs, abi_type> const& __masks)
+          _S_reduce_max_index(basic_simd_mask<_Bs, abi_type> const& __masks)
           {
-            if (std::any_of(_S_submask(__masks, _Np - 1)))
-              return (_Np - 1) * _S_chunk_size
-                       + std::reduce_max_index(_S_submask(__masks, _Np - 1));
-
-            for (int __i = _Np - 2; __i > 0; --__i)
-              {
-                if (std::any_of(_S_submask(__masks, __i)))
-                  return __i * _S_chunk_size + std::reduce_max_index(
-                                                 _S_submask(__masks, __i));
-              }
-            return std::reduce_max_index(_S_submask(__masks, 0));
+            const auto __k = _S_submask(__masks, _Idx);
+            if constexpr (_Idx == 0)
+              return std::reduce_max_index(__k);
+            else if (std::any_of(__k))
+              return std::reduce_max_index(__k) + _Idx * _S_chunk_size;
+            else
+              return _S_reduce_max_index<_Idx - 1, _Bs>(__masks);
           }
 
         template <__vectorizable_canon _Tp>
@@ -1947,12 +1939,12 @@ namespace std
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_first_set(const basic_simd_mask<_Bs, abi_type> & __k)
+          _S_reduce_min_index(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __detail::__lowest_bit(__data(__k)._M_to_bits()); }
 
         template <size_t _Bs>
           _GLIBCXX_SIMD_INTRINSIC static constexpr _SimdSizeType
-          _S_find_last_set(const basic_simd_mask<_Bs, abi_type> & __k)
+          _S_reduce_max_index(const basic_simd_mask<_Bs, abi_type> & __k)
           { return __detail::__highest_bit(__data(__k)._M_to_bits()); }
 
         template <__vectorizable_canon _Tp>

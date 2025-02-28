@@ -785,12 +785,12 @@ namespace std::__detail
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr int
-      _S_find_first_set(basic_simd_mask<_Bs, abi_type>)
+      _S_reduce_min_index(basic_simd_mask<_Bs, abi_type>)
       { return 0; }
 
     template <size_t _Bs>
       _GLIBCXX_SIMD_INTRINSIC static constexpr int
-      _S_find_last_set(basic_simd_mask<_Bs, abi_type>)
+      _S_reduce_max_index(basic_simd_mask<_Bs, abi_type>)
       { return 0; }
   };
 }
