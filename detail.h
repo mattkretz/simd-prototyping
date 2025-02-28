@@ -215,6 +215,12 @@ namespace std
 #endif
       }
 
+    // work around __builtin_constant_p returning false unless passed a variable
+    // (__builtin_constant_p(x[0]) is false while __is_constprop(x[0]) is true)
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr bool
+    __is_constprop(const auto& __x)
+    { return __builtin_is_constant_evaluated() or __builtin_constant_p(__x); }
+
     struct _InvalidTraits
     {
       struct _Unusable

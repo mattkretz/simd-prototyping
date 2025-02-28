@@ -623,7 +623,7 @@ namespace std
             else if constexpr (requires {__x[0]._M_is_constprop();})
               return (__x[_Is]._M_is_constprop() and ...);
             else
-              return (__builtin_constant_p(__x[_Is]) and ...);
+              return (__detail::__is_constprop(__x[_Is]) and ...);
           }
 
         template <typename _Tp, typename _BinaryOperation>
@@ -1001,7 +1001,7 @@ namespace std
             else if constexpr (requires {__x[0]._M_is_constprop();})
               return (__x[_Is]._M_is_constprop() and ...);
             else
-              return (__builtin_constant_p(__x[_Is]) and ...);
+              return (__is_constprop(__x[_Is]) and ...);
           }
       };
 
