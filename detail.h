@@ -178,21 +178,21 @@ namespace std::__detail
 #define __glibcxx_simd_precondition(expr, msg, ...)                                                \
   do {                                                                                             \
     if (__builtin_expect(!bool(expr), false))                                                      \
-      std::__detail::__invoke_ub(                                                            \
-        _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
+      std::__detail::__invoke_ub(                                                                  \
+        _GLIBCXX_SIMD_LOC "precondition failure in '%s':\n" msg " ('" #expr "' does not hold)",    \
         __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
 #else
 #define __glibcxx_simd_precondition(expr, msg, ...)                                                \
   do {                                                                                             \
-    const bool __precondition_result = bool(expr);                                                 \
-    if (__builtin_constant_p(__precondition_result) && !__precondition_result)                     \
+    const bool __precondition_result = !bool(expr);                                                \
+    if (__builtin_constant_p(__precondition_result) && __precondition_result)                      \
       []() __attribute__((__noinline__, __noipa__, __error__("precondition failure."               \
         "\n" _GLIBCXX_SIMD_LOC "note: " msg " (precondition '" #expr "' does not hold)")))         \
       { __builtin_unreachable(); }();                                                              \
-    else if (__builtin_expect(!__precondition_result, false))                                      \
-      std::__detail::__invoke_ub(                                                            \
-        _GLIBCXX_SIMD_LOC "precondition failure in '%s': " msg " ('" #expr "' does not hold)",     \
+    else if (__builtin_expect(__precondition_result, false))                                       \
+      std::__detail::__invoke_ub(                                                                  \
+        _GLIBCXX_SIMD_LOC "precondition failure in '%s':\n" msg " ('" #expr "' does not hold)",    \
         __PRETTY_FUNCTION__ __VA_OPT__(,) __VA_ARGS__);                                            \
   } while(false)
 #endif
@@ -206,7 +206,8 @@ namespace std
       __invoke_ub([[maybe_unused]] const char* __msg, [[maybe_unused]] const _Args&... __args)
       {
 #ifdef _GLIBCXX_ASSERTIONS
-        __builtin_fprintf(stderr, __msg "\n", __args...);
+        __builtin_fprintf(stderr, __msg, __args...);
+        __builtin_fprintf(stderr, "\n");
         __builtin_abort();
 #elif _GLIBCXX_HARDEN >= 3
         __builtin_trap();
