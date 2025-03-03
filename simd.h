@@ -144,7 +144,7 @@ namespace std
       // generator constructor
       template <__detail::__simd_generator_invokable<value_type, size()> _Fp>
         constexpr explicit
-        basic_simd(_Fp&& __gen) noexcept
+        basic_simd(_Fp&& __gen)
         : _M_data(_Impl::template _S_generator<_Tcanon>(static_cast<_Fp&&>(__gen)))
         {}
 

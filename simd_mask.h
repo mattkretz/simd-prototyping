@@ -157,7 +157,7 @@ namespace std
       // generator ctor
       template <__detail::__simd_generator_invokable<value_type, size.value> _Fp>
         _GLIBCXX_SIMD_ALWAYS_INLINE constexpr explicit
-        basic_simd_mask(_Fp&& __gen) noexcept
+        basic_simd_mask(_Fp&& __gen)
         : _M_data([&]<__detail::_SimdSizeType... _Is>(__detail::_SimdIndexSequence<_Is...>) {
             if constexpr (requires {_Impl::template _S_mask_generator<_Tp>(__gen);})
               return _Impl::template _S_mask_generator<_Tp>(__gen);
