@@ -3,6 +3,8 @@
  *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
+// no-fast-math
+
 #include "unittest.h"
 
 #include "../simd"

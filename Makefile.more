@@ -60,6 +60,8 @@ endif
 
 check-untested: $(untested)
 
+check-fast-math: $(patsubst check/%,check/fast-math/%,$(shuffled_checks))
+
 rerun/%: obj/%
 	@$< >$(@:rerun/%.exe=check/%) 2>&1 && { \
 		printf -- '$(msg_run) $@\n'; \

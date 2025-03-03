@@ -118,7 +118,7 @@ obj/$(1).hpp: tests/unittest*.h tests/*.cpp | obj
 
 obj/$(1).depend: obj/$(1).hpp
 	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).hpp.gch" obj/$(1).hpp > $$@
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "obj/$(1).hpp" obj/$(1).hpp | sed 's,: obj/$(1).hpp,:,' > $$@
 
 include obj/$(1).depend
 
@@ -134,6 +134,8 @@ endef
 
 $(foreach arch,$(testarchs),\
 	$(eval $(call pch_template,$(arch))))
+
+no_fast_math = $(shell head -n10 tests/$(1).cpp | grep -q no-fast-math && echo 1 || echo 0)
 
 # arguments: test, arch
 define exe_template
@@ -160,8 +162,12 @@ endif
 	}
 
 check/fast-math/$(1).$(2)/%: tests/$(1).cpp obj/$(2).fast-math.hpp.gch tests/unittest*.h
-	@printf -- '$$(msg_build) $(if $(DIRECT),and link )$$(@:check/%=  obj/%.exe)\n'
+ifeq ($(call no_fast_math,$(1)),1)
+	@mkdir -p $$(dir $$@)
+	@touch $$@
+else
 	@mkdir -p $$(dir $$(@:check/%=obj/%.exe)) $$(dir $$@)
+	@printf -- '$$(msg_build) $(if $(DIRECT),and link )$$(@:check/%=  obj/%.exe)\n'
 	@rm -f $$(@:check/%=obj/%.exe) $$@
 	@$$(call call_compiler,$$(CXXFLAGS) -ffast-math -march=$(2) -D UNITTEST_TYPE="$$(call gettype,$$*)" -D UNITTEST_WIDTH=$$(call getwidth,$$*) -include obj/$(2).fast-math.hpp $(if $(DIRECT),-o $$(@:check/%=obj/%.exe),-c -o $$(@:check/%=obj/%.o)) $$<)
 ifeq ($(DIRECT),)
@@ -180,6 +186,7 @@ endif
 		mv $$@ $$@.failed; \
 		false; \
 	}
+endif
 
 endef
 
