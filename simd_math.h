@@ -201,30 +201,8 @@ namespace std                                                                   
 }
 
 #define _GLIBCXX_SIMD_MATH_3ARG(name)                                                              \
-namespace std                                                                                \
+namespace std                                                                                      \
 {                                                                                                  \
-  namespace __detail                                                                               \
-  {                                                                                                \
-    template <__vec_builtin _Vp, auto = _BuildFlags()>                                             \
-      [[gnu::flatten,                                                                              \
-        gnu::optimize("tree-vectorize", "no-math-errno", "unsafe-math-optimizations")]] _Vp        \
-      __##name(_Vp __v0, _Vp __v1, _Vp __v2)                                                       \
-      {                                                                                            \
-        _Vp __ret;                                                                                 \
-        _Pragma("GCC ivdep")                                                                       \
-        for (int __i = 0; __i < __width_of<_Vp>; ++__i)                                            \
-          {                                                                                        \
-            if constexpr (sizeof(__v0[0]) == sizeof(float))                                        \
-              __ret[__i] = __builtin_##name##f(__v0[__i], __v1[__i], __v2[__i]);                   \
-            else if constexpr (sizeof(__v0[0]) == sizeof(double))                                  \
-              __ret[__i] = __builtin_##name(__v0[__i], __v1[__i], __v2[__i]);                      \
-            else                                                                                   \
-              static_assert(false);                                                                \
-          }                                                                                        \
-        return __ret;                                                                              \
-      }                                                                                            \
-  }                                                                                                \
-                                                                                                   \
   template <typename _V0, typename _V1, typename _V2>                                              \
     _GLIBCXX_ALWAYS_INLINE constexpr __detail::__math_common_simd_t<_V0, _V1, _V2>                 \
     name(const _V0& __x0, const _V1& __x1, const _V2& __x2)                                        \
