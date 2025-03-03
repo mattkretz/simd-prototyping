@@ -85,7 +85,7 @@ namespace std                                                                   
     name(const _Up& __xx)                                                                          \
     {                                                                                              \
       using _Vp = __detail::__deduced_simd_t<_Up>;                                                 \
-      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      using _Tp [[maybe_unused]] = __detail::__canonical_vec_type_t<typename _Vp::value_type>;     \
       const _Vp& __x = __xx;                                                                       \
       if consteval                                                                                 \
         {                                                                                          \
@@ -145,7 +145,7 @@ namespace std                                                                   
     name(const _V0& __x0, const _V1& __x1)                                                         \
     {                                                                                              \
       using _Vp = __detail::__math_common_simd_t<_V0, _V1>;                                        \
-      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      using _Tp [[maybe_unused]] = __detail::__canonical_vec_type_t<typename _Vp::value_type>;     \
       const _Vp& __x = __x0;                                                                       \
       const _Vp& __y = __x1;                                                                       \
       if consteval                                                                                 \
@@ -208,7 +208,7 @@ namespace std                                                                   
     name(const _V0& __x0, const _V1& __x1, const _V2& __x2)                                        \
     {                                                                                              \
       using _Vp = __detail::__math_common_simd_t<_V0, _V1, _V2>;                                   \
-      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      using _Tp [[maybe_unused]] = __detail::__canonical_vec_type_t<typename _Vp::value_type>;     \
       const _Vp& __x = __x0;                                                                       \
       const _Vp& __y = __x1;                                                                       \
       const _Vp& __z = __x2;                                                                       \
