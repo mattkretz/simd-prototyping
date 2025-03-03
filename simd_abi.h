@@ -1455,7 +1455,7 @@ namespace std
             else if constexpr (_X0::size.value > _X1::size.value)
               {
                 using _X2 = std::resize_simd_t<__bit_ceil(_X0::size.value) / 2, _X0>;
-                auto __x02 = std::simd_split<_X2>(__x0);
+                auto __x02 = std::simd_chunk<_X2>(__x0);
                 if constexpr (_X1::size.value == _X2::size.value)
                   {
                     std::get<0>(__x02) = __binary_op(std::get<0>(__x02), __x1);
@@ -1465,7 +1465,7 @@ namespace std
                   }
                 else if constexpr (_X1::size.value > _X2::size.value)
                   {
-                    auto __x12 = std::simd_split<_X2>(__x1);
+                    auto __x12 = std::simd_chunk<_X2>(__x1);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
                     return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
                       return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {
@@ -1482,7 +1482,7 @@ namespace std
             else
               {
                 using _X2 = std::resize_simd_t<__bit_ceil(_X1::size.value) / 2, _X1>;
-                auto __x12 = std::simd_split<_X2>(__x1);
+                auto __x12 = std::simd_chunk<_X2>(__x1);
                 if constexpr (_X0::size.value == _X2::size.value)
                   {
                     std::get<0>(__x12) = __binary_op(std::get<0>(__x12), __x0);
@@ -1492,7 +1492,7 @@ namespace std
                   }
                 else if constexpr (_X1::size.value > _X2::size.value)
                   {
-                    auto __x02 = std::simd_split<_X2>(__x0);
+                    auto __x02 = std::simd_chunk<_X2>(__x0);
                     auto __x2 = __binary_op(std::get<0>(__x02), std::get<0>(__x12));
                     return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x02)> - 1, _Is, {
                       return _GLIBCXX_SIMD_INT_PACK(tuple_size_v<decltype(__x12)> - 1, _Js, {

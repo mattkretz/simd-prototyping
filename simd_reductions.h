@@ -7,7 +7,7 @@
 #define PROTOTYPE_SIMD_REDUCTIONS_H_
 
 #include "simd.h"
-#include "simd_split.h"
+#include "simd_chunk.h"
 
 namespace std
 {
@@ -47,7 +47,7 @@ namespace std
         using _V1 = basic_simd<_Tp, _Abi>;
         static_assert(std::__has_single_bit(unsigned(_V1::size.value)));
         using _V2 = std::resize_simd_t<_V1::size.value / 2, _V1>;
-        const auto [__x0, __x1] = std::simd_split<_V2>(__x);
+        const auto [__x0, __x1] = std::simd_chunk<_V2>(__x);
         // Mandates: binary_op can be invoked with two arguments of type basic_simd<_Tp, A1>
         // returning basic_simd<_Tp, A1> for every A1 that is an ABI tag type.
         static_assert(requires {
@@ -98,7 +98,7 @@ namespace std
             }
 
           using _V2 = std::resize_simd_t<__left_size, _V1>;
-          const auto [__x0, __x1] = std::simd_split<_V2>(__x);
+          const auto [__x0, __x1] = std::simd_chunk<_V2>(__x);
           return std::reduce(
                    std::simd_cat(__detail::__split_and_invoke_once(__x0, __binary_op), __x1),
                    __binary_op);

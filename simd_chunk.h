@@ -30,7 +30,7 @@ namespace std
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd<_Tp, _Abi>& __x) noexcept
+    simd_chunk(const basic_simd<_Tp, _Abi>& __x) noexcept
     {
       constexpr int __in = __simd_size_v<_Tp, _Abi>;
       constexpr int __out = _V::size();
@@ -59,7 +59,7 @@ namespace std
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept
+    simd_chunk(const basic_simd_mask<_Bs, _Abi>& __x) noexcept
     {
       constexpr int __in = basic_simd_mask<_Bs, _Abi>::size();
       constexpr int __out = _M::size();

@@ -363,12 +363,12 @@ static_assert(reduce_count(std::simd<float>() == std::simd<float>()) == std::sim
 static_assert(reduce_min_index(std::simd<float>() == std::simd<float>()) == 0);
 static_assert(reduce_max_index(std::simd<float>() == std::simd<float>()) == std::simd<float>::size - 1);
 
-// simd_split ////////////////////////
+// simd_chunk ////////////////////////
 
 static_assert([] {
   constexpr auto a = std::simd<int, 8>([] (int i) { return i; });
-  auto a4 = simd_split<std::simd<int, 4>>(a);
-  auto a3 = simd_split<std::simd<int, 3>>(a);
+  auto a4 = simd_chunk<std::simd<int, 4>>(a);
+  auto a3 = simd_chunk<std::simd<int, 3>>(a);
   return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
            and all_of(std::get<0>(a3) == std::simd<int, 3>([] (int i) { return i; }))
@@ -378,8 +378,8 @@ static_assert([] {
 
 static_assert([] {
   constexpr std::simd_mask<int, 8> a([] (int i) -> bool { return i & 1; });
-  auto a4 = simd_split<std::simd_mask<int, 4>>(a);
-  auto a3 = simd_split<std::simd_mask<int, 3>>(a);
+  auto a4 = simd_chunk<std::simd_mask<int, 4>>(a);
+  auto a3 = simd_chunk<std::simd_mask<int, 3>>(a);
   return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd_mask<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
            and all_of(std::get<0>(a3) == std::simd_mask<int, 3>(

@@ -270,11 +270,11 @@ namespace std
 
   template <typename _V, typename _Tp, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd<_Tp, _Abi>& __x) noexcept;
+    simd_chunk(const basic_simd<_Tp, _Abi>& __x) noexcept;
 
   template <typename _M, size_t _Bs, typename _Abi>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
-    simd_split(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
+    simd_chunk(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
 
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
