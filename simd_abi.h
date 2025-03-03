@@ -1278,6 +1278,8 @@ namespace std
       {
         using _MaskMember = _SanitizedBitMask<_Np>;
 
+        using _MaskImpl = _MaskImplAbiCombine<_Np, _Tag>;
+
         template <typename _Tp>
           using _SimdMember = __fixed_size_storage_t<_Tp, _Np>;
 
