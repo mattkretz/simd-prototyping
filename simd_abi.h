@@ -673,6 +673,31 @@ namespace std
           _GLIBCXX_SIMD_INTRINSIC static constexpr _Tp
           _S_clamp(_Tp const& __v, _Tp const& __lo, _Tp const& __hi) noexcept
           { return {_Impl0::_S_clamp(__v[_Is], __lo[_Is], __hi[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_isinf(const _Tp& __x)
+          { return {_Impl0::_S_isinf(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_isfinite(const _Tp& __x)
+          { return {_Impl0::_S_isfinite(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_isnan(const _Tp& __x)
+          { return {_Impl0::_S_isnan(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_isnormal(const _Tp& __x)
+          { return {_Impl0::_S_isnormal(__x[_Is])...}; }
+
+        template <typename _Tp>
+          _GLIBCXX_SIMD_INTRINSIC static constexpr _MaskMember<_Tp>
+          _S_signbit(const _Tp& __x)
+          { return {_Impl0::_S_signbit(__x[_Is])...}; }
       };
 
     template <typename _Abi0, _BuildFlags _Flags, size_t... _Is>
@@ -1719,15 +1744,16 @@ namespace std
                                            __autocvt_to_simd(__b)));
                      }, __exp);
           }
+#endif
 
 #define _GLIBCXX_SIMD_TEST_ON_TUPLE_(name_)                                                  \
         template <typename _Tp, typename... _As>                                             \
           static constexpr _MaskMember                                                       \
           _S_##name_(const _SimdTuple<_Tp, _As...>& __x) noexcept                            \
           {                                                                                  \
-            return _M_test([]  [[__gnu__::__always_inline__]] (auto __impl, auto __xx) {     \
-                     return __impl._S_##name_(__xx);                                         \
-                   }, __x);                                                                  \
+            return __x._M_test([] [[__gnu__::__always_inline__]] (auto __impl, auto __xi) {  \
+                     return __impl._S_##name_(__xi);                                         \
+                   });                                                                       \
           }
 
         _GLIBCXX_SIMD_TEST_ON_TUPLE_(isinf)
@@ -1736,7 +1762,6 @@ namespace std
         _GLIBCXX_SIMD_TEST_ON_TUPLE_(isnormal)
         _GLIBCXX_SIMD_TEST_ON_TUPLE_(signbit)
 #undef _GLIBCXX_SIMD_TEST_ON_TUPLE_
-#endif
 
         template <typename... _Ts>
           _GLIBCXX_SIMD_INTRINSIC static constexpr void

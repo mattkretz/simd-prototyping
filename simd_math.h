@@ -342,6 +342,44 @@ _GLIBCXX_SIMD_MATH_3ARG(lerp) // missing noexcept
 #undef _GLIBCXX_SIMD_MATH_2ARG
 #undef _GLIBCXX_SIMD_MATH_3ARG
 
+#define _GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(name)                                               \
+namespace std                                                                                      \
+{                                                                                                  \
+  template <__detail::__math_floating_point _Up>                                                   \
+    _GLIBCXX_ALWAYS_INLINE constexpr typename __detail::__deduced_simd_t<_Up>::mask_type           \
+    name(const _Up& __xx)                                                                          \
+    {                                                                                              \
+      using _Vp = __detail::__deduced_simd_t<_Up>;                                                 \
+      using _Kp = typename _Vp::mask_type;                                                         \
+      using _Tp [[maybe_unused]] = typename _Vp::value_type;                                       \
+      const _Vp& __x = __xx;                                                                       \
+      if consteval                                                                                 \
+        {                                                                                          \
+          return _Kp([&] (int __i) -> bool {                                                       \
+                   if constexpr (sizeof(__x[0]) == sizeof(float))                                  \
+                     return __builtin_##name##f(__x[__i]);                                         \
+                   else if constexpr (sizeof(__x[0]) == sizeof(double))                            \
+                     return __builtin_##name(__x[__i]);                                            \
+                   else                                                                            \
+                     static_assert(false);                                                         \
+                 });                                                                               \
+        }                                                                                          \
+      else                                                                                         \
+        {                                                                                          \
+          return _Kp(__detail::__private_init, _Vp::_Impl::_S_##name(__x._M_data));                \
+        }                                                                                          \
+    }                                                                                              \
+}
+
+_GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(isfinite)
+_GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(isinf)
+_GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(isnan)
+_GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(isnormal)
+_GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG(signbit)
+
+#undef _GLIBCXX_SIMD_MATH_CLASSIFICATION_1ARG
+
+
 // the following depend on the global rounding mode (not constexpr):
 //template<@\mathfloatingpoint@ V> @\deducedsimd@<V> nearbyint(const V& x);
 //template<@\mathfloatingpoint@ V> @\deducedsimd@<V> rint(const V& x);
@@ -361,11 +399,6 @@ template<signed_integral T, class Abi> constexpr basic_simd<T, Abi> abs(const ba
   template<@\mathfloatingpoint@ V> constexpr rebind_simd_t<long long int, @\deducedsimd@<V>> llround(const V& x);
   template<class V0, class V1> constexpr @\mathcommonsimd@<V0, V1> remquo(const V0& x, const V1& y, rebind_simd_t<int, @\mathcommonsimd@<V0, V1>>* quo);
   template<@\mathfloatingpoint@ V> constexpr rebind_simd_t<int, @\deducedsimd@<V>> fpclassify(const V& x);
-  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isfinite(const V& x);
-  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isinf(const V& x);
-  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isnan(const V& x);
-  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type isnormal(const V& x);
-  template<@\mathfloatingpoint@ V> constexpr typename @\deducedsimd@<V>::mask_type signbit(const V& x);
   template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isgreater(const V0& x, const V1& y);
   template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isgreaterequal(const V0& x, const V1& y);
   template<class V0, class V1> constexpr typename @\mathcommonsimd@<V0, V1>::mask_type isless(const V0& x, const V1& y);
