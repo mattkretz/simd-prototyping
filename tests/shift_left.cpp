@@ -3,72 +3,58 @@
  *                       Matthias Kretz <m.kretz@gsi.de>
  */
 
-#include "unittest.h"
-
-#include "../simd"
+#include "unittest_pch.h"
 
 using namespace vir::literals;
 
 template <typename V>
-  struct shift_left
+  struct Tests
   {
     using T = typename V::value_type;
     using M = typename V::mask_type;
 
-    static void
-    run()
-    {
-      if constexpr (std::is_integral_v<T>)
+    static constexpr int max = sizeof(T) == 8 ? 64 : 32;
+
+    ADD_TEST_N(known_shift, max, std::is_integral_v<T>) {
+      std::tuple {test_iota<V, 0, 0>},
+      [](auto& t, auto _shift, const V x) {
+        constexpr int shift = _shift;
+        constexpr V vshift = T(shift);
+        const V vshiftx = vshift ^ (x & 1_cw);
+        V ref([](T i) -> T { return i << shift; });
+        V refx([](T i) -> T { return i << (shift ^ (i & 1)); });
+        t.verify_equal(x << shift, ref)(x, "<<", shift);
+        t.verify_equal(x << vshift, ref)(x, "<<", vshift);
+        t.verify_equal(x << vshiftx, refx)(x, "<<", vshiftx);
+        const auto y = ~x;
+        ref = V([](T i) -> T { return T(~i) << shift; });
+        refx = V([](T i) -> T { return T(~i) << (shift ^ (i & 1)); });
+        t.verify_equal(y << shift, ref)(y, "<<", shift);
+        t.verify_equal(y << vshift, ref)(y, "<<", vshift);
+        t.verify_equal(y << vshiftx, refx)(y, "<<", vshiftx);
+      }
+    };
+
+    ADD_TEST(unknown_shift, std::is_integral_v<T>) {
+      std::tuple {test_iota<V, 0, 0>},
+      [](auto& t, const V x) {
+        if not consteval
         {
-          constexpr int max = sizeof(T) == 8 ? 64 : 32;
-          auto test_shift = [](auto _shift) {
-            log_start();
-            const auto x = test_iota<V, 0, 0>;
-            const auto y = ~x;
-            constexpr int shift = _shift;
-            constexpr V vshift = T(shift);
-            const V vshiftx = vshift ^ (x & 1_cw);
-
-            V ref([](T i) -> T { return i << shift; });
-            V refx([](T i) -> T { return i << (shift ^ (i & 1)); });
-            verify_equal(x << shift, ref)(x, "<<", shift);
-            verify_equal(x << vshift, ref)(x, "<<", vshift);
-            verify_equal(x << vshiftx, refx)(x, "<<", vshiftx);
-            verify_equal(make_value_unknown(x)._M_is_constprop(), false);
-            verify_equal(make_value_unknown(x) << shift, ref)(x, "<<", shift);
-            verify_equal(make_value_unknown(x) << vshift, ref)(x, "<<", vshift);
-            verify_equal(make_value_unknown(x) << vshiftx, refx)(x, "<<", vshiftx);
-
-            ref = V([](T i) -> T { return T(~i) << shift; });
-            refx = V([](T i) -> T { return T(~i) << (shift ^ (i & 1)); });
-            verify_equal(y << shift, ref)(y, "<<", shift);
-            verify_equal(y << vshift, ref)(y, "<<", vshift);
-            verify_equal(y << vshiftx, refx)(y, "<<", vshiftx);
-            verify_equal(make_value_unknown(y)._M_is_constprop(), false);
-            verify_equal(make_value_unknown(y) << shift, ref)(y, "<<", shift);
-            verify_equal(make_value_unknown(y) << vshift, ref)(y, "<<", vshift);
-            verify_equal(make_value_unknown(y) << vshiftx, refx)(y, "<<", vshiftx);
-          };
-          _GLIBCXX_SIMD_INT_PACK(max, shift, {
-            (test_shift(vir::cw<shift>), ...);
-          });
-          log_start();
           for (int shift : std::simd_iota<std::simd<int, max>>)
             {
-              const auto x = test_iota<V, 0, 0>;
               const auto y = ~x;
               shift = make_value_unknown(shift);
               const V vshift = T(shift);
-
               V ref([=](T i) -> T { return i << shift; });
-              verify_equal(x << shift, ref)(y, "<<", shift);
-              verify_equal(x << vshift, ref)(y, "<<", vshift);
+              t.verify_equal(x << shift, ref)(y, "<<", shift);
+              t.verify_equal(x << vshift, ref)(y, "<<", vshift);
               ref = V([=](T i) -> T { return T(~i) << shift; });
-              verify_equal(y << shift, ref)(y, "<<", shift);
-              verify_equal(y << vshift, ref)(y, "<<", vshift);
+              t.verify_equal(y << shift, ref)(y, "<<", shift);
+              t.verify_equal(y << vshift, ref)(y, "<<", vshift);
             }
         }
-    }
+      }
+    };
   };
 
-auto tests = register_tests<shift_left>();
+#include "unittest.h"

@@ -2,70 +2,90 @@
 // Copyright © 2023–2025 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
 //                       Matthias Kretz <m.kretz@gsi.de>
 
-#include "unittest.h"
-
-#include "../simd"
+#include "unittest_pch.h"
 
 using namespace vir::literals;
 
 template <typename V>
-  struct shift_right
+  struct Tests
   {
     using T = typename V::value_type;
     using M = typename V::mask_type;
 
-    static void
-    run()
-    {
-      if constexpr (std::is_integral_v<T>)
-        {
-          constexpr int max = sizeof(T) == 8 ? 64 : 32;
-          auto test_shift = [=](auto _shift) {
-            log_start();
+    static constexpr int max = sizeof(T) == 8 ? 64 : 32;
 
-            const auto x = test_iota<V>;
-            const auto y = ~x;
+    ADD_TEST(constant_p) {
+      std::tuple {},
+      [](auto& t) {
+        V x = {};
+        t.verify(std::is_constant_evaluated() or x._M_is_constprop());
+      }
+    };
+
+    ADD_TEST_N(known_shift, max, std::is_integral_v<T>) {
+      std::tuple {test_iota<V>},
+      [](auto& t, auto _shift, const V x) {
+        constexpr T tmax = std::numeric_limits<T>::max();
+        constexpr int shift = _shift;
+        constexpr V vshift = T(shift);
+        const V vshiftx = vshift ^ (x & 1_cw);
+        t.verify(vshift._M_is_constprop());
+
+        V ref([](T i) -> T { return i >> shift; });
+        V refx([](T i) -> T { return i >> (shift ^ (i & 1)); });
+        t.verify_equal(x >> shift, ref)(x, ">>", shift);
+        t.verify_equal(x >> vshift, ref)(x, ">>", vshift);
+        t.verify_equal(x >> vshiftx, refx)(x, ">>", vshiftx);
+
+        const V y = ~x;
+        ref = V([](T i) -> T { return T(~i) >> shift; });
+        refx = V([](T i) -> T { return T(~i) >> (shift ^ (i & 1)); });
+        t.verify_equal(y >> shift, ref)(y, ">>", shift);
+        t.verify_equal(y >> vshift, ref)(y, ">>", vshift);
+        t.verify_equal(y >> vshiftx, refx)(y, ">>", vshiftx);
+
+        const V z = tmax - x;
+        ref = V([](T i) -> T { return T(tmax - i) >> shift; });
+        refx = V([](T i) -> T { return T(tmax - i) >> (shift ^ (i & 1)); });
+        t.verify_equal(z >> shift, ref)(z, ">>", shift);
+        t.verify_equal(z >> vshift, ref)(z, ">>", vshift);
+        t.verify_equal(z >> vshiftx, refx)(z, ">>", vshiftx);
+      }
+    };
+
+    ADD_TEST(unknown_shift, std::is_integral_v<T>) {
+      std::tuple {test_iota<V>},
+      [](auto& t, const V x) {
+        for (int shift : std::simd_iota<std::simd<int, max>>)
+          {
             constexpr T tmax = std::numeric_limits<T>::max();
-            const auto z = tmax - x;
-            constexpr int shift = _shift;
-            constexpr V vshift = T(shift);
+            const V vshift = T(shift);
             const V vshiftx = vshift ^ (x & 1_cw);
+            t.verify(std::is_constant_evaluated()
+                       or (not is_constprop(vshift) and not is_constprop(shift)));
 
-            V ref([](T i) -> T { return i >> shift; });
-            V refx([](T i) -> T { return i >> (shift ^ (i & 1)); });
-            verify_equal(x >> shift, ref)(x, ">>", shift);
-            verify_equal(x >> vshift, ref)(x, ">>", vshift);
-            verify_equal(x >> vshiftx, refx)(x, ">>", vshiftx);
-            verify_equal(make_value_unknown(x)._M_is_constprop(), false);
-            verify_equal(make_value_unknown(x) >> shift, ref)(x, ">>", shift);
-            verify_equal(make_value_unknown(x) >> vshift, ref)(x, ">>", vshift);
-            verify_equal(make_value_unknown(x) >> vshiftx, refx)(x, ">>", vshiftx);
+            V ref([&](T i) -> T { return i >> shift; });
+            V refx([&](T i) -> T { return i >> (shift ^ (i & 1)); });
+            t.verify_equal(x >> shift, ref)(x, ">>", shift);
+            t.verify_equal(x >> vshift, ref)(x, ">>", vshift);
+            t.verify_equal(x >> vshiftx, refx)(x, ">>", vshiftx);
 
-            ref = V([](T i) -> T { return T(~i) >> shift; });
-            refx = V([](T i) -> T { return T(~i) >> (shift ^ (i & 1)); });
-            verify_equal(y >> shift, ref)(y, ">>", shift);
-            verify_equal(y >> vshift, ref)(y, ">>", vshift);
-            verify_equal(y >> vshiftx, refx)(y, ">>", vshiftx);
-            verify_equal(make_value_unknown(y)._M_is_constprop(), false);
-            verify_equal(make_value_unknown(y) >> shift, ref)(y, ">>", shift);
-            verify_equal(make_value_unknown(y) >> vshift, ref)(y, ">>", vshift);
-            verify_equal(make_value_unknown(y) >> vshiftx, refx)(y, ">>", vshiftx);
+            const V y = ~x;
+            ref = V([&](T i) -> T { return T(~i) >> shift; });
+            refx = V([&](T i) -> T { return T(~i) >> (shift ^ (i & 1)); });
+            t.verify_equal(y >> shift, ref)(y, ">>", shift);
+            t.verify_equal(y >> vshift, ref)(y, ">>", vshift);
+            t.verify_equal(y >> vshiftx, refx)(y, ">>", vshiftx);
 
-            ref = V([](T i) -> T { return T(tmax - i) >> shift; });
-            refx = V([](T i) -> T { return T(tmax - i) >> (shift ^ (i & 1)); });
-            verify_equal(z >> shift, ref)(z, ">>", shift);
-            verify_equal(z >> vshift, ref)(z, ">>", vshift);
-            verify_equal(z >> vshiftx, refx)(z, ">>", vshiftx);
-            verify_equal(make_value_unknown(z)._M_is_constprop(), false);
-            verify_equal(make_value_unknown(z) >> shift, ref)(z, ">>", shift);
-            verify_equal(make_value_unknown(z) >> vshift, ref)(z, ">>", vshift);
-            verify_equal(make_value_unknown(z) >> vshiftx, refx)(z, ">>", vshiftx);
-          };
-          _GLIBCXX_SIMD_INT_PACK(max, shift, {
-            (test_shift(vir::cw<shift>), ...);
-          });
-        }
-    }
+            const V z = tmax - x;
+            ref = V([&](T i) -> T { return T(tmax - i) >> shift; });
+            refx = V([&](T i) -> T { return T(tmax - i) >> (shift ^ (i & 1)); });
+            t.verify_equal(z >> shift, ref)(z, ">>", shift);
+            t.verify_equal(z >> vshift, ref)(z, ">>", vshift);
+            t.verify_equal(z >> vshiftx, refx)(z, ">>", vshiftx);
+          }
+      }
+    };
   };
 
-auto tests = register_tests<shift_right>();
+#include "unittest.h"

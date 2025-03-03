@@ -11,6 +11,34 @@
 #include <source_location>
 #include <iostream>
 #include <concepts>
+#include <cfenv>
+
+using run_function = void(*)();
+
+// global objects
+static std::vector<run_function> run_functions = {};
+
+static std::int64_t passed_tests = 0;
+
+static std::int64_t failed_tests = 0;
+
+static std::string_view test_name = "unknown";
+
+// ------------------------------------------------
+
+template <typename T>
+  consteval std::basic_string_view<char>
+  type_to_string(T* = nullptr)
+  {
+    std::string_view fun = std::source_location::current().function_name();
+    const auto offset = fun.find("with T = ");
+    if (offset != std::string_view::npos)
+      {
+        fun = fun.substr(offset + 9);
+        return fun.substr(0, fun.size() - 1);
+      }
+    return fun;
+  }
 
 template <typename T>
   struct is_character_type
@@ -69,9 +97,6 @@ template <typename T, typename U>
   std::ostream& operator<<(std::ostream& s, const std::pair<T, U>& x)
   { return s << '{' << x.first << ", " << x.second << '}'; }
 
-static std::int64_t passed_tests = 0;
-static std::int64_t failed_tests = 0;
-
 struct additional_info
 {
   const bool failed = false;
@@ -91,90 +116,356 @@ struct additional_info
 
 struct log_novalue {};
 
-template <typename X, typename Y>
-  additional_info
-  log_failure(const X& x, const Y& y, std::source_location loc, std::string_view s)
-  {
-    ++failed_tests;
-    std::cout << loc.file_name() << ':' << loc.line() << ':' << loc.column() << ": in '"
-              << loc.function_name() << "' verification failed:\n  " << std::boolalpha;
-    std::cout << s;
-    if constexpr (is_character_type_v<X>)
-      std::cout << int(x);
-    else
-      std::cout << x;
-    if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
-      {
-        std::cout << "\n   expected: ";
-        if constexpr (is_character_type_v<Y>)
-          std::cout << int(y);
-        else
-          std::cout << y;
-      }
-    std::cout << std::endl;
-    return additional_info {true};
-  }
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
 
-[[gnu::always_inline]]
-additional_info
-verify(auto&& k, std::source_location loc = std::source_location::current())
+#pragma GCC diagnostic pop
+
+template <typename T, typename R = typename T::value_type>
+  R
+  value_type_impl(int);
+
+template <typename T>
+  T
+  value_type_impl(float);
+
+template <typename T>
+  using value_type_t = decltype(value_type_impl<T>(int()));
+
+template <typename T>
+  struct as_unsigned;
+
+template <typename T>
+  using as_unsigned_t = typename as_unsigned<T>::type;
+
+template <typename T>
+  requires (sizeof(T) == sizeof(unsigned char))
+  struct as_unsigned<T>
+  { using type = unsigned char; };
+
+template <typename T>
+  requires (sizeof(T) == sizeof(unsigned short))
+  struct as_unsigned<T>
+  { using type = unsigned short; };
+
+template <typename T>
+  requires (sizeof(T) == sizeof(unsigned int))
+  struct as_unsigned<T>
+  { using type = unsigned int; };
+
+template <typename T>
+  requires (sizeof(T) == sizeof(unsigned long long))
+  struct as_unsigned<T>
+  { using type = unsigned long long; };
+
+template <typename T, typename Abi>
+  struct as_unsigned<std::basic_simd<T, Abi>>
+  { using type = std::rebind_simd_t<as_unsigned_t<T>, std::basic_simd<T, Abi>>; };
+
+template <typename T0, typename T1>
+  constexpr T0
+  ulp_distance_signed(T0 val0, const T1& ref1)
+  {
+    if constexpr (std::is_floating_point_v<T1>)
+      return ulp_distance_signed(val0, std::rebind_simd_t<T1, T0>(ref1));
+    else if constexpr (std::is_floating_point_v<value_type_t<T0>>)
+      {
+        int fp_exceptions = 0;
+        if not consteval
+          {
+            fp_exceptions = std::fetestexcept(FE_ALL_EXCEPT);
+          }
+        using std::isnan;
+        using std::abs;
+        using T = value_type_t<T0>;
+        using L = std::numeric_limits<T>;
+        constexpr T0 signexp_mask = -L::infinity();
+        T0 ref0(ref1);
+        T1 val1(val0);
+        const auto subnormal = fabs(ref1) < L::min();
+        using I = as_unsigned_t<T1>;
+        const T1 eps1 = std::simd_select(subnormal, L::denorm_min(),
+                                         L::epsilon() * std::bit_cast<T0>(
+                                                          std::bit_cast<I>(ref1)
+                                                            & std::bit_cast<I>(signexp_mask)));
+        const T0 ulp = std::simd_select(val0 == ref0 || (isnan(val0) && isnan(ref0)),
+                                        T0(), T0((ref1 - val1) / eps1));
+        if not consteval
+          {
+            std::feclearexcept(FE_ALL_EXCEPT ^ fp_exceptions);
+          }
+        return ulp;
+      }
+    else
+      return ref1 - val0;
+  }
+
+template <typename T0, typename T1>
+  constexpr T0
+  ulp_distance(const T0& val, const T1& ref)
+  {
+    auto ulp = ulp_distance_signed(val, ref);
+    using T = value_type_t<decltype(ulp)>;
+    if constexpr (std::is_unsigned_v<T>)
+      return ulp;
+    else
+      {
+        using std::abs;
+        return fabs(ulp);
+      }
+  }
+
+struct constexpr_verifier
 {
-  if (std::all_of(k))
+  struct ignore_the_rest
+  {
+    constexpr ignore_the_rest
+    operator()(auto const&, auto const&...)
+    { return *this; }
+  };
+
+  bool okay = true;
+
+  constexpr ignore_the_rest
+  verify(const auto& k) &
+  {
+    okay = okay and std::all_of(k);
+    return {};
+  }
+
+  constexpr ignore_the_rest
+  verify_equal(const auto& v, const auto& ref) &
+  {
+    okay = okay and std::all_of(v == ref);
+    return {};
+  }
+
+  template <typename T, typename U>
+    constexpr ignore_the_rest
+    verify_equal(const std::pair<T, U>& x, const std::pair<T, U>& y) &
     {
-      ++passed_tests;
+      verify_equal(x.first, y.first);
+      verify_equal(x.second, y.second);
       return {};
     }
-  else
-    return log_failure(k, log_novalue(), loc, "not true: ");
-}
 
-[[gnu::always_inline]]
-additional_info
-verify_equal(auto&& x, auto&& y,
-             std::source_location loc = std::source_location::current())
-  requires requires { {std::all_of(x == y)} -> std::same_as<bool>; }
+  constexpr ignore_the_rest
+  verify_not_equal(const auto& v, const auto& ref) &
+  {
+    okay = okay and std::all_of(v != ref);
+    return {};
+  }
+
+  constexpr ignore_the_rest
+  verify_equal_to_ulp(const auto& x, const auto& y, float allowed_distance) &
+  {
+    okay = okay and std::all_of(ulp_distance(x, y) <= allowed_distance);
+    return {};
+  }
+
+  constexpr_verifier() = default;
+
+  constexpr_verifier(const constexpr_verifier&) = delete;
+
+  constexpr_verifier(constexpr_verifier&&) = delete;
+};
+
+template <auto... Init>
+  [[nodiscard]]
+  consteval bool
+  constexpr_test(auto&& fun, auto&&... args)
+  {
+    constexpr_verifier t;
+    if constexpr (sizeof...(Init) == 0)
+      fun(t, args...);
+    else
+      (fun(t, Init, args...), ...);
+    return t.okay;
+  }
+
+template <typename T>
+  T
+  make_value_unknown(const T& x)
+  {
+    T y = x;
+    asm("" : "+m"(y));
+    return y;
+  }
+
+struct runtime_verifier
 {
-  if (std::all_of(x == y) and std::none_of(x != y))
-    {
-      ++passed_tests;
-      return {};
-    }
-  else
-    return log_failure(x, y, loc, "not equal: ");
-}
+  const std::string_view test_kind;
 
-template <typename T, typename U>
+  template <typename X, typename Y>
+    additional_info
+    log_failure(const X& x, const Y& y, std::source_location loc, std::size_t ip,
+                std::string_view s)
+    {
+      ++failed_tests;
+      std::cout << loc.file_name() << ':' << loc.line() << ':' << loc.column() << ": ("
+                << std::hex << ip << std::dec << ") in "
+                << test_kind << " test of '" << test_name
+                << "' " << s << " failed";
+      if constexpr (not std::is_same_v<X, log_novalue>)
+        {
+          std::cout << ":\n   result: " << std::boolalpha;
+          if constexpr (is_character_type_v<X>)
+            std::cout << int(x);
+          else
+            std::cout << x;
+          if constexpr (not std::is_same_v<decltype(y), const log_novalue&>)
+            {
+              std::cout << "\n expected: ";
+              if constexpr (is_character_type_v<Y>)
+                std::cout << int(y);
+              else
+                std::cout << y;
+            }
+        }
+      std::cout << std::endl;
+      return additional_info {true};
+    }
+
+  [[gnu::always_inline]] static inline
+  size_t
+  determine_ip()
+  {
+    size_t _ip = 0;
+#ifdef __x86_64__
+    asm volatile("lea 0(%%rip),%0" : "=r"(_ip));
+#elif defined __i386__
+    asm volatile("1: movl $1b,%0" : "=r"(_ip));
+#elif defined __arm__
+    asm volatile("mov %0,pc" : "=r"(_ip));
+#elif defined __aarch64__
+    asm volatile("adr %0,." : "=r"(_ip));
+#endif
+    return _ip;
+  }
+
   [[gnu::always_inline]]
   additional_info
-  verify_equal(const std::pair<T, U>& x, const std::pair<T, U>& y,
-               std::source_location loc = std::source_location::current())
+  verify(auto&& k, std::source_location loc = std::source_location::current())
   {
-    if (std::all_of(x.first == y.first) and std::all_of(x.second == y.second))
+    const auto ip = determine_ip();
+    if (std::all_of(k))
       {
         ++passed_tests;
         return {};
       }
     else
-      return log_failure(x, y, loc, "not equal: ");
+      return log_failure(log_novalue(), log_novalue(), loc, ip, "verify");
   }
 
-[[gnu::always_inline]]
-additional_info
-verify_not_equal(auto&& x, auto&& y,
+  [[gnu::always_inline]]
+  additional_info
+  verify_equal(auto&& x, auto&& y,
+               std::source_location loc = std::source_location::current())
+    requires requires { {std::all_of(x == y)} -> std::same_as<bool>; }
+  {
+    const auto ip = determine_ip();
+    if (std::all_of(x == y))
+      {
+        ++passed_tests;
+        return {};
+      }
+    else
+      return log_failure(x, y, loc, ip, "verify_equal");
+  }
+
+  template <typename T, typename U>
+    [[gnu::always_inline]]
+    additional_info
+    verify_equal(const std::pair<T, U>& x, const std::pair<T, U>& y,
                  std::source_location loc = std::source_location::current())
-{
-  if (std::all_of(x != y) and std::none_of(x == y))
     {
-      ++passed_tests;
-      return {};
+      const auto ip = determine_ip();
+      if (std::all_of(x.first == y.first) and std::all_of(x.second == y.second))
+        {
+          ++passed_tests;
+          return {};
+        }
+      else
+        return log_failure(x, y, loc, ip, "verify_equal");
     }
-  else
-    return log_failure(x, y, loc, "    equal: ");
+
+  [[gnu::always_inline]]
+  additional_info
+  verify_not_equal(auto&& x, auto&& y,
+                   std::source_location loc = std::source_location::current())
+  {
+    const auto ip = determine_ip();
+    if (std::all_of(x != y))
+      {
+        ++passed_tests;
+        return {};
+      }
+    else
+      return log_failure(x, y, loc, ip, "verify_not_equal");
+  }
+
+  // ulp_distance_signed can raise FP exceptions and thus must be conditionally executed
+  [[gnu::always_inline]]
+  additional_info
+  verify_equal_to_ulp(auto&& x, auto&& y, float allowed_distance,
+                      std::source_location loc = std::source_location::current())
+  {
+    const auto ip = determine_ip();
+    const bool success = std::all_of(ulp_distance(x, y) <= allowed_distance);
+    if (success)
+      {
+        ++passed_tests;
+        return {};
+      }
+    else
+      return log_failure(x, y, loc, ip, "verify_equal_to_ulp")
+               ("distance:", ulp_distance_signed(x, y),
+                "\n allowed:", allowed_distance);
+  }
+};
+
+[[gnu::noinline, gnu::noipa]]
+void
+runtime_test(auto&& fun, auto&&... args)
+{
+  runtime_verifier t {"runtime"};
+  fun(t, make_value_unknown(args)...);
 }
-#pragma GCC diagnostic pop
+
+template <typename T>
+  [[gnu::always_inline]] inline bool
+  is_constprop(const T& x)
+  { return vir::constexpr_value<T> or __builtin_constant_p(x); }
+
+template <typename T, typename Abi>
+  [[gnu::always_inline]] inline bool
+  is_constprop(const std::basic_simd<T, Abi>& x)
+  { return x._M_is_constprop(); }
+
+template <std::size_t B, typename Abi>
+  [[gnu::always_inline]] inline bool
+  is_constprop(const std::basic_simd_mask<B, Abi>& x)
+  { return x._M_is_constprop(); }
+
+template <typename T, std::size_t N>
+  [[gnu::always_inline]] inline bool
+  is_constprop(const std::array<T, N>& arr)
+  {
+    return _GLIBCXX_SIMD_INT_PACK(N, Is, {
+      return (is_constprop(arr[Is]) and ...);
+    });
+  }
+
+[[gnu::always_inline, gnu::flatten]]
+void
+constprop_test(auto&& fun, auto... args)
+{
+  runtime_verifier t{"constprop"};
+  t.verify((is_constprop(args) and ...))
+    ("=> At least one argument failed to constant-propagate:", is_constprop(args)...,
+     type_to_string<decltype(args)>()...);
+  fun(t, args...);
+}
 
 bool
 check_cpu_support()
@@ -269,29 +560,24 @@ check_cpu_support()
     return true;
 }
 
-void
-log_start(std::source_location const& loc = std::source_location::current())
-{
-  std::cout << "Testing " << loc.function_name() << '\n';
-}
-
-template <typename T>
-  T
-  make_value_unknown(const T& x)
-  {
-    T y = x;
-    asm("" : "+m"(y));
-    return y;
-  }
+int run_check_cpu_support = [] {
+  if (not check_cpu_support())
+    {
+      std::cerr << "Incompatible CPU.\n";
+      std::exit(EXIT_SUCCESS);
+    }
+  return 0;
+}();
 
 /**
  * The value of the largest element in test_iota<V, Init>.
  */
-template <typename V, int Init = 0>
-  constexpr int test_iota_max
-    = sizeof(typename V::value_type) < sizeof(int)
-        ? std::min(V::size() + Init - 1, int(std::numeric_limits<typename V::value_type>::max()))
-        : V::size() + Init - 1;
+template <typename V, int Init = 0, int Max = V::size() + Init - 1>
+  constexpr typename V::value_type test_iota_max
+    = std::min(Max, sizeof(typename V::value_type) < sizeof(int)
+                 ? std::min(V::size() + Init - 1,
+                            int(std::numeric_limits<typename V::value_type>::max()))
+                 : V::size() + Init - 1);
 
 /**
  * Starts iota sequence at Init.
@@ -301,10 +587,10 @@ template <typename V, int Init = 0>
  *
  * Use simd_iota if a non-monotonic sequence is a bug.
  */
-template <typename V, int Init = 0, int Max = test_iota_max<V, Init>>
+template <typename V, int Init = 0, int Max = int(test_iota_max<V, Init>)>
   constexpr V test_iota = V([](int i) {
               i += Init;
-              static_assert(Max <= 0 or Max > Init);
+              static_assert(Max <= 0 or Max > Init or V::size() == 1);
               if constexpr (Max > Init)
                 {
                   while (i > Max)
@@ -323,33 +609,125 @@ template <typename V, auto... values>
     return V([&](size_t i) { return arr[i % arr.size()]; });
   }();
 
-template <template<typename> class Test>
-  void
-  instantiate_tests_for_value_type();
+template <typename V>
+  struct Tests;
 
-using run_function = void(*)();
+template <typename T>
+  concept array_specialization
+    = requires {
+      typename T::value_type;
+      std::tuple_size<T>::value;
+    } and std::same_as<T, std::array<typename T::value_type, std::tuple_size_v<T>>>;
 
-static std::vector<run_function> run_functions = {};
-
-template <template<typename> class... Tests>
-  int
-  register_tests()
+template <typename Args = void, typename Fun = void>
+  struct add_test
   {
-    (instantiate_tests_for_value_type<Tests>(), ...);
-    return 0;
+    alignas(std::bit_floor(sizeof(Args))) Args args;
+    Fun fun;
+  };
+
+struct dummy_test
+{
+  static constexpr std::array<int, 0> args = {};
+  static constexpr auto fun = [](auto&) {};
+};
+
+template <auto test_ref>
+  constexpr void
+  invoke_test(std::string_view name, auto... is)
+  {
+    test_name = name;
+    static constexpr auto t = *test_ref;
+    [[maybe_unused]] static constexpr auto args = t.args;
+    [[maybe_unused]] static constexpr auto fun = t.fun;
+    using A = std::remove_const_t<decltype(args)>;
+    if constexpr (array_specialization<A>)
+      { /* call for each element */
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+          ([&] {
+            std::string tmp_name = name + std::to_string(Is);
+            test_name = tmp_name;
+            ((std::cout << "Testing '" << test_name) << ... << (' ' + std::to_string(is)))
+              << ' ' << args[Is] << "'\n";
+            constexpr bool passed
+              = constexpr_test(fun, is..., args[Is]);
+            if (passed)
+              ++passed_tests;
+            else
+              {
+                ++failed_tests;
+                std::cout << "=> constexpr test of '" << test_name << "' failed.\n";
+              }
+            constprop_test(fun, is..., args[Is]);
+            runtime_test(fun, is..., args[Is]);
+          }(), ...);
+        }(std::make_index_sequence<std::tuple_size_v<A>>());
+      }
+    else
+      {
+        ((std::cout << "Testing '" << test_name) << ... << (' ' + std::to_string(is))) << "'\n";
+        constexpr bool passed
+          = std::apply([&](auto... xs) -> bool {
+              return constexpr_test(fun, is..., xs...);
+            }, args);
+        if (passed)
+          ++passed_tests;
+        else
+          {
+            ++failed_tests;
+            std::cout << "=> constexpr test of '" << test_name << "' failed.\n";
+          }
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+          constprop_test(fun, is..., std::get<Is>(args)...);
+          runtime_test(fun, is..., std::get<Is>(args)...);
+        }(std::make_index_sequence<std::tuple_size_v<A>>());
+      }
   }
+
+#define ADD_TEST(name, ...)                                                                        \
+    template <int>                                                                                 \
+      static constexpr auto name##_tmpl = dummy_test {};                                           \
+                                                                                                   \
+    static constexpr void                                                                          \
+    name()                                                                                         \
+    { invoke_test<&name##_tmpl<0>>(#name); }                                                       \
+                                                                                                   \
+    const int init_##name = [] {                                                                   \
+      run_functions.push_back(name);                                                               \
+      return 0;                                                                                    \
+    }();                                                                                           \
+                                                                                                   \
+    template <int Tmp>                                                                             \
+      requires (Tmp == 0) __VA_OPT__(and (__VA_ARGS__))                                            \
+      static constexpr auto name##_tmpl<Tmp> = add_test
+
+#define ADD_TEST_N(name, N, ...)                                                                   \
+    template <int>                                                                                 \
+      static constexpr auto name##_tmpl = dummy_test {};                                           \
+                                                                                                   \
+    static constexpr void                                                                          \
+    name()                                                                                         \
+    {                                                                                              \
+      []<int... Is>(std::integer_sequence<int, Is...>) {                                           \
+        (invoke_test<&name##_tmpl<0>>(#name, vir::cw<Is>), ...);                                   \
+      }(std::make_integer_sequence<int, N>());                                                     \
+    }                                                                                              \
+                                                                                                   \
+    const int init_##name = [] {                                                                   \
+      run_functions.push_back(name);                                                               \
+      return 0;                                                                                    \
+    }();                                                                                           \
+                                                                                                   \
+    template <int Tmp>                                                                             \
+      requires (Tmp == 0) __VA_OPT__(and (__VA_ARGS__))                                            \
+      static constexpr auto name##_tmpl<Tmp> = add_test
+
+template <typename = void>
+void test_runner();
 
 int main()
 {
-  if (not check_cpu_support())
-    {
-      std::cerr << "Incompatible CPU.\n";
-      return EXIT_SUCCESS;
-    }
-
-  for (auto f : run_functions)
-    f();
-
+  test_runner();
   std::cout << "Passed tests: " << passed_tests << "\nFailed tests: " << failed_tests << '\n';
   return failed_tests != 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
