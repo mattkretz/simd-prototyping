@@ -100,7 +100,9 @@ namespace std                                                                   
         }                                                                                          \
       else                                                                                         \
         {                                                                                          \
-          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
+          if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data); })                          \
+            return _Vp::_Impl::_S_##name(__x._M_data);                                             \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -119,8 +121,6 @@ namespace std                                                                   
               });                                                                                  \
               return __r;                                                                          \
             }                                                                                      \
-          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data); })                     \
-            return _Vp::_Impl::_S_##name(__x._M_data);                                             \
           else                                                                                     \
             {                                                                                      \
               using _VB = typename _Vp::_MemberType;                                               \
@@ -161,7 +161,9 @@ namespace std                                                                   
         }                                                                                          \
       else                                                                                         \
         {                                                                                          \
-          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
+          if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data); })             \
+            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data);                                \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -182,8 +184,6 @@ namespace std                                                                   
               });                                                                                  \
               return __r;                                                                          \
             }                                                                                      \
-          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data); })        \
-            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data);                                \
           else                                                                                     \
             {                                                                                      \
               using _VB = typename _Vp::_MemberType;                                               \
@@ -247,7 +247,9 @@ namespace std                                                                   
          }                                                                                         \
       else                                                                                         \
         {                                                                                          \
-          if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                      \
+          if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data, __z._M_data); })\
+            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data, __z._M_data);                   \
+          else if constexpr (requires { typename _Vp::abi_type::_AbiCombineTag; })                 \
             {                                                                                      \
               using _Tup = typename _Vp::abi_type::template _SimdMember<_Tp>;                      \
               return _Vp(__detail::__private_init,                                                 \
@@ -274,9 +276,6 @@ namespace std                                                                   
                                                _VPart(__arr2[__i]))._M_data;                       \
               return __r;                                                                          \
             }                                                                                      \
-          else if constexpr (requires { _Vp::_Impl::_S_##name(__x._M_data, __y._M_data,            \
-                                                              __z._M_data); })                     \
-            return _Vp::_Impl::_S_##name(__x._M_data, __y._M_data, __z._M_data);                   \
           else                                                                                     \
             {                                                                                      \
               using _VB = typename _Vp::_MemberType;                                               \
