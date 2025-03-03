@@ -86,6 +86,16 @@ namespace std
         }(std::make_index_sequence<__in / __out>());
     }
 
+  template <size_t _Np, typename _Tp, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
+    simd_chunk(const basic_simd<_Tp, _Abi>& __x) noexcept
+    { return simd_chunk<resize_simd_t<_Np, basic_simd<_Tp, _Abi>>>(__x); }
+
+  template <size_t _Np, size_t _Bs, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
+    simd_chunk(const basic_simd_mask<_Bs, _Abi>& __x) noexcept
+    { return simd_chunk<resize_simd_t<_Np, basic_simd_mask<_Bs, _Abi>>>(__x); }
+
   namespace __detail
   {
     template <typename _Tp>

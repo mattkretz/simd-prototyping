@@ -276,6 +276,14 @@ namespace std
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
     simd_chunk(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
 
+  template <size_t _Np, typename _Tp, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
+    simd_chunk(const basic_simd<_Tp, _Abi>& __x) noexcept;
+
+  template <size_t _Np, size_t _Bs, typename _Abi>
+    _GLIBCXX_SIMD_ALWAYS_INLINE constexpr auto
+    simd_chunk(const basic_simd_mask<_Bs, _Abi>& __x) noexcept;
+
   template <typename _Tp, typename... _Abis>
     _GLIBCXX_SIMD_ALWAYS_INLINE constexpr
     simd<_Tp, (__simd_size_v<_Tp, _Abis> + ...)>

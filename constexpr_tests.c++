@@ -369,17 +369,21 @@ static_assert([] {
   constexpr auto a = std::simd<int, 8>([] (int i) { return i; });
   auto a4 = simd_chunk<std::simd<int, 4>>(a);
   auto a3 = simd_chunk<std::simd<int, 3>>(a);
+  auto a3_ = simd_chunk<3>(a);
   return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
            and all_of(std::get<0>(a3) == std::simd<int, 3>([] (int i) { return i; }))
            and all_of(std::get<1>(a3) == std::simd<int, 3>([] (int i) { return i + 3; }))
-           and all_of(std::get<2>(a3) == std::simd<int, 2>([] (int i) { return i + 6; }));
+           and all_of(std::get<2>(a3) == std::simd<int, 2>([] (int i) { return i + 6; }))
+           and std::same_as<decltype(a3), decltype(a3_)>
+           and all_of(std::get<0>(a3) == std::get<0>(a3_));
 }());
 
 static_assert([] {
   constexpr std::simd_mask<int, 8> a([] (int i) -> bool { return i & 1; });
   auto a4 = simd_chunk<std::simd_mask<int, 4>>(a);
   auto a3 = simd_chunk<std::simd_mask<int, 3>>(a);
+  auto a3_ = simd_chunk<3>(a);
   return a4.size() == 2 and std::same_as<decltype(a4), std::array<std::simd_mask<int, 4>, 2>>
            and std::tuple_size_v<decltype(a3)> == 3
            and all_of(std::get<0>(a3) == std::simd_mask<int, 3>(
@@ -387,7 +391,9 @@ static_assert([] {
            and all_of(std::get<1>(a3) == std::simd_mask<int, 3>(
                                            [] (int i) -> bool { return (i + 3) & 1; }))
            and all_of(std::get<2>(a3) == std::simd_mask<int, 2>(
-                                           [] (int i) -> bool { return (i + 6) & 1; }));
+                                           [] (int i) -> bool { return (i + 6) & 1; }))
+           and std::same_as<decltype(a3), decltype(a3_)>
+           and all_of(std::get<0>(a3) == std::get<0>(a3_));
 }());
 
 // simd_cat ///////////////////////////
