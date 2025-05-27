@@ -135,7 +135,7 @@ $(objdir)/$(1).hpp: tests/unittest*.h tests/*.cpp | $(objdir)
 
 $(objdir)/$(1).depend: $(objdir)/$(1).hpp
 	@echo "Update $(1) dependencies"
-	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "$(objdir)/$(1).hpp" $(objdir)/$(1).hpp | sed 's,: $(objdir)/$(1).hpp,:,' > $$@
+	@$$(CXX) $$(CXXFLAGS) -march=$(1) -MM -MT "$(objdir)/$(1).hpp" $(objdir)/$(1).hpp | sed 's, $(objdir)/$(1).hpp ,,' > $$@
 
 include $(objdir)/$(1).depend
 
@@ -246,7 +246,7 @@ $(objdir)/codegen.depend: $(objdir) $(codegen_files)
 
 include $(objdir)/codegen.depend
 
-$(shell $(CXX) $(CXXFLAGS) -MM -MT "$(objdir)/constexpr.%.s" constexpr_tests.c++|tr -d '\\') $(objdir)/%.hpp.gch
+$(objdir)/constexpr.%.s: $(objdir)/%.hpp.gch
 	@printf -- '$(msg_build) constexpr tests for $*\n'
 	@$(CXX) $(CXXFLAGS) -march=$* -include $(objdir)/$*.hpp -S -o $@ constexpr_tests.c++
 
