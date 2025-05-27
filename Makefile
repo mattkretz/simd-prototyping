@@ -190,7 +190,12 @@ help: $(helptxt)
 
 .PHONY: clean
 clean:
-	test -L $(objdir) && { rm -rf $(realpath $(objdir)); rm $(objdir); }
-	rm -rf $(objdir)
+	if test -L $(objdir); then \
+		echo "about to remove $(realpath $(objdir))"; sleep 5;\
+		rm -rf $(realpath $(objdir)); rm $(objdir); \
+	else \
+		echo "about to remove $(objdir)"; sleep 5;\
+		rm -rf $(objdir);\
+	fi
 	rm -rf check
 
