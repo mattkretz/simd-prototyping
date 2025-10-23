@@ -4,12 +4,9 @@
  */
 
 #include "include/simd"
-#include <complex>
 #include <stdfloat>
 
 namespace simd = std::simd;
-
-using std::complex;
 
 namespace test01
 {
@@ -39,46 +36,18 @@ namespace test02
 
   static_assert(!destructible<simd::basic_mask<7>>);
 
-  template <int N>
-    using expected_abi
-#ifdef __AVX512F__
-      = _Abi_t<N, 1, _AbiVariant::_BitMask, _AbiVariant::_CxIleav>;
-#else
-      = _Abi_t<N, 1, _AbiVariant::_CxIleav>;
-#endif
-
-  static_assert(same_as<simd::vec<complex<float>, 1>::abi_type, expected_abi<1>>);
-  static_assert(same_as<simd::vec<complex<double>, 1>::abi_type, expected_abi<1>>);
-
   static_assert(same_as<simd::vec<int>::mask_type, simd::mask<int>>);
   static_assert(same_as<simd::vec<float>::mask_type, simd::mask<float>>);
   static_assert(same_as<simd::vec<float, 1>::mask_type, simd::mask<float, 1>>);
 
-  static_assert(destructible<simd::vec<complex<float>>>);
-  static_assert(same_as<simd::vec<complex<float>>::mask_type, simd::mask<complex<float>>>);
-  static_assert(same_as<simd::vec<complex<float>, 1>::mask_type, simd::mask<complex<float>, 1>>);
-  static_assert(same_as<simd::vec<complex<double>>::mask_type::abi_type,
-                        expected_abi<simd::vec<complex<double>>::size()>>);
-
-  // not the same because of the __deduce_t difference above
-  static_assert(!same_as<simd::vec<complex<float>, 1>::mask_type, simd::vec<double, 1>::mask_type>);
-
   static_assert( __value_preserving_convertible_to<float, double>);
   static_assert(!__value_preserving_convertible_to<double, float>);
-  static_assert( __value_preserving_convertible_to<float, complex<float>>);
-  static_assert( __value_preserving_convertible_to<float, complex<double>>);
-  static_assert( __value_preserving_convertible_to<double, complex<double>>);
-  static_assert(!__value_preserving_convertible_to<double, complex<float>>);
 
   static_assert(!__broadcast_constructible<int, float>);
   static_assert(!__broadcast_constructible<int&, float>);
   static_assert(!__broadcast_constructible<int&&, float>);
   static_assert(!__broadcast_constructible<const int&, float>);
   static_assert(!__broadcast_constructible<const int, float>);
-
-  static_assert( __broadcast_constructible<complex<float>, complex<float>>);
-  static_assert( __broadcast_constructible<complex<float>, complex<double>>);
-  static_assert(!__broadcast_constructible<complex<double>, complex<float>>);
 
   static_assert(!__math_floating_point<int>);
   static_assert(!__math_floating_point<float>);
@@ -93,8 +62,6 @@ namespace test02
 #else
   static_assert(!has_type_member<common_type<int, simd::vec<float>>>);
 #endif
-
-  constexpr simd::vec<complex<double>>::mask_type k = {};
 }
 
 #if defined __AVX__ && !defined __AVX2__
@@ -111,9 +78,7 @@ static_assert(std::same_as<decltype(+simd::mask<float, 8>()), simd::vec<int, 8>>
 
 #if defined __SSE__ && !defined __F16C__
 static_assert(simd::vec<std::float16_t>::size() == 1);
-static_assert(simd::vec<std::complex<std::float16_t>>::size() == 1);
 static_assert(simd::mask<std::float16_t>::size() == 1);
-static_assert(simd::mask<std::complex<std::float16_t>>::size() == 1);
 static_assert(alignof(simd::vec<std::float16_t, 8>) == alignof(std::float16_t));
 static_assert(alignof(simd::rebind_t<std::float16_t, simd::vec<float>>) == alignof(std::float16_t));
 static_assert(simd::rebind_t<std::float16_t, simd::mask<float>>::abi_type::_S_nreg
@@ -242,37 +207,16 @@ template <template <typename> class Tpl>
     Tpl<unsigned long long> p;
 #ifdef __STDCPP_FLOAT16_T__
     Tpl<std::float16_t> q;
-    Tpl<std::complex<std::float16_t>> qc;
 #endif
 #ifdef __STDCPP_FLOAT32_T__
     Tpl<std::float32_t> r;
-    Tpl<std::complex<std::float32_t>> rc;
 #endif
 #ifdef __STDCPP_FLOAT64_T__
     Tpl<std::float64_t> s;
-    Tpl<std::complex<std::float64_t>> sc;
 #endif
-    Tpl<std::complex<float>> u;
-    Tpl<std::complex<double>> v;
   };
 
 template struct instantiate_all_vectorizable<test_usable_simd>;
-
-// vec broadcast ctor ///////////////
-namespace test_broadcast
-{
-  using std::constructible_from;
-  using std::complex;
-  using simd::vec;
-
-  static_assert(constructible_from<simd::vec<complex<float>>, complex<float>>);
-  static_assert(constructible_from<simd::vec<complex<double>>, complex<float>>);
-
-  constexpr simd::vec<complex<double>, 2> cd2 = 1.f; // broadcast real from float
-  static_assert(all_of(cd2.real() == 1));
-  static_assert(all_of(cd2.imag() == 0));
-  static_assert(all_of(cd2 == complex{1.f, 0.f}));
-}
 
 // vec generator ctor ///////////////
 
@@ -288,10 +232,6 @@ namespace test_generator
   static_assert( std::constructible_from<simd::vec<float>, short (&)(int)>);
   static_assert(!std::constructible_from<simd::vec<float>, long double (&)(int)>);
   static_assert( std::constructible_from<simd::vec<float>, udt_convertible_to_float (&)(int)>);
-  static_assert( std::constructible_from<simd::vec<std::complex<double>>,
-                                         std::complex<double> (&)(int)>);
-  static_assert( std::constructible_from<simd::vec<std::complex<double>>,
-                                         std::complex<float> (&)(int)>);
 }
 
 // mask generator ctor ///////////////
@@ -427,7 +367,6 @@ static_assert([] constexpr {
 // mask conversions //////////////////
 namespace mask_conversion_tests
 {
-  using std::complex;
   using simd::mask;
 
   struct TestResult
@@ -491,10 +430,6 @@ namespace mask_conversion_tests
           check<do_test<double>(!k)>();
           check<do_test<std::float16_t>(    k)>();
           check<do_test<std::float16_t>(!k)>();
-          check<do_test<complex<float>>(    k)>();
-          check<do_test<complex<float>>(!k)>();
-          check<do_test<complex<double>>(    k)>();
-          check<do_test<complex<double>>(!k)>();
           if constexpr (P <= 2)
             do_test<T, N, P + 1>();
         }
@@ -523,8 +458,6 @@ namespace mask_conversion_tests
   static_assert(test<float>());
   static_assert(test<double>());
   static_assert(test<std::float16_t>());
-  static_assert(test<complex<float>>());
-  static_assert(test<complex<double>>());
 }
 
 // vec reductions ///////////////////
@@ -613,18 +546,6 @@ static_assert(all_of(simd::cat(simd::__iota<simd::vec<double, 4>>, simd::__iota<
 
 static_assert(all_of(simd::cat(simd::__iota<simd::vec<double, 4>>, simd::__iota<simd::vec<double, 4>> + 4)
                        == simd::__iota<simd::vec<double, 8>>));
-
-static_assert(all_of(simd::cat(simd::__iota<simd::vec<complex<float>, 1>>,
-                               simd::__iota<simd::vec<complex<float>, 1>> + 1.f)
-                       == simd::__iota<simd::vec<complex<float>, 2>>));
-
-static_assert(all_of(simd::cat(simd::__iota<simd::vec<complex<float>, 3>>,
-                               simd::__iota<simd::vec<complex<float>, 3>> + 3.f)
-                       == simd::__iota<simd::vec<complex<float>, 6>>));
-
-static_assert(all_of(simd::cat(simd::__iota<simd::vec<complex<float>, 8>>,
-                               simd::__iota<simd::vec<complex<float>, 8>> + 8.f)
-                       == simd::__iota<simd::vec<complex<float>, 16>>));
 
 // select ////////////////////////
 

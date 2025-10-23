@@ -31,12 +31,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpsabi"
 
-// TODO: remove the following for libstdc++
-// Work around _GLIBCXX_CLANG not being defined with older libstdc++ when compiling with Clang
-#if __GLIBCXX__ < 20250922 && defined __clang__ && __GNUC_MINOR__ == 2 && !defined _GLIBCXX_CLANG
-#define _GLIBCXX_CLANG __clang__
-#endif
-
 #if defined __x86_64__ && !__SSE2__
 #error "Use of SSE2 is required on x86-64"
 #endif
@@ -159,11 +153,6 @@ namespace std::simd
   {
     _BitMask      = 0x01, // AVX512 bit-masks
     _MaskVariants = 0x0f, // vector masks if bits [0:3] are 0
-    _CxIleav      = 0x10, // store complex components interleaved (ririri...)
-                          // mask elements are stored for both    (001122...)
-    _CxCtgus      = 0x20, // ... or store complex components contiguously (rrrr iiii)
-                          // mask elements are store for one component    (0123)
-    _CxVariants   = _CxIleav | _CxCtgus,
   };
 
   /** @internal
@@ -316,11 +305,6 @@ namespace std::simd
       template <typename _Tp>
         using _DataType = __canonical_vec_type_t<_Tp>;
 
-      static constexpr bool _S_is_cx_ileav = false;
-
-      // store one mask element per complex value
-      static constexpr bool _S_is_cx_ctgus = true;
-
       static constexpr bool _S_is_vecmask = false;
 
       // in principle a bool is a 1-bit bitmask, but this is asking for an AVX512 bitmask
@@ -358,27 +342,16 @@ namespace std::simd
        * The number of registers needed to represent one basic_vec for the element type that was
        * used on ABI deduction.
        *
-       * For _CxCtgus the value applies twice, once per reals and once per imags.
-       *
        * Examples:
        * - '_Abi< 8, 2>' for 'int' is 2x 128-bit
        * - '_Abi< 9, 3>' for 'int' is 2x 128-bit and 1x 32-bit
        * - '_Abi<10, 3>' for 'int' is 2x 128-bit and 1x 64-bit
        * - '_Abi<10, 1>' for 'int' is 1x 512-bit
        * - '_Abi<10, 2>' for 'int' is 1x 256-bit and 1x 64-bit
-       * - '_Abi< 8, 2, _CxIleav>' for 'complex<float>' is 2x 256-bit
-       * - '_Abi< 9, 2, _CxIleav>' for 'complex<float>' is 1x 512-bit and 1x 64-bit
-       * - '_Abi< 8, 1, _CxCtgus>' for 'complex<float>' is 2x 256-bit
        */
       static constexpr int _S_nreg = _Nreg;
 
       static constexpr _AbiVariant _S_variant = static_cast<_AbiVariant>(_Var);
-
-      static constexpr bool _S_is_cx_ileav
-        = __filter_abi_variant(_S_variant, _AbiVariant::_CxIleav) == _AbiVariant::_CxIleav;
-
-      static constexpr bool _S_is_cx_ctgus
-        = __filter_abi_variant(_S_variant, _AbiVariant::_CxCtgus) == _AbiVariant::_CxCtgus;
 
       static constexpr bool _S_is_bitmask
         = __filter_abi_variant(_S_variant, _AbiVariant::_BitMask) == _AbiVariant::_BitMask;
@@ -388,8 +361,6 @@ namespace std::simd
       template <typename _Tp>
         using _DataType = decltype([] {
                             static_assert(_S_nreg == 1);
-                            static_assert(!_S_is_cx_ileav);
-                            static_assert(!_S_is_cx_ctgus);
                             constexpr int __n = __bit_ceil(unsigned(_S_size));
                             using _Vp [[__gnu__::__vector_size__(sizeof(_Tp) * __n)]]
                               = __canonical_vec_type_t<_Tp>;
@@ -399,7 +370,6 @@ namespace std::simd
       template <size_t _Bytes>
         using _MaskDataType
           = decltype([] {
-              static_assert(!_S_is_cx_ileav);
               if constexpr (_S_is_bitmask)
                 {
                   if constexpr (_Nreg > 1)
@@ -419,7 +389,7 @@ namespace std::simd
         consteval auto
         _M_resize() const
         {
-          if constexpr (_N2 == 1 && !_S_is_cx_ileav)
+          if constexpr (_N2 == 1)
             return _ScalarAbi<1>();
           else
             return _Abi<_N2, _Nreg2, _Var>();
@@ -899,12 +869,7 @@ namespace std::simd
         return _InvalidAbi();
       else if constexpr (__complex_like<_Tp>)
         {
-          constexpr auto __underlying = __native_abi<typename _Tp::value_type>();
-          if constexpr (__underlying._S_size == 1)
-            return _ScalarAbi<1>();
-          else
-            return _Abi_t<__underlying._S_size / 2, 1,
-                          __underlying._S_variant, _AbiVariant::_CxIleav>();
+          static_assert(false);
         }
       else if constexpr (_Traits._M_have_avx512fp16())
         return _Abi_t<64 / sizeof(_Tp), 1, _AbiVariant::_BitMask>();
@@ -1009,16 +974,8 @@ namespace std::simd
           if constexpr (__scalar_abi_tag<_A0>)
             return __deduce_abi<_Tp, _Np>();
 
-          else if constexpr (__complex_like<_Tp> && _A0::_S_is_cx_ctgus && __native._S_is_cx_ileav)
-            // we need half the number of registers since the number applies twice, to reals and
-            // imaginaries.
-            return _Abi_t<_Np, __nreg / 2, _A0::_S_variant>();
-
-          else if constexpr (__complex_like<_Tp> && _A0::_S_is_cx_ileav && __native._S_is_cx_ctgus)
-            return _Abi_t<_Np, __nreg * 2, _A0::_S_variant>();
-
           else if constexpr (__complex_like<_Tp>)
-            return _Abi_t<_Np, __nreg, _A0::_S_variant, _AbiVariant::_CxIleav>();
+            static_assert(false);
 
           else if constexpr (_Np == __nreg)
             return _ScalarAbi<_Np>();
@@ -1043,14 +1000,8 @@ namespace std::simd
     consteval auto
     __abi_rebind()
     {
-      constexpr bool __from_cx = _A0::_S_is_cx_ctgus || _A0::_S_is_cx_ileav;
-
       if constexpr (_Bytes == 0 || _Np <= 0)
         return _InvalidAbi();
-
-      // If _Bytes is sizeof(complex<double>) we can be certain it's a mask<complex<double>, _Np>.
-      else if constexpr (_Bytes == sizeof(double) * 2)
-        return __abi_rebind<complex<double>, _Np, _A0>();
 
       else if constexpr (__scalar_abi_tag<_A0>)
         {
@@ -1061,14 +1012,6 @@ namespace std::simd
             // otherwise, fresh start via __deduce_abi_t using __integer_from
             return __deduce_abi<__integer_from<_Bytes>, _Np>();
         }
-
-      // If the source ABI is complex, _Bytes == sizeof(complex<float>) or
-      // sizeof(complex<float16_t>), and _IsOnlyResize is true, then it's a mask<complex<float>,
-      // _Np>
-      else if constexpr (__from_cx && _IsOnlyResize && _Bytes == 2 * sizeof(float))
-        return __abi_rebind<complex<float>, _Np, _A0>();
-      else if constexpr (__from_cx && _IsOnlyResize && _Bytes == 2 * sizeof(_Float16))
-        return __abi_rebind<complex<_Float16>, _Np, _A0>();
 
 #if _GLIBCXX_X86
       // AVX w/o AVX2:
@@ -1130,16 +1073,6 @@ namespace std::simd
       else if constexpr (_From::_S_nreg != _To::_S_nreg)
         return _From::_S_nreg < _To::_S_nreg;
 
-      // differ only on _Cx flags
-      // interleaved complex is worse
-      else if constexpr (_To::_S_is_cx_ileav)
-        return true;
-      else if constexpr (_From::_S_is_cx_ileav)
-        return false;
-
-      // prefer non-_Cx over _CxCtgus
-      else if constexpr (_To::_S_is_cx_ctgus)
-        return true;
       else
         __builtin_unreachable();
 #endif
@@ -1362,13 +1295,6 @@ namespace std::simd
   template <typename _Vp>
     concept __simd_integral
       = __simd_vec_type<_Vp> && integral<typename _Vp::value_type>;
-
-  template <typename _Vp>
-    using __simd_complex_value_type = typename _Vp::value_type::value_type;
-
-  template <typename _Vp>
-    concept __simd_complex
-      = __simd_vec_type<_Vp> && __complex_like_impl<typename _Vp::value_type>;
 
   template <typename _Tp>
     using __deduced_vec_t

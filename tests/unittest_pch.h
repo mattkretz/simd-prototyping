@@ -336,7 +336,7 @@ template <typename V>
         using T = typename V::value_type;
         if constexpr (complex_like<T>)
           { // fix up nan == nan and (inf,nan) == (inf,?)
-            eq |= M(isnan(a.real()) && isnan(a.imag()) && isnan(b.real()) && isnan(a.imag()))
+            eq |= M(a.real()._M_isnan() && a.imag()._M_isnan() && b.real()._M_isnan() && a.imag()._M_isnan())
 #if 0
                     || (isinf(a.real()) && isunordered(a.imag(), b.imag())
                             && a.real() == b.real())
@@ -349,7 +349,7 @@ template <typename V>
           }
         else if constexpr (std::is_floating_point_v<T>)
           { // fix up nan == nan results
-            eq |= isnan(a) && isnan(b);
+            eq |= a._M_isnan() && b._M_isnan();
           }
         else
           return false;
@@ -832,9 +832,6 @@ template <typename V, int Init = 0, int MaxArg = int(test_iota_max<V, Init>)>
                     i -= Max - Init + 1;
                 }
               using T = value_type_t<V>;
-              if constexpr (std::simd::__simd_complex<V>)
-                return std::complex<T>(T(i), T());
-              else
                 return static_cast<T>(i);
             });
 

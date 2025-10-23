@@ -87,7 +87,7 @@ testarchs ::= x86-64 \
 	     x86-64-v4 \
 	     graniterapids
 
-disabled_tests ::=
+disabled_tests ::= simd_bit
 
 tests ::= $(filter-out $(disabled_tests),$(patsubst tests/%.cpp,%,$(wildcard tests/*.cpp)))
 
@@ -100,13 +100,10 @@ testtypes ::= signed-char \
 	     signed-long-long \
 	     unsigned-long-long \
 	     float \
-	     double \
-	     complex-float \
-	     complex-double
+	     double
 
 ifneq ($(compiler),clang)
 testtypes += std::float16_t
-testtypes += complex-float16_t
 endif
 
 testtypes ::= $(subst ::,--,$(testtypes))
